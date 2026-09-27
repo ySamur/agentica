@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "jsx-a11y", "oxc", "unicorn"],
+  "env": { "browser": true, "es2022": true },
+  "categories": { "correctness": "error", "suspicious": "warn" },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/react-in-jsx-scope": "off",
+    "react/exhaustive-effect-dependencies": "off",
+    "react/set-state-in-effect": "warn",
+    "jsx-a11y/prefer-tag-over-role": "warn"
+  },
+  "overrides": [
+    { "files": ["tests/**", "*.config.ts"], "env": { "node": true } }
+  ],
+  "ignorePatterns": ["dist/**", ".local/**", "test-results/**"]
+}

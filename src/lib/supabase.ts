@@ -1,0 +1,58 @@
+import { createClient } from '@supabase/supabase-js';
+
+export type MemberContent = { slug: string; body: string };
+type Database = {
+  public: {
+    Tables: {
+      member_content: {
+        Row: MemberContent;
+        Insert: MemberContent;
+        Update: Partial<MemberContent>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+  };
+};
+
+const callbackUrl = new URL(window.location.href);
+const callbackHash = new URLSearchParams(callbackUrl.hash.slice(1));
+// Capture before the SDK removes the single-use OAuth code from the URL.
+export const callbackAttempt = {
+  hasCode: callbackUrl.searchParams.has('code'),
+  error: callbackUrl.searchParams.get('error') || callbackHash.get('error'),
+};
+
+function getConfiguration() {
+  const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+  if (!url || !key?.startsWith('sb_publishable_')) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return null;
+    return { url: parsed.origin, key };
+  } catch {
+    return null;
+  }
+}
+
+const configuration = getConfiguration();
+// One client per page, outside React: StrictMode must not exchange a code twice.
+export const supabase = configuration ? createClient<Database>(configuration.url, configuration.key, {
+  auth: {
+    flowType: 'pkce',
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: window.location.pathname === '/auth/callback',
+  },
+  global: {
+    fetch: (input, init) => {
+      const timeout = AbortSignal.timeout(12000);
+      // AbortSignal.any is missing before Safari 17.4; keep the caller's signal there.
+      const signal = !init?.signal ? timeout
+        : typeof AbortSignal.any === 'function' ? AbortSignal.any([init.signal, timeout]) : init.signal;
+      return fetch(input, { ...init, signal });
+    },
+  },
+}) : null;
