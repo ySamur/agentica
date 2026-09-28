@@ -7,6 +7,7 @@
 .DS_Store
 npm-debug.log*
 
-# personal Claude Code settings
+# personal Claude Code settings and MCP servers
 .claude/settings.local.json
+.mcp.json
 CLAUDE.local.md
