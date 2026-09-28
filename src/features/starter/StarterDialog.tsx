@@ -15,8 +15,9 @@ export function StarterDialog({ open, onClose }: { open: boolean; onClose: () =>
   const textArea = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (open) { dialog.current?.showModal(); document.body.style.overflow = 'hidden'; }
-    else { dialog.current?.close(); document.body.style.overflow = ''; }
+    if (!open) { dialog.current?.close(); return; }
+    dialog.current?.showModal();
+    document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 

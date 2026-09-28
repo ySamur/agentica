@@ -16,6 +16,14 @@ const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage').the
 const ProfilePage = lazy(() => import('../pages/settings/ProfilePage').then(module => ({ default: module.ProfilePage })));
 const ContentPage = lazy(() => import('../pages/content/ContentPage').then(module => ({ default: module.ContentPage })));
 
+const titles: Record<string, string> = {
+  '/': 'Вы создаёте. Агенты ускоряют.',
+  '/login': 'Вход и регистрация',
+  '/auth/callback': 'Завершение входа',
+  '/settings/profile': 'Настройки профиля',
+  '/content': 'Контент для участников',
+};
+
 function Layout() {
   const [starterOpen, setStarterOpen] = useState(false);
   const location = useLocation();
@@ -23,13 +31,6 @@ function Layout() {
   const openStarter = () => setStarterOpen(true);
 
   useEffect(() => {
-    const titles: Record<string, string> = {
-      '/': 'Вы создаёте. Агенты ускоряют.',
-      '/login': 'Вход и регистрация',
-      '/auth/callback': 'Завершение входа',
-      '/settings/profile': 'Настройки профиля',
-      '/content': 'Контент для участников',
-    };
     document.title = `agentica — ${titles[location.pathname] || 'Страница не найдена'}`;
     if (!['/login', '/auth/callback'].includes(location.pathname)) clearDestination();
     const frame = requestAnimationFrame(() => {

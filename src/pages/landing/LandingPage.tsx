@@ -17,13 +17,27 @@ const processSteps = [
   { number: '03', title: 'Примите результат', text: 'Проверьте изменения, дайте обратную связь и двигайтесь дальше.', icon: 'check' },
 ] as const;
 
+const timelines = {
+  agents: [
+    { icon: 'target', label: 'Вы задаёте цель и ограничения', who: 'ВЫ' },
+    { icon: 'layers', label: 'Агент исследует и предлагает план', who: 'АГЕНТ' },
+    { icon: 'code', label: 'Реализация, тесты, проверка', who: 'АГЕНТ' },
+    { icon: 'check', label: 'Вы проверяете и принимаете', who: 'ВЫ' },
+  ],
+  solo: [
+    { icon: 'target', label: 'Определить задачу и подход', who: 'ВЫ' },
+    { icon: 'layers', label: 'Изучить код и документацию', who: 'ВЫ' },
+    { icon: 'code', label: 'Написать код и тесты', who: 'ВЫ' },
+    { icon: 'check', label: 'Проверить и подготовить релиз', who: 'ВЫ' },
+  ],
+} as const;
+
 export function LandingPage() {
   const { openStarter } = useOutletContext<PageContext>();
   const [withAgents, setWithAgents] = useState(true);
   const [openQuestion, setOpenQuestion] = useState<number | null>(0);
 
   return <>
-
     <main id="main">
       <section className="hero container" id="home">
         <div className="hero-copy">
@@ -38,7 +52,7 @@ export function LandingPage() {
 
       <div className="toolbelt container"><span className="toolbelt-caption">НОВЫЙ ПОДХОД.<br /><strong>ЗНАКОМЫЙ СТЕК.</strong></span><div className="stack-items"><span><Icon name="code" />Любой код</span><span><Icon name="terminal" />Ваша IDE</span><span><Icon name="branch" />Ваш Git</span><span><Icon name="layers" />Ваши процессы</span></div><span className="toolbelt-end">Всё на своих местах.<Icon name="arrowUp" size={15} /></span></div>
 
-      <section className="section why-section container" id="why">
+      <section className="section container" id="why">
         <div className="section-topline"><span className="section-eyebrow"><span className="small-square" /> ПОЧЕМУ ЭТО МЕНЯЕТ ПРАВИЛА</span><span className="section-index">[ 01 — ПРЕИМУЩЕСТВА ]</span></div>
         <div className="section-heading"><h2>Ваш опыт.<br /><span className="muted-heading">Теперь с усилением.</span></h2><p>Хорошая разработка — это решения, а не количество<br className="desktop-break" /> написанных строк. Освободите для них место.</p></div>
         <div className="benefit-grid">
@@ -54,18 +68,8 @@ export function LandingPage() {
           <div className="comparison-demo">
             <div className="comparison-toggle" role="group" aria-label="Сравнение подходов"><button aria-pressed={!withAgents} onClick={() => setWithAgents(false)}>Самостоятельно</button><button aria-pressed={withAgents} onClick={() => setWithAgents(true)}><Icon name="spark" size={14} /> С ИИ-агентами</button></div>
             <div className="comparison-task"><span>ЗАДАЧА</span><strong>Добавить новую функцию</strong><Icon name="arrowUp" size={15} /></div>
-            <div className={`timeline ${withAgents ? 'timeline-agents' : ''}`} aria-live="polite">
-              {(withAgents ? [
-                { icon: 'target', label: 'Вы задаёте цель и ограничения', who: 'ВЫ', accent: true },
-                { icon: 'layers', label: 'Агент исследует и предлагает план', who: 'АГЕНТ', accent: false },
-                { icon: 'code', label: 'Реализация, тесты, проверка', who: 'АГЕНТ', accent: false },
-                { icon: 'check', label: 'Вы проверяете и принимаете', who: 'ВЫ', accent: true },
-              ] as const : [
-                { icon: 'target', label: 'Определить задачу и подход', who: 'ВЫ', accent: false },
-                { icon: 'layers', label: 'Изучить код и документацию', who: 'ВЫ', accent: false },
-                { icon: 'code', label: 'Написать код и тесты', who: 'ВЫ', accent: false },
-                { icon: 'check', label: 'Проверить и подготовить релиз', who: 'ВЫ', accent: false },
-              ] as const).map((item, index) => <div className={`timeline-row ${item.accent ? 'timeline-accent' : ''}`} key={`${withAgents}-${index}`}><span className="timeline-icon"><Icon name={item.icon} size={16} /></span><span>{item.label}</span><span className="timeline-who">{item.who}</span></div>)}
+            <div className="timeline" aria-live="polite">
+              {timelines[withAgents ? 'agents' : 'solo'].map((item, index) => <div className={`timeline-row ${withAgents && item.who === 'ВЫ' ? 'timeline-accent' : ''}`} key={`${withAgents}-${index}`}><span className="timeline-icon"><Icon name={item.icon} size={16} /></span><span>{item.label}</span><span className="timeline-who">{item.who}</span></div>)}
             </div>
             <div className="comparison-result"><span className="live-dot" /><span>{withAgents ? 'Меньше переключений. Больше пространства для решений.' : 'На каждом этапе — ваше время и внимание.'}</span></div>
           </div>

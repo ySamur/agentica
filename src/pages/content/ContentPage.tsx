@@ -17,9 +17,9 @@ export function ContentPage() {
     setLoading(true);
     setContent(null);
     setError('');
-    async function load() {
+    const load = async () => {
       try {
-        const client = await pending!;
+        const client = await pending;
         if (controller.signal.aborted) return;
         const { data, error: requestError, status } = await client.from('member_content').select('slug, body').eq('slug', 'test').abortSignal(controller.signal).single().retry(false);
         if (controller.signal.aborted) return;
@@ -31,12 +31,12 @@ export function ContentPage() {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }
+    };
     void load();
     return () => controller.abort();
   }, [user?.id, attempt, signOut]);
 
-  return <main id="main" className="account-page container content-page">
+  return <main id="main" className="account-page container">
     <div className="page-heading"><span className="section-eyebrow"><span className="small-square" /> ДЛЯ УЧАСТНИКОВ</span><h1>Ваше пространство<span className="muted-heading">.</span></h1><p>Материалы, доступные после входа.</p></div>
     <section className="account-card content-card" aria-live="polite">
       <div className="content-card-top"><span className="account-emblem"><Icon name="layers" size={26} /></span><span className="connected-label"><Icon name="shield" size={13} /> Только для участников</span></div>

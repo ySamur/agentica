@@ -27,7 +27,7 @@ export function WorkflowDemo() {
   }
 
   return <div className="workflow-scene" id="workflow-demo">
-    <div className="scene-orbit orbit-one" /><div className="scene-orbit orbit-two" />
+    <div className="scene-orbit" /><div className="scene-orbit orbit-two" />
     <div className="scene-caption"><span className="tiny-cross">+</span> ОТ ИДЕИ ДО РЕЗУЛЬТАТА <span className="caption-line" /></div>
     <div className="workspace">
       <div className="workspace-topbar"><div className="window-dots"><i /><i /><i /></div><span><Icon name="branch" size={13} /> your-next-big-idea</span><Icon name="terminal" size={15} /></div>

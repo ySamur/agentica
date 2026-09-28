@@ -25,7 +25,7 @@ export function ProfilePage() {
     finally { setBusy(false); }
   }
 
-  return <main id="main" className="account-page container settings-page">
+  return <main id="main" className="account-page container">
     <div className="page-heading"><span className="section-eyebrow"><span className="small-square" /> ВАШ АККАУНТ</span><h1>Настройки<span className="muted-heading">.</span></h1><p>Ваш профиль и то, как вас видят на сайте.</p></div>
     <div className="settings-grid">
       <nav className="settings-nav" aria-label="Настройки"><Link to="/settings/profile" aria-current="page"><Icon name="target" size={18} />Профиль</Link><Link to="/content"><Icon name="layers" size={18} />Контент<Icon name="arrowUp" size={14} /></Link></nav>

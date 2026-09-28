@@ -54,9 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let revision = 0;
     let unsubscribe = () => {};
 
-    async function restore() {
+    const restore = async () => {
       try {
-        const client = await pending!;
+        const client = await pending;
         if (!active) return;
         const { data: { subscription } } = client.auth.onAuthStateChange((event, nextSession) => {
           if (!active) return;
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (active) setLoading(false);
       }
-    }
+    };
     void restore();
     return () => { active = false; unsubscribe(); };
   }, []);

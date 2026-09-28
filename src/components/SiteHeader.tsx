@@ -5,16 +5,17 @@ import { AccountMenu } from '../features/auth/AccountMenu';
 
 export function SiteHeader({ onStart }: { onStart: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  function start() { setMenuOpen(false); onStart(); }
+  const closeMenu = () => setMenuOpen(false);
+  function start() { closeMenu(); onStart(); }
   return <>
     <a className="skip-link" href="#main">Перейти к содержимому</a>
     <header className="site-header">
       <div className="container header-inner">
         <Brand />
         <nav className={`main-nav ${menuOpen ? 'nav-open' : ''}`} id="main-navigation" aria-label="Главная навигация">
-          <Link to="/#why" onClick={() => setMenuOpen(false)}>Почему агенты</Link>
-          <Link to="/#how" onClick={() => setMenuOpen(false)}>Как это работает</Link>
-          <Link to="/#questions" onClick={() => setMenuOpen(false)}>Вопросы <Icon name="chevron" size={13} /></Link>
+          <Link to="/#why" onClick={closeMenu}>Почему агенты</Link>
+          <Link to="/#how" onClick={closeMenu}>Как это работает</Link>
+          <Link to="/#questions" onClick={closeMenu}>Вопросы <Icon name="chevron" size={13} /></Link>
           <button className="mobile-start" onClick={start}>Начать с агентами <Icon name="arrow" size={16} /></button>
         </nav>
         <div className="header-actions">

@@ -1,6 +1,4 @@
 @layer components {
-  .header-inner { gap: 24px; }
-  .main-nav { margin-left: 0; gap: 25px; }
   .header-actions { display: flex; align-items: center; gap: 20px; }
   .login-link { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; white-space: nowrap; }
   .login-link:hover { color: var(--green); }
@@ -78,8 +76,6 @@
 
 @layer responsive {
   @media (max-width: 1150px) {
-    .header-inner { gap: 18px; }
-    .main-nav { gap: 18px; }
     .header-actions { gap: 14px; }
     .account-trigger-name { display: none; }
   }
