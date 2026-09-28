@@ -6,7 +6,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
 2. **Google Cloud** project `agentica` → Google Auth Platform. Branding: app name, support and contact email. Audience: External (in Testing mode add test users; public use needs Google verification). Data Access: only `openid`, `userinfo.email`, `userinfo.profile`. Client: Web application; JS origins `http://localhost:3000`, `http://localhost:3001` (plus any other local port); redirect URI is the Supabase callback. Client ID and Secret go only into Supabase's Google provider; enable it.
 3. **Supabase URL Configuration**: Site URL `http://localhost:3000`; Redirect URLs `http://localhost:*/auth/callback` (dev only; production needs HTTPS and exact URLs). Flow: site → Supabase → Google → Supabase callback → `/auth/callback`. Open the site via `localhost`, not a LAN IP.
 4. **SQL Editor**: run `supabase/migrations/202609240001_member_content.sql` once (table, row `slug = 'test'`, grants, RLS). The site name lives in `user_metadata.display_name`; no profiles table.
-5. **`.env.local`** from `.env.example`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
+5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 
 ## Manual acceptance (automated tests use fixtures only)
 - Guest `/content` shows login without protected text; Google sign-in returns to `/content` with «тест контент».

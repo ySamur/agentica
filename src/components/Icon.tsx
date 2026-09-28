@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
-export type IconName = 'arrow' | 'arrowUp' | 'chevron' | 'play' | 'pause' | 'check' | 'code' | 'layers' | 'shield' | 'spark' | 'terminal' | 'branch' | 'close' | 'menu' | 'copy' | 'plus' | 'refresh' | 'command' | 'target';
+type IconName = 'arrow' | 'arrowUp' | 'chevron' | 'play' | 'pause' | 'check' | 'code' | 'layers' | 'shield' | 'spark' | 'terminal' | 'branch' | 'close' | 'menu' | 'copy' | 'plus' | 'refresh' | 'command' | 'target';
 
 const paths: Record<IconName, ReactNode> = {
   arrow: <path d="M4 12h15m-6-6 6 6-6 6" />,

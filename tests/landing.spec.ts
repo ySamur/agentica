@@ -13,8 +13,7 @@ test('page loads without runtime errors or horizontal overflow', async ({ page }
   await page.screenshot({ path: `.local/screenshots/${testInfo.project.name}-viewport.png` });
 });
 
-test('starter dialog supports keyboard tabs, copying and Escape', async ({ page, context, browserName }) => {
-  test.skip(browserName !== 'chromium', 'Clipboard permission is Chromium-specific.');
+test('starter dialog supports keyboard tabs, copying and Escape', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
   await page.locator('.hero-actions').getByRole('button', { name: 'Начать с агентами' }).click();
