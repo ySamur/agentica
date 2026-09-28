@@ -188,3 +188,16 @@ test('missing configuration keeps the landing and login usable', async ({ page }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `.local/screenshots/login-${testInfo.project.name}.png`, fullPage: true });
 });
+
+test('landing stays usable when the lazily loaded auth SDK fails to download', async ({ page, context }) => {
+  await mockAuth(context, { signedIn: true });
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  // Matches the SDK module in both pre-bundled (@supabase_supabase-js) and raw (@supabase/supabase-js) form.
+  await context.route(/@supabase[_/]supabase-js/, route => route.abort());
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Вы создаёте.');
+  await expect(page.getByText('Не удалось восстановить сессию')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Войти', exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
+});

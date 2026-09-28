@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type MemberContent = { slug: string; body: string };
 type Database = {
@@ -38,21 +38,34 @@ function getConfiguration() {
 }
 
 const configuration = getConfiguration();
+export const supabaseConfigured = configuration !== null;
+
+let client: Promise<SupabaseClient<Database>> | null = null;
+
+// The SDK is about 40% of the bundle, so it loads after the first render.
 // One client per page, outside React: StrictMode must not exchange a code twice.
-export const supabase = configuration ? createClient<Database>(configuration.url, configuration.key, {
-  auth: {
-    flowType: 'pkce',
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: window.location.pathname === '/auth/callback',
-  },
-  global: {
-    fetch: (input, init) => {
-      const timeout = AbortSignal.timeout(12000);
-      // AbortSignal.any is missing before Safari 17.4; keep the caller's signal there.
-      const signal = !init?.signal ? timeout
-        : typeof AbortSignal.any === 'function' ? AbortSignal.any([init.signal, timeout]) : init.signal;
-      return fetch(input, { ...init, signal });
+export function getSupabase() {
+  if (!configuration) return null;
+  client ??= import('@supabase/supabase-js').then(({ createClient }) => createClient<Database>(configuration.url, configuration.key, {
+    auth: {
+      flowType: 'pkce',
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: callbackUrl.pathname === '/auth/callback',
     },
-  },
-}) : null;
+    global: {
+      fetch: (input, init) => {
+        const timeout = AbortSignal.timeout(12000);
+        // AbortSignal.any is missing before Safari 17.4; keep the caller's signal there.
+        const signal = !init?.signal ? timeout
+          : typeof AbortSignal.any === 'function' ? AbortSignal.any([init.signal, timeout]) : init.signal;
+        return fetch(input, { ...init, signal });
+      },
+    },
+  })).catch((cause: unknown) => {
+    // Let a later call retry a failed chunk download instead of caching the failure.
+    client = null;
+    throw cause;
+  });
+  return client;
+}

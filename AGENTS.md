@@ -7,7 +7,7 @@ This Russian-language React/TypeScript/Vite app includes a landing page and Supa
 - `src/main.tsx` bootstraps the app; `src/app/App.tsx` composes pages.
 - `src/pages/landing/` contains the landing page.
 - Other `src/pages/` directories contain login, profile, and protected content.
-- `src/features/auth/` owns sessions and account navigation; `src/lib/supabase.ts` initializes the SDK once.
+- `src/features/auth/` owns sessions and account navigation; `src/lib/supabase.ts` loads the SDK lazily and creates one client (`getSupabase()`); only the landing is in the main chunk, other pages use `React.lazy`.
 - `src/features/workflow/` and `src/features/starter/` own the agent demonstration and prompt dialog.
 - `src/components/` contains shared components and SVG icons.
 - `src/styles.css` and `src/account.css` contain layered, responsive styles.

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { useLocation, useNavigate } from 'react-router';
-import { supabase } from '../../lib/supabase';
+import { getSupabase, supabaseConfigured } from '../../lib/supabase';
 import { clearDestination, rememberDestination } from './redirect';
 
 export type AppUser = { id: string; email: string; displayName: string; avatarUrl: string | null };
@@ -35,7 +35,7 @@ function mapUser(user: User): AppUser {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(Boolean(supabase));
+  const [loading, setLoading] = useState(supabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const navigate = useNavigate();
@@ -48,23 +48,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, session, signingOut]);
 
   useEffect(() => {
-    const client = supabase;
-    if (!client) return;
+    const pending = getSupabase();
+    if (!pending) return;
     let active = true;
     let revision = 0;
-    const { data: { subscription } } = client.auth.onAuthStateChange((event, nextSession) => {
-      if (!active) return;
-      revision += 1;
-      setSession(nextSession);
-      if (event === 'SIGNED_OUT') clearDestination();
-    });
+    let unsubscribe = () => {};
 
     async function restore() {
       try {
-        const initialized = await client!.auth.initialize();
+        const client = await pending!;
+        if (!active) return;
+        const { data: { subscription } } = client.auth.onAuthStateChange((event, nextSession) => {
+          if (!active) return;
+          revision += 1;
+          setSession(nextSession);
+          if (event === 'SIGNED_OUT') clearDestination();
+        });
+        unsubscribe = () => subscription.unsubscribe();
+        const initialized = await client.auth.initialize();
         if (initialized.error) throw initialized.error;
         const currentRevision = revision;
-        const result = await client!.auth.getSession();
+        const result = await client.auth.getSession();
         if (result.error) throw result.error;
         if (active && currentRevision === revision) setSession(result.data.session);
       } catch {
@@ -74,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     void restore();
-    return () => { active = false; subscription.unsubscribe(); };
+    return () => { active = false; unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -86,11 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const signIn = useCallback(async (destination: string) => {
-    if (!supabase) throw new Error('Вход временно недоступен. Попробуйте позже.');
+    const pending = getSupabase();
+    if (!pending) throw new Error('Вход временно недоступен. Попробуйте позже.');
     setError(null);
     try {
       rememberDestination(destination);
-      const { error: signInError } = await supabase.auth.signInWithOAuth({
+      const client = await pending;
+      const { error: signInError } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
@@ -105,10 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async (returnHome = false) => {
-    if (!supabase) return;
+    const pending = getSupabase();
+    if (!pending) return;
     setSigningOut(true);
     try {
-      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      const client = await pending;
+      const { error: signOutError } = await client.auth.signOut({ scope: 'local' });
       setSession(null);
       clearDestination();
       setError(signOutError ? 'Вы вышли на этом устройстве. Сервер недоступен: завершение удалённой сессии не подтверждено.' : null);
@@ -123,10 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasSession = Boolean(session);
   const updateName = useCallback(async (value: string) => {
-    if (!supabase || !hasSession) throw new Error('Сессия завершена. Войдите снова.');
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error('Сессия завершена. Войдите снова.');
     const name = value.trim();
     if (!name) throw new Error('Введите имя.');
-    const { error: updateError } = await supabase.auth.updateUser({ data: { display_name: name } });
+    const client = await pending;
+    const { error: updateError } = await client.auth.updateUser({ data: { display_name: name } });
     if (updateError) {
       if (updateError.status === 401 || updateError.status === 403) await signOut();
       throw new Error('Не удалось сохранить имя. Проверьте соединение и попробуйте ещё раз.');
@@ -138,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sessionUser = session?.user;
   const user = useMemo(() => sessionUser ? mapUser(sessionUser) : null, [sessionUser]);
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signingOut, configured: Boolean(supabase), error, signIn, signOut, updateName }),
+    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signOut, updateName }),
     [user, loading, signingOut, error, signIn, signOut, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

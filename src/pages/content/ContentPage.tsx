@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, type MemberContent } from '../../lib/supabase';
+import { getSupabase, type MemberContent } from '../../lib/supabase';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { Icon } from '../../components/Icon';
 
@@ -11,14 +11,17 @@ export function ContentPage() {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!supabase || !user) return;
+    const pending = getSupabase();
+    if (!pending || !user) return;
     const controller = new AbortController();
     setLoading(true);
     setContent(null);
     setError('');
     async function load() {
       try {
-        const { data, error: requestError, status } = await supabase!.from('member_content').select('slug, body').eq('slug', 'test').abortSignal(controller.signal).single().retry(false);
+        const client = await pending!;
+        if (controller.signal.aborted) return;
+        const { data, error: requestError, status } = await client.from('member_content').select('slug, body').eq('slug', 'test').abortSignal(controller.signal).single().retry(false);
         if (controller.signal.aborted) return;
         if (status === 401) { await signOut(); return; }
         if (requestError || !data) throw requestError;

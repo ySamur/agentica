@@ -1,10 +1,6 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { LandingPage } from '../pages/landing/LandingPage';
-import { LoginPage } from '../pages/auth/LoginPage';
-import { AuthCallbackPage } from '../pages/auth/AuthCallbackPage';
-import { ProfilePage } from '../pages/settings/ProfilePage';
-import { ContentPage } from '../pages/content/ContentPage';
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { clearDestination } from '../features/auth/redirect';
@@ -13,6 +9,12 @@ import { SiteHeader } from '../components/SiteHeader';
 import { PageStatus } from '../components/PageStatus';
 
 export type PageContext = { openStarter: () => void };
+
+// Only the landing ships in the main chunk; other pages load on first visit.
+const LoginPage = lazy(() => import('../pages/auth/LoginPage').then(module => ({ default: module.LoginPage })));
+const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage').then(module => ({ default: module.AuthCallbackPage })));
+const ProfilePage = lazy(() => import('../pages/settings/ProfilePage').then(module => ({ default: module.ProfilePage })));
+const ContentPage = lazy(() => import('../pages/content/ContentPage').then(module => ({ default: module.ContentPage })));
 
 function Layout() {
   const [starterOpen, setStarterOpen] = useState(false);
@@ -41,7 +43,9 @@ function Layout() {
     {/* Remounting per route resets the mobile and account menus after any navigation. */}
     <SiteHeader key={location.pathname} onStart={openStarter} />
     {error && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error}</p>}
-    <Outlet context={{ openStarter } satisfies PageContext} />
+    <Suspense fallback={<PageStatus title="Загружаем страницу…" />}>
+      <Outlet context={{ openStarter } satisfies PageContext} />
+    </Suspense>
     <StarterDialog open={starterOpen} onClose={() => setStarterOpen(false)} />
   </>;
 }
