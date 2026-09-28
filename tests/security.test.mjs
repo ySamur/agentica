@@ -51,6 +51,24 @@ test('member_content migration enforces database privileges and RLS', async t =>
         ]) await assert.rejects(db.query(sql), denied);
       });
     });
+
+    await t.test('browser roles hold no grants beyond authenticated SELECT', async () => {
+      // RLS rejects writes with the same 42501, so check effective grants (direct, PUBLIC, inherited, column-level) separately.
+      const columnPrivileges = ['SELECT', 'INSERT', 'UPDATE', 'REFERENCES'];
+      for (const [role, expected] of [['anon', []], ['authenticated', ['table SELECT', 'column SELECT']]]) {
+        const held = [];
+        for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']) {
+          for (const mode of [privilege, `${privilege} WITH GRANT OPTION`]) {
+            for (const [level, fn] of [['table', 'has_table_privilege'], ['column', 'has_any_column_privilege']]) {
+              if (level === 'column' && !columnPrivileges.includes(privilege)) continue;
+              const { rows: [{ granted }] } = await db.query(`select ${fn}($1, 'public.member_content', $2) as granted`, [role, mode]);
+              if (granted) held.push(`${level} ${mode}`);
+            }
+          }
+        }
+        assert.deepEqual(held, expected, `${role} privileges on public.member_content`);
+      }
+    });
   } finally {
     await db.close();
   }
