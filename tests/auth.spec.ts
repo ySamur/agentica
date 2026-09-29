@@ -39,7 +39,7 @@ test('a stored session shows the cabinet, not the landing, while the auth SDK lo
   await context.route(/@supabase[_/]supabase-js/, async route => { await released; await route.continue(); });
   await page.goto('/', { waitUntil: 'commit' });
   await expect(page.getByText('Загрузка…')).toBeVisible();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Добро пожаловать');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('С возвращением');
   await expect(page.locator('main.landing-page')).toHaveCount(0);
   release();
   await expect(page.getByRole('button', { name: 'Меню аккаунта' })).toBeVisible();

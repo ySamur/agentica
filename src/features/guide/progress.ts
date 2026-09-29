@@ -30,6 +30,10 @@ export function hasStarted(progress: Progress) {
   return steps.some(step => progress.has(step.id));
 }
 
+export function resumeVerb(progress: Progress) {
+  return hasStarted(progress) ? 'Продолжить' : 'Начать маршрут';
+}
+
 // Where «Продолжить» leads: the step opened last and not yet finished; otherwise the first unfinished
 // one in the recommended order; once everything is passed, the graduation project.
 export function resumeStep(progress: Progress) {

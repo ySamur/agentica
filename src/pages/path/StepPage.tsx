@@ -1,23 +1,97 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import { Icon } from '../../components/Icon';
 import { PageStatus } from '../../components/PageStatus';
+import { useAuth } from '../../features/auth/AuthProvider';
 import { findStep, steps } from '../../features/guide/catalog';
+import { useGuideProgress } from '../../features/guide/GuideProgress';
+import { isComplete, statusLabels, type StepStatus } from '../../features/guide/progress';
 import { useArrivalFocus } from '../../lib/arrivalFocus';
+import { getSupabase } from '../../lib/supabase';
 import { nbsp } from '../../lib/typography';
 
-// One step of the route, at its own address, with its neighbours in the recommended order.
+const notes: Record<StepStatus, string> = {
+  done: 'Шаг выполнен.',
+  skipped: 'Отмечено «Уже умею»: шаг засчитан.',
+  in_progress: 'Шаг снова в работе.',
+};
+
+// One step of the route, at its own address. Its text is members-only and comes from `guide_steps`;
+// opening it records the resume point; the member marks it done or already known.
 export function StepPage() {
   const params = useParams();
-  const step = findStep(params.step);
-  const heading = useArrivalFocus<HTMLHeadingElement>(step?.id);
-  if (!step) return <PageStatus title="Страница не найдена" message="Такого шага нет в маршруте. Откройте карту и выберите нужный." />;
+  const found = findStep(params.step);
   // A step that has moved to another stage keeps working from old links and bookmarks.
-  if (step.stage.id !== params.stage) return <Navigate to={step.path} replace />;
+  const step = found && found.stage.id === params.stage ? found : undefined;
+  const stepId = step?.id;
+  const { user, signOut } = useAuth();
+  const userId = user?.id;
+  const { progress, ready, error: progressError, reload, setStatus, open } = useGuideProgress();
+  const heading = useArrivalFocus<HTMLHeadingElement>();
+  const [body, setBody] = useState<string | null>(null);
+  const [bodyFailed, setBodyFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [note, setNote] = useState('');
+  const [failure, setFailure] = useState('');
+  const actions = useRef<HTMLDivElement>(null);
+  // After the member changes the status, the buttons are replaced; focus moves to the new first one.
+  const refocus = useRef(false);
+  const status = stepId ? progress.get(stepId)?.status : undefined;
+  const finished = isComplete(status);
+
+  useEffect(() => {
+    if (ready && stepId) open(stepId);
+  }, [ready, stepId, open]);
+
+  useEffect(() => {
+    const pending = getSupabase();
+    if (!pending || !userId || !stepId) return;
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        const client = await pending;
+        if (controller.signal.aborted) return;
+        const { data, error, status: code } = await client.from('guide_steps').select('body').eq('step_id', stepId).abortSignal(controller.signal).single().retry(false);
+        if (controller.signal.aborted) return;
+        if (code === 401) { await signOut(); return; }
+        if (error || !data) throw error;
+        setBody(data.body);
+      } catch {
+        if (!controller.signal.aborted) setBodyFailed(true);
+      }
+    };
+    void load();
+    return () => controller.abort();
+  }, [stepId, userId, attempt, signOut]);
+
+  useEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    actions.current?.querySelector<HTMLElement>('a, button')?.focus();
+  }, [finished]);
+
+  if (!found) return <PageStatus title="Страница не найдена" message={nbsp('Такого шага нет в маршруте. Откройте карту и выберите нужный.')} />;
+  if (!step) return <Navigate to={found.path} replace />;
 
   const { stage } = step;
   const position = stage.steps.findIndex(item => item.id === step.id) + 1;
   const previous = steps[step.order - 1];
   const following = steps[step.order + 1];
+
+  async function mark(next: StepStatus) {
+    if (!step) return;
+    setNote('');
+    setFailure('');
+    refocus.current = true;
+    try {
+      await setStatus(step.id, next);
+      setNote(notes[next]);
+    } catch (cause) {
+      // The rollback brings the previous buttons back; focus follows them.
+      refocus.current = true;
+      setFailure(cause instanceof Error ? cause.message : 'Не удалось сохранить отметку.');
+    }
+  }
 
   return <main id="main" className="account-page container step-page">
     <nav className="step-trail" aria-label="Вы здесь">
@@ -26,7 +100,10 @@ export function StepPage() {
       <Link to={`/path#stage-${stage.id}`}>{stage.number === '★' ? stage.title : `Этап ${stage.number} · ${stage.title}`}</Link>
     </nav>
     <div className="step-heading">
-      <span className="step-code">{step.code}</span>
+      <div className="step-badges">
+        <span className="step-code">{step.code}</span>
+        {ready && <span className="step-state" data-status={status ?? 'todo'}>{statusLabels[status ?? 'todo']}</span>}
+      </div>
       <h1 id="step-title" ref={heading} tabIndex={-1}>{nbsp(step.title)}</h1>
       <p className="step-meta">{nbsp(`Шаг ${position} из ${stage.steps.length} · ${stage.promise}`)}</p>
     </div>
@@ -35,11 +112,33 @@ export function StepPage() {
         <span className="session-dots" aria-hidden="true"><i /><i /><i /></span>
         <span className="step-window-path"><Icon name="terminal" size={13} /> ~/agentica/path/{stage.id}/{step.id}.md</span>
       </div>
-      <div className="step-body">
-        <p>{nbsp('Материал этого шага готовится.')}</p>
-        <p className="step-body-note">{nbsp('Жёсткого порядка нет: можно перейти к следующему шагу и вернуться сюда позже.')}</p>
+      <div className="step-body" aria-busy={body === null && !bodyFailed}>
+        {body !== null
+          ? body.split(/\n{2,}/).map(paragraph => <p key={paragraph}>{nbsp(paragraph)}</p>)
+          : bodyFailed
+            ? <><p className="form-error" role="alert">{nbsp('Не удалось загрузить текст шага. Проверьте соединение и попробуйте ещё раз.')}</p>
+              <button type="button" className="ghost-button" onClick={() => { setBodyFailed(false); setAttempt(attempt + 1); }}>Повторить загрузку <Icon name="refresh" size={16} /></button></>
+            : <p className="step-body-pending" role="status">Загружаем шаг…</p>}
       </div>
     </article>
+    <div className="step-actions">
+      {/* The one main action: finish the step, then move on. */}
+      <div className="step-buttons" ref={actions}>
+        {finished ? <>
+          <Link className="glow-button" to={following?.path ?? '/path'}>{following ? <>Следующий шаг: <b className="button-code">{following.label}</b> {nbsp(following.title)}</> : 'Карта маршрута'} <Icon name="arrow" size={18} /></Link>
+          <button type="button" className="ghost-button" onClick={() => void mark('in_progress')}>Вернуть в работу</button>
+        </> : <>
+          <button type="button" className="glow-button" disabled={!ready} onClick={() => void mark('done')}>Выполнено <Icon name="check" size={18} /></button>
+          <button type="button" className="ghost-button" disabled={!ready} onClick={() => void mark('skipped')}>Уже умею</button>
+        </>}
+      </div>
+      <p className="step-note" role="status">{note}</p>
+      {failure && <p className="form-error" role="alert">{failure}</p>}
+      {progressError && <div className="progress-error">
+        <p role="alert">{nbsp(progressError)}</p>
+        <button type="button" className="ghost-button" onClick={reload}>Повторить загрузку <Icon name="refresh" size={16} /></button>
+      </div>}
+    </div>
     <nav className="step-pager" aria-label="Соседние шаги">
       {previous
         ? <Link className="pager-link pager-previous" to={previous.path} rel="prev"><span><Icon name="arrow" size={14} /> Назад · {previous.label}</span><strong>{nbsp(previous.title)}</strong></Link>

@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { clearDestination } from '../features/auth/redirect';
 import { stepAtPath } from '../features/guide/catalog';
+import { GuideProgressProvider } from '../features/guide/GuideProgress';
 import { StarterDialog } from '../features/starter/StarterDialog';
 import { SiteHeader } from '../components/SiteHeader';
 import { PageStatus } from '../components/PageStatus';
@@ -113,7 +114,7 @@ function IndexRoute() {
 }
 
 export default function App() {
-  return <BrowserRouter><AuthProvider><Routes>
+  return <BrowserRouter><AuthProvider><GuideProgressProvider><Routes>
     <Route element={<Layout />}>
       <Route index element={<IndexRoute />} />
       <Route path="login" element={<LoginPage />} />
@@ -129,5 +130,5 @@ export default function App() {
       </Route>
       <Route path="*" element={<PageStatus title="Страница не найдена" message="Возможно, адрес изменился. Вернёмся к вашим идеям?" />} />
     </Route>
-  </Routes></AuthProvider></BrowserRouter>;
+  </Routes></GuideProgressProvider></AuthProvider></BrowserRouter>;
 }

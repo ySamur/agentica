@@ -3,6 +3,11 @@
   .mono-count { font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); }
   .mono-count > b { font-weight: 500; color: var(--text); }
   .button-code { font-family: var(--mono); font-size: .88em; font-weight: 500; }
+  /* The main action while the progress is on its way: the pill's place, without the pill's pull. */
+  .resume-pending { opacity: .55; box-shadow: none; pointer-events: none; }
+  .resume-pending::before { display: none; }
+  .progress-error { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; }
+  .progress-error > p { max-width: 420px; color: #ffa0ad; font-size: 14px; line-height: 1.6; }
   /* A thin progress bar in the landing's gradient; `--fill` goes from 0 to 1. */
   :is(.stage-meter-cell, .path-total, .stage-card-tally) > i { position: relative; display: block; height: 2px; overflow: hidden; border-radius: 2px; background: #ffffff1a; }
   :is(.stage-meter-cell, .path-total, .stage-card-tally) > i::after { content: ''; position: absolute; inset: 0; background: var(--glow); transform-origin: 0 50%; scale: var(--fill, 0) 1; transition: scale .6s cubic-bezier(.2, .7, .2, 1); }
@@ -72,7 +77,11 @@
   .step-trail a { color: var(--soft); transition: color .2s; }
   .step-trail a:hover { color: var(--text); }
   .step-heading { display: grid; justify-items: start; gap: 16px; }
+  .step-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .step-code { padding: 6px 13px; border: 1px solid var(--edge); border-radius: 999px; background: #ffffff08; font-family: var(--mono); font-size: 14px; letter-spacing: 1.6px; color: #ffb48c; }
+  .step-state { padding: 6px 13px; border: 1px solid var(--edge); border-radius: 999px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); }
+  .step-state[data-status="in_progress"] { border-color: #ff947055; color: #ffb48c; }
+  .step-state:is([data-status="done"], [data-status="skipped"]) { border-color: #62e6d155; background: #62e6d112; color: var(--mint); }
   .step-heading h1 { font-size: clamp(42px, 4.4vw, 64px); }
   .step-meta { font-size: 15px; color: var(--dim); }
   /* The step's text sits in a window like the landing's Claude Code session. */
@@ -82,7 +91,11 @@
   .step-window-path { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .step-body { display: grid; gap: 16px; min-height: 220px; align-content: start; padding: 30px 32px 36px; font-size: 17px; line-height: 1.75; color: #d8dbf1; }
   .step-body > p { max-width: 68ch; text-wrap: pretty; }
-  .step-body-note { font-size: 15px; color: var(--dim); }
+  .step-body > .ghost-button { justify-self: start; }
+  .step-body-pending { color: var(--dim); }
+  .step-actions { display: grid; gap: 12px; }
+  .step-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  .step-note { min-height: 1.6em; font-size: 14px; line-height: 1.6; color: var(--mint); }
   .step-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .pager-link { display: grid; align-content: start; gap: 8px; padding: 20px 22px; border: 1px solid var(--edge); border-radius: 20px; background: #ffffff06; transition: background .2s, border-color .2s; }
   .pager-link:hover { background: #ffffff0f; border-color: #ffffff2e; }

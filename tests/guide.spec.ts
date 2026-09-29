@@ -92,14 +92,19 @@ test('unknown steps are not found, and a step under the wrong stage finds its ow
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('План до кода');
 });
 
-test('a guest following a link to a step signs in and lands on that step', async ({ page, context }) => {
-  await mockAuth(context);
+test('a guest following a link to a step never reaches its text, then signs in and lands on it', async ({ page, context }) => {
+  const auth = await mockAuth(context);
   await page.goto('/path/review/read-diff');
   await expect(page).toHaveURL(/\/login\?next=%2Fpath%2Freview%2Fread-diff$/);
   await expect(page.getByRole('heading', { name: 'Чтение diff, написанного не вами' })).toHaveCount(0);
+  await page.goto('/');
+  await expect(page.locator('main.landing-page')).toBeVisible();
+  expect(auth.dataRequests).toBe(0);
+  await page.goto('/path/review/read-diff');
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
   await expect(page).toHaveURL('http://localhost:4317/path/review/read-diff');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Чтение diff, написанного не вами');
+  await expect(page.getByText('Второй абзац с заданием.')).toBeVisible();
 });
 
 test('the members header continues the route and the brand leads to the cabinet', async ({ page, context }) => {
@@ -110,4 +115,116 @@ test('the members header continues the route and the brand leads to the cabinet'
   await page.getByRole('link', { name: 'agentica — на главную' }).click();
   await expect(page).toHaveURL('http://localhost:4317/');
   await expect(page).toHaveTitle('agentica — Кабинет');
+});
+
+test('opening a step records it, and «Продолжить» returns there after a reload and on another device', async ({ page, context, browser }) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  await expect(page.getByText('Закрытый текст шага для участников.')).toBeVisible();
+  expect(auth.progress.get('plan-first')?.status).toBe('in_progress');
+  await page.goto('/path/context/claude-md');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  // The latest opened unfinished step is the resume point.
+  await expect(page.getByRole('link', { name: 'Продолжить: 2.2 CLAUDE.md: память проекта' })).toBeVisible();
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.getByRole('link', { name: 'Продолжить: 3.2 План до кода' })).toBeVisible();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('С возвращением, Тестовый.');
+  await expect(page.locator('.cabinet-lead')).toHaveText('Вы остановились на этапе «Постановка задач». Следующий шаг уже ждёт.');
+  const device = await browser.newContext();
+  await mockAuth(device, { signedIn: true, state: auth });
+  const other = await device.newPage();
+  await other.goto('http://localhost:4317/');
+  await other.locator('.cabinet').getByRole('link', { name: 'Продолжить: 3.2 План до кода' }).click();
+  await expect(other).toHaveURL(/\/path\/tasks\/plan-first$/);
+  await device.close();
+});
+
+test('marking a step done moves focus to the next step and fills the stage', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  for (const id of ['task-anatomy', 'decomposition', 'iterations']) auth.seed(id, 'skipped');
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  await page.getByRole('button', { name: 'Выполнено' }).click();
+  await expect(page.locator('.step-state')).toHaveText('Выполнен');
+  await expect(page.locator('.step-note')).toHaveText('Шаг выполнен.');
+  await expect(page.getByRole('link', { name: 'Следующий шаг: 3.3 Декомпозиция на проверяемые шаги' })).toBeFocused();
+  await expect.poll(() => auth.progress.get('plan-first')?.status).toBe('done');
+  await settle(page);
+  await page.screenshot({ path: `.local/screenshots/step-done-${testInfo.project.name}.png`, fullPage: true });
+  await page.goto('/path');
+  await expect(page.locator('#stage-tasks')).toHaveAttribute('data-complete', 'true');
+  await expect(page.getByRole('link', { name: '3.2 План до кода Выполнен' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '3.1 Анатомия задачи: цель, границы, критерий готовности Уже умею' })).toBeVisible();
+  // Stage 3 is passed, so the route resumes at the first unfinished step.
+  await expect(page.locator('.path-summary').getByRole('link', { name: 'Продолжить: 0.1 Ваш опыт и стек' })).toBeVisible();
+  await settle(page);
+  await page.screenshot({ path: `.local/screenshots/path-progress-${testInfo.project.name}.png`, fullPage: true });
+});
+
+test('«Уже умею» counts as passed and «Вернуть в работу» reopens the step', async ({ page, context }) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  await page.goto('/path/review/read-diff');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  await page.getByRole('button', { name: 'Уже умею' }).click();
+  await expect(page.locator('.step-state')).toHaveText('Уже умею');
+  await expect.poll(() => auth.progress.get('read-diff')?.status).toBe('skipped');
+  await page.getByRole('button', { name: 'Вернуть в работу' }).click();
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  await expect(page.getByRole('button', { name: 'Выполнено' })).toBeFocused();
+  await expect.poll(() => auth.progress.get('read-diff')?.status).toBe('in_progress');
+});
+
+test('opening a finished step keeps it finished', async ({ page, context }) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  auth.seed('hooks', 'done');
+  await page.goto('/path/automation/hooks');
+  await expect(page.locator('.step-state')).toHaveText('Выполнен');
+  await expect(page.getByRole('link', { name: /Следующий шаг: 5\.2/ })).toBeVisible();
+  await expect(page.getByText('Второй абзац с заданием.')).toBeVisible();
+  expect(auth.progress.get('hooks')?.status).toBe('done');
+});
+
+test('a failed save rolls back with a clear message and focus returns to the buttons', async ({ page, context }) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  auth.saveFails = true;
+  await page.getByRole('button', { name: 'Выполнено' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Не удалось сохранить отметку. Проверьте соединение и попробуйте ещё раз.');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  await expect(page.getByRole('button', { name: 'Выполнено' })).toBeFocused();
+  expect(auth.progress.get('plan-first')?.status).toBe('in_progress');
+  auth.saveFails = false;
+  await page.getByRole('button', { name: 'Выполнено' }).click();
+  await expect(page.locator('.step-state')).toHaveText('Выполнен');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('progress and step texts that fail to load can be retried', async ({ page, context }) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  auth.loadFails = true;
+  auth.bodyFails = true;
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.getByRole('alert').filter({ hasText: 'Не удалось загрузить текст шага' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'Не удалось загрузить прогресс' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Выполнено' })).toBeDisabled();
+  auth.bodyFails = false;
+  await page.locator('.step-body').getByRole('button', { name: 'Повторить загрузку' }).click();
+  await expect(page.getByText('Второй абзац с заданием.')).toBeVisible();
+  auth.loadFails = false;
+  await page.locator('.step-actions').getByRole('button', { name: 'Повторить загрузку' }).click();
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  await expect(page.getByRole('button', { name: 'Выполнено' })).toBeEnabled();
+});
+
+test('an expired session on the route data signs out and hides the step', async ({ page, context }) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.getByText('Второй абзац с заданием.')).toBeVisible();
+  auth.dataExpired = true;
+  await page.reload();
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath%2Ftasks%2Fplan-first$/);
+  await expect(page.getByText('Второй абзац с заданием.')).toHaveCount(0);
 });

@@ -3,13 +3,15 @@ import { Link, NavLink } from 'react-router';
 import { Brand, Icon } from './Icon';
 import { AccountMenu } from '../features/auth/AccountMenu';
 import { useGuideProgress } from '../features/guide/GuideProgress';
-import { hasStarted, resumeStep } from '../features/guide/progress';
+import { resumeStep, resumeVerb } from '../features/guide/progress';
 
 // Members return to the step they left; before the first one, the route starts from 0.1.
+// Until their progress arrives (or if it cannot), it opens the route itself.
 function ContinueLink() {
-  const { progress } = useGuideProgress();
+  const { progress, ready } = useGuideProgress();
+  if (!ready) return <Link className="header-continue" to="/path">Продолжить <Icon name="arrow" size={15} /></Link>;
   const step = resumeStep(progress);
-  const verb = hasStarted(progress) ? 'Продолжить' : 'Начать маршрут';
+  const verb = resumeVerb(progress);
   return <Link className="header-continue" to={step.path} aria-label={`${verb}: ${step.label} ${step.title}`}>{verb} <b>{step.label}</b><Icon name="arrow" size={15} /></Link>;
 }
 

@@ -15,7 +15,6 @@
 @layer base {
   /* One dark palette for every page, the landing's. */
   :root { --night: #07080f; --edge: #ffffff17; --text: #eef0fb; --soft: #b0b5d0; --dim: #8b91ae; --violet: #a28fff; --coral: #ff9470; --mint: #62e6d1; --accent-ink: #ffcfb8; --glow: linear-gradient(100deg, #ffb48c, #ff72b0 35%, #a28fff 68%, #62e6d1); --mono: 'IBM Plex Mono', monospace; font-family: 'Golos Text Variable', Arial, sans-serif; color: var(--text); background: var(--night); color-scheme: dark; scrollbar-color: #ffffff2e var(--night); interpolate-size: allow-keywords; font-synthesis: none; -webkit-font-smoothing: antialiased; }
-  body { background: var(--night); }
   ::selection { color: var(--night); background: var(--violet); }
   :focus-visible { outline: 3px solid #ffb48c; outline-offset: 5px; }
   /* Headings take focus after navigation (useArrivalFocus) only to guide screen readers and the next Tab. */
