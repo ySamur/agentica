@@ -182,18 +182,18 @@ test('reduced motion keeps the role comparison still and clear of the new column
   })).toBe(true);
 });
 
-test('sign-up calls to action lead through Google sign-in to members content', async ({ page, context }) => {
+test('sign-up calls to action lead through Google sign-in to the route', async ({ page, context }) => {
   await mockAuth(context);
   await page.goto('/');
   await page.locator('#guide').getByRole('link', { name: 'Зарегистрироваться' }).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fcontent$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
   await page.goBack();
   await page.getByRole('button', { name: 'Пропустить интро' }).click();
   await heroLink(page).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fcontent$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
-  await expect(page).toHaveURL('http://localhost:4317/content');
-  await expect(page.getByText('тест контент', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL('http://localhost:4317/path');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('От клавиатуры');
 });
 
 test('a call to action grows into the login card, while section links move without a page transition', async ({ page, context }) => {

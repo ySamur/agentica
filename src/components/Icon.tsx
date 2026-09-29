@@ -30,6 +30,6 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 
-export function Brand() {
-  return <Link className="brand" to="/#home" aria-label="agentica — на главную"><span className="brand-symbol" aria-hidden="true"><span /><span /><span /><span /></span>agentica<span className="brand-dot">.</span></Link>;
+export function Brand({ to = '/#home' }: { to?: string }) {
+  return <Link className="brand" to={to} aria-label="agentica — на главную"><span className="brand-symbol" aria-hidden="true"><span /><span /><span /><span /></span>agentica<span className="brand-dot">.</span></Link>;
 }

@@ -17,13 +17,10 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     },
     exchangeCount: 0,
     refreshCount: 0,
-    contentRequests: 0,
     authorizeUrl: '',
     updateFails: false,
-    contentFails: false,
     denied: false,
     badCode: false,
-    expired: false,
     logoutFails: false,
     refreshFails: false,
   };
@@ -85,12 +82,6 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     } else if (url.pathname === '/auth/v1/logout') {
       if (state.logoutFails) await json(route, { message: 'Server unavailable' }, 503);
       else await route.fulfill({ status: 204 });
-    } else if (url.pathname === '/rest/v1/member_content') {
-      state.contentRequests += 1;
-      if (state.expired) await json(route, { code: 'PGRST301', message: 'JWT expired' }, 401);
-      else if (state.contentFails) await json(route, { message: 'Database unavailable' }, 503);
-      else if (!request.headers().authorization?.startsWith('Bearer ey')) await json(route, { message: 'Not authorized' }, 401);
-      else await json(route, { slug: 'test', body: 'тест контент' });
     } else {
       await json(route, { message: `Unexpected fixture endpoint: ${url.pathname}` }, 501);
     }

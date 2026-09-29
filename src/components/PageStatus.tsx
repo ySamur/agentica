@@ -7,7 +7,7 @@ export function PageStatus({ title, message, retry }: { title: string; message?:
       <span className="account-emblem"><Icon name="shield" size={28} /></span>
       <h1>{title}</h1>
       {message && <p>{message}</p>}
-      {retry && <button className="button button-dark" onClick={retry}>Попробовать снова</button>}
+      {retry && <button className="ghost-button" onClick={retry}>Попробовать снова <Icon name="refresh" size={16} /></button>}
       <Link className="text-link" to="/">На главную <Icon name="arrow" size={16} /></Link>
     </section>
   </main>;

@@ -4,18 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7f8f4" />
+    <meta name="theme-color" content="#07080f" />
     <meta name="description" content="Из разработчика — в оператора ИИ. Как Claude Code меняет работу программиста, какие навыки нужны теперь и путеводитель по переходу для участников." />
     <title>agentica — Код пишет Claude. Решения — ваши.</title>
     <style>
-      /* Until the app mounts, guests on / see the landing's dark page instead of a white flash. */
-      html.landing-boot:not(:has(#root > *)) { background: #07080f; }
+      /* Every page is dark; no white flash before the app mounts. */
+      html { background: #07080f; color-scheme: dark; }
     </style>
     <script>
       // Same hint as the app: no stored Supabase session on / means the guest landing.
       try {
         if (location.pathname === '/' && !Object.keys(localStorage).some(key => /^sb-.+-auth-token$/.test(key))) {
-          document.documentElement.classList.add('landing-boot');
           // The film's first frame is the landing's largest paint; fetch it before the app asks.
           const poster = document.createElement('link');
           poster.rel = 'preload';
@@ -25,7 +24,7 @@
           document.head.append(poster);
         }
       } catch {
-        // Blocked storage: keep the default background.
+        // Blocked storage: the app still loads the poster itself.
       }
     </script>
   </head>
