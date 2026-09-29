@@ -62,7 +62,7 @@ const chapters = ['Первый день с Claude Code', 'CLAUDE.md, котор
 const questions = [
   { title: 'Заменит ли ИИ разработчиков?', answer: 'Он меняет содержание работы. Набор кода всё больше делегируется агентам, а ценность смещается к постановке задач, архитектуре, ревью и ответственности за результат. Именно этим навыкам посвящён путеводитель.' },
   { title: 'Что такое Claude Code?', answer: 'Инструмент Anthropic для агентной разработки. Он работает в терминале, IDE, десктопном приложении и браузере: читает проект, редактирует файлы и выполняет команды — с вашего разрешения.' },
-  { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оператор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
+  { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оркестратор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
   { title: 'Что будет в путеводителе и когда?', answer: 'Маршрут перехода по шагам, шаблоны запросов, настройка CLAUDE.md и автоматических проверок, разборы типичных ошибок. Он появится в разделе для участников — зарегистрированные пользователи получат доступ сразу после выхода.' },
   { title: 'Регистрация платная?', answer: 'Нет. Вход через Google: отдельный пароль не нужен, мы получаем только профиль и email.' },
 ].map(question => ({ title: nbsp(question.title), answer: nbsp(question.answer) }));
@@ -116,7 +116,7 @@ export function LandingPage() {
 
       <section className="skills container" aria-labelledby="skills-title">
         <div className="story-head" data-reveal="head">
-          <span className="story-eyebrow"><i /> Навыки оператора</span>
+          <span className="story-eyebrow"><i /> Навыки оркестратора</span>
           <h2 id="skills-title">Агент печатает.{' '}<br />Вы{' '}— <em className="accent">думаете.</em></h2>
           <p>{nbsp('Набор кода больше не узкое место. Узкое место — ясность мысли. Вот что теперь отличает сильного разработчика.')}</p>
         </div>
@@ -195,7 +195,7 @@ export function LandingPage() {
       </section>
     </main>
 
-    <footer className="site-footer container"><div className="footer-top"><Brand /><span>{nbsp('Из разработчика — в оператора ИИ.')}</span><Link to="#home" className="footer-up">Наверх <Icon name="arrowUp" size={15} /></Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} agentica</span><span>Сделано людьми. Вместе с агентами. <span className="footer-spark">✳</span></span></div><div className="footer-mark" aria-hidden="true">agentica</div></footer>
+    <footer className="site-footer container"><div className="footer-top"><Brand /><span>{nbsp('Разработчик, который управляет агентами.')}</span><Link to="#home" className="footer-up">Наверх <Icon name="arrowUp" size={15} /></Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} agentica</span><span>Сделано людьми. Вместе с агентами. <span className="footer-spark">✳</span></span></div><div className="footer-mark" aria-hidden="true">agentica</div></footer>
     {motion && <Suspense fallback={null}><LandingMotion main={main} /></Suspense>}
   </>;
 }

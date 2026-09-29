@@ -88,7 +88,7 @@ export function RoleShift() {
     </div>
     <div className="shift-reveal">
       <div className="shift-layer shift-after">
-        <h3 className="shift-title"><span>Стало</span>Оператор ИИ</h3>
+        <h3 className="shift-title"><span>Стало</span>Разработчик-оркестратор</h3>
         <ul>{rows.map(row => <li key={row.after}>{row.after}<Icon name="spark" size={15} /></li>)}</ul>
       </div>
     </div>
