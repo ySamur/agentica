@@ -40,6 +40,20 @@ function getConfiguration() {
 const configuration = getConfiguration();
 export const supabaseConfigured = configuration !== null;
 
+// Passed to the client below, so the synchronous check can never drift from the SDK. It equals
+// the SDK's default key, which keeps existing sessions. The check only picks which page to
+// show before the SDK loads; access is still enforced by RLS.
+const storageKey = configuration && `sb-${new URL(configuration.url).hostname.split('.')[0]}-auth-token`;
+
+export function hasStoredSession() {
+  if (!storageKey) return false;
+  try {
+    return localStorage.getItem(storageKey) !== null;
+  } catch {
+    return false;
+  }
+}
+
 let client: Promise<SupabaseClient<Database>> | null = null;
 
 // The SDK is about 40% of the bundle, so it loads after the first render.
@@ -50,6 +64,7 @@ export function getSupabase() {
     auth: {
       flowType: 'pkce',
       persistSession: true,
+      storageKey: storageKey ?? undefined,
       autoRefreshToken: true,
       detectSessionInUrl: callbackUrl.pathname === '/auth/callback',
     },

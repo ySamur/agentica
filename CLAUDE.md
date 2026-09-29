@@ -3,7 +3,7 @@
 Russian-language React 19 + TypeScript 7 + Vite app: landing, Google sign-in via Supabase, profile, members-only content.
 
 ## Architecture
-- `src/app/App.tsx` owns routes. Only the landing ships in the main chunk; other pages use `React.lazy`.
+- `src/app/App.tsx` owns routes; `/` renders the landing for guests and `HomePage` for members. Only the landing ships in the main chunk; other pages use `React.lazy`.
 - `src/lib/supabase.ts` loads the SDK lazily and creates one client (`getSupabase()`, `null` when unconfigured).
 - Feature code stays in `src/features/<name>/`; shared UI in `src/components/`; layered styles in `src/styles.css` and `src/account.css`.
 - The landing's agent demo is simulated. Out of scope: hosting, other sign-in methods, avatar upload, account deletion.
