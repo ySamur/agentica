@@ -1,95 +1,215 @@
-import { useState } from 'react';
-import { useOutletContext } from 'react-router';
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { Link, useOutletContext } from 'react-router';
 import type { PageContext } from '../../app/App';
-import { Brand, Icon } from '../../components/Icon';
-import { WorkflowDemo } from '../../features/workflow/WorkflowDemo';
+import { Brand, Icon, type IconName } from '../../components/Icon';
+import { PathScene } from '../../features/landing/PathScene';
+import { RoleShift } from '../../features/landing/RoleShift';
+import { SignupLink } from '../../features/landing/SignupLink';
+import { TypingFilm } from '../../features/landing/TypingFilm';
+import { motionAllowed } from '../../lib/motion';
+import { nbsp } from '../../lib/typography';
 
-const questions = [
-  { title: 'Чем агент отличается от обычного ИИ-чата?', answer: 'Чат в основном отвечает на вопросы. Агент, которому вы дали доступ к инструментам, может изучать проект, редактировать файлы, запускать проверки и последовательно выполнять задачу. Конкретные возможности зависят от выбранного инструмента и разрешений.' },
-  { title: 'Нужно ли уметь программировать?', answer: 'Начать можно с разным уровнем подготовки, но знания разработки помогают точно ставить задачи и оценивать результат. Для рабочего продукта всё ещё нужны понимание архитектуры, проверка безопасности и ответственное ревью.' },
-  { title: 'А если агент ошибётся?', answer: 'Это возможно. Давайте агенту небольшие задачи, просите объяснять решения и проверять результат. Просматривайте diff, запускайте тесты и оставляйте важные решения за собой. Агент ускоряет работу, но не снимает с разработчика ответственность.' },
-  { title: 'С чего начать в существующем проекте?', answer: 'Выберите небольшую изолированную задачу: добавить тест, объяснить незнакомый модуль или исправить воспроизводимую ошибку. Дайте агенту контекст, обозначьте ограничения и сначала согласуйте план. Готовые запросы для первого шага доступны по кнопке «Начать с агентами».' },
+// GSAP, its plugins and smooth scrolling ship as their own chunk, so the main one (members' too) stays light.
+const LandingMotion = lazy(() => import('../../features/landing/motion/LandingMotion'));
+
+const ticker = ['Постановка задачи', 'Контекст проекта', 'План до кода', 'Ревью diff', 'Тесты в каждой задаче', 'Хуки и проверки', 'Параллельные агенты', 'Ответственность за результат'];
+
+const skills: { title: string; text: string; icon: IconName; wide?: boolean; visual: ReactNode }[] = [
+  {
+    title: 'Постановка задачи', icon: 'target', wide: true,
+    text: nbsp('Результат, ограничения, критерий готовности. Точная формулировка экономит часы итераций и делает работу агента предсказуемой.'),
+    visual: <div className="visual-prompt"><div className="prompt-chips"><span>Цель: оплата картой</span><span>Не трогать API заказов</span><span>Готово, когда тесты зелёные</span></div><div className="prompt-foot"><span>Claude Code · сначала план</span><b><Icon name="arrowUp" size={15} /></b></div></div>,
+  },
+  {
+    title: 'Контекст проекта', icon: 'layers',
+    text: nbsp('Архитектура, соглашения и команды проверки в CLAUDE.md: агент работает по правилам вашей команды.'),
+    visual: <div className="visual-file"><span><Icon name="code" size={13} /> CLAUDE.md</span><p><b>## Архитектура</b></p><p>src/cart — корзина и промокоды</p><p><b>## Проверки</b></p><p>npm run lint · npm test</p></div>,
+  },
+  {
+    title: nbsp('План до кода'), icon: 'check',
+    text: nbsp('Сначала согласуйте подход и компромиссы, потом разрешайте правки.'),
+    visual: <ol className="visual-plan"><li>Изучить модуль</li><li>Согласовать подход</li><li>Внести правки</li></ol>,
+  },
+  {
+    title: nbsp('Ревью как у тимлида'), icon: 'shield', wide: true,
+    text: nbsp('Читайте diff, задавайте вопросы, требуйте тесты. Агент ускоряет работу, но ответственность за код остаётся за вами.'),
+    visual: <div className="visual-diff"><p className="diff-del">− const total = price * qty;</p><p className="diff-add">+ const total = applyPromo(price * qty, code);</p><p className="diff-add">+ expect(total).toBe(900);</p><span>Вы: «Добавь случай с просроченным кодом»</span><p className="diff-add diff-reply">+ it('отклоняет просроченный код', …)</p></div>,
+  },
+  {
+    title: 'Автоматические проверки', icon: 'command', wide: true,
+    text: nbsp('Хуки, линтер и тесты проверяют каждую правку агента раньше, чем вы откроете diff.'),
+    visual: <div className="visual-pipeline"><span>lint</span><i /><span>build</span><i /><span>test</span><i /><b><Icon name="check" size={14} /></b></div>,
+  },
+  {
+    title: 'Параллельные агенты', icon: 'branch',
+    text: nbsp('Несколько задач одновременно — в отдельных сессиях и ветках.'),
+    // Three branches leave main and merge back, each with a commit on the way.
+    visual: <svg className="visual-branches" viewBox="0 0 300 128" role="presentation">
+      <path className="branch-main" d="M8 112H292" />
+      <path className="branch-a" d="M28 112C54 112 54 22 80 22H212C238 22 238 112 264 112" />
+      <path className="branch-b" d="M48 112C71 112 71 54 94 54H182C203 54 203 112 224 112" />
+      <path className="branch-c" d="M68 112C86 112 86 84 104 84H150C167 84 167 112 184 112" />
+      <circle className="branch-a" cx="146" cy="22" r="3.5" /><circle className="branch-b" cx="140" cy="54" r="3.5" /><circle className="branch-c" cx="127" cy="84" r="3.5" />
+      <circle className="branch-merge branch-c" cx="184" cy="112" r="4.5" /><circle className="branch-merge branch-b" cx="224" cy="112" r="4.5" /><circle className="branch-merge branch-a" cx="264" cy="112" r="4.5" />
+      <text x="86" y="14">feature/promo</text><text x="100" y="46">fix/checkout</text><text x="110" y="76">test/cart</text>
+    </svg>,
+  },
 ];
 
-const processSteps = [
-  { number: '01', title: 'Задайте направление', text: 'Опишите результат, поделитесь контекстом и обозначьте границы.', icon: 'target' },
-  { number: '02', title: 'Доверьте исполнение', text: 'Агенты исследуют код, предложат план и возьмут задачи в работу.', icon: 'spark' },
-  { number: '03', title: 'Примите результат', text: 'Проверьте изменения, дайте обратную связь и двигайтесь дальше.', icon: 'check' },
-] as const;
+const chapters = ['Первый день с Claude Code', 'CLAUDE.md, который работает', 'Как ставить задачи агенту', 'Ревью кода, написанного агентом', 'Хуки, тесты и автоматические проверки', 'Команда агентов'].map(nbsp);
 
-const timelines = {
-  agents: [
-    { icon: 'target', label: 'Вы задаёте цель и ограничения', who: 'ВЫ' },
-    { icon: 'layers', label: 'Агент исследует и предлагает план', who: 'АГЕНТ' },
-    { icon: 'code', label: 'Реализация, тесты, проверка', who: 'АГЕНТ' },
-    { icon: 'check', label: 'Вы проверяете и принимаете', who: 'ВЫ' },
-  ],
-  solo: [
-    { icon: 'target', label: 'Определить задачу и подход', who: 'ВЫ' },
-    { icon: 'layers', label: 'Изучить код и документацию', who: 'ВЫ' },
-    { icon: 'code', label: 'Написать код и тесты', who: 'ВЫ' },
-    { icon: 'check', label: 'Проверить и подготовить релиз', who: 'ВЫ' },
-  ],
-} as const;
+const questions = [
+  { title: 'Заменит ли ИИ разработчиков?', answer: 'Он меняет содержание работы. Набор кода всё больше делегируется агентам, а ценность смещается к постановке задач, архитектуре, ревью и ответственности за результат. Именно этим навыкам посвящён путеводитель.' },
+  { title: 'Что такое Claude Code?', answer: 'Инструмент Anthropic для агентной разработки. Он работает в терминале, IDE, десктопном приложении и браузере: читает проект, редактирует файлы и выполняет команды — с вашего разрешения.' },
+  { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оператор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
+  { title: 'Что будет в путеводителе и когда?', answer: 'Маршрут перехода по шагам, шаблоны запросов, настройка CLAUDE.md и автоматических проверок, разборы типичных ошибок. Он появится в разделе для участников — зарегистрированные пользователи получат доступ сразу после выхода.' },
+  { title: 'Регистрация платная?', answer: 'Нет. Вход через Google: отдельный пароль не нужен, мы получаем только профиль и email.' },
+].map(question => ({ title: nbsp(question.title), answer: nbsp(question.answer) }));
+
+function trackSpotlight(event: PointerEvent<HTMLDivElement>) {
+  const card = (event.target as Element).closest<HTMLElement>('.skill-card');
+  if (!card) return;
+  const box = card.getBoundingClientRect();
+  card.style.setProperty('--x', `${event.clientX - box.left}px`);
+  card.style.setProperty('--y', `${event.clientY - box.top}px`);
+}
 
 export function LandingPage() {
   const { openStarter } = useOutletContext<PageContext>();
-  const [withAgents, setWithAgents] = useState(true);
-  const [openQuestion, setOpenQuestion] = useState<number | null>(0);
+  const main = useRef<HTMLElement>(null);
+  // Reduced motion, data saver and very short screens keep the static page and never download the motion layer.
+  const [motion] = useState(motionAllowed);
 
+  useEffect(() => {
+    if (!motion) return;
+    // A motion layer that never arrives (offline, blocked chunk) must not leave the hero hidden:
+    // after a while the static page takes over for good.
+    const timer = window.setTimeout(() => {
+      if (main.current?.dataset.motion === 'pending') main.current.dataset.motion = 'off';
+    }, 4000);
+    return () => window.clearTimeout(timer);
+  }, [motion]);
+
+  useEffect(() => {
+    // The browser UI follows the landing's dark theme and returns to the site default on leave.
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) return;
+    const previous = meta.content;
+    meta.content = '#07080f';
+    return () => { meta.content = previous; };
+  }, []);
+
+  // `data-reveal="head"` groups and `.reveal` blocks are animated by the motion layer; without it they stay in place.
   return <>
-    <main id="main">
-      <section className="hero container" id="home">
-        <div className="hero-copy">
-          <div className="hero-eyebrow"><span className="eyebrow-dot" /> НОВАЯ ЭРА РАЗРАБОТКИ <span className="eyebrow-version">/ 01</span></div>
-          <h1>Вы создаёте.<br />Агенты<br /><span className="hero-accent">ускоряют.<svg viewBox="0 0 410 16" aria-hidden="true"><path d="M3 11C115 2 264 2 403 7" /></svg></span></h1>
-          <p className="hero-description">Ваши идеи заслуживают большего, чем очередь<br className="desktop-break" /> в бэклоге. Соберите команду ИИ-агентов<br className="desktop-break" /> и сосредоточьтесь на том, что важно.</p>
-          <div className="hero-actions"><button className="button button-dark" onClick={openStarter}>Начать с агентами <Icon name="arrowUp" size={19} /></button><a href="#how" className="text-button"><span className="play-circle"><Icon name="play" size={12} /></span>Как это работает</a></div>
-          <div className="hero-footnote"><span className="mini-spark">✳</span><span>Меньше рутины. Больше инженерии.</span></div>
+    {/* `data-header`: clear over the film, then glass or hidden (motion/chrome.ts); without motion the header stays solid. */}
+    <main id="main" className="landing-page" ref={main} data-motion={motion ? 'pending' : 'off'} data-header={motion ? 'clear' : undefined}>
+      <div className="aurora" aria-hidden="true"><i /><i /><i /><i /></div>
+      <div className="scroll-meter" aria-hidden="true" />
+
+      <TypingFilm>
+        <span className="intro-badge"><i /> Новая роль разработчика</span>
+        <h1 className="intro-title" id="intro-title">Код пишет Claude.{' '}<br />Решения{' '}— <em className="accent glow-text">ваши.</em></h1>
+        <p className="intro-lead">{nbsp('Время, когда ценность разработчика измерялась набранными строками, уходит. Вы ставите задачу — Claude Code изучает проект, правит файлы и запускает тесты. За вами архитектура, ревью и последнее слово.')}</p>
+        <div className="intro-actions">
+          <SignupLink morph="hero">Получить доступ <Icon name="arrowUp" size={18} /></SignupLink>
+          <Link className="ghost-button" to="#why">Как меняется роль <Icon name="arrow" size={17} /></Link>
         </div>
-        <WorkflowDemo />
+        <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google. Путеводитель по переходу готовится для участников.')}</p>
+      </TypingFilm>
+
+      <div className="ticker" aria-hidden="true"><div className="ticker-track">{[...ticker, ...ticker].map((item, index) => <span key={`${item}-${index}`}>{item}<i>✦</i></span>)}</div></div>
+
+      <section className="shift container" id="why" aria-labelledby="shift-title">
+        <div className="story-head" data-reveal="head">
+          <span className="story-eyebrow"><i /> Сдвиг роли</span>
+          <h2 id="shift-title">Было: печатать код.{' '}<br />Стало: управлять <em className="accent">результатом.</em></h2>
+          <p>{nbsp('Один и тот же разработчик — до и после Claude Code. Граница сама показывает, как новое вытесняет старое.')}</p>
+        </div>
+        <RoleShift />
       </section>
 
-      <div className="toolbelt container"><span className="toolbelt-caption">НОВЫЙ ПОДХОД.<br /><strong>ЗНАКОМЫЙ СТЕК.</strong></span><div className="stack-items"><span><Icon name="code" />Любой код</span><span><Icon name="terminal" />Ваша IDE</span><span><Icon name="branch" />Ваш Git</span><span><Icon name="layers" />Ваши процессы</span></div><span className="toolbelt-end">Всё на своих местах.<Icon name="arrowUp" size={15} /></span></div>
-
-      <section className="section container" id="why">
-        <div className="section-topline"><span className="section-eyebrow"><span className="small-square" /> ПОЧЕМУ ЭТО МЕНЯЕТ ПРАВИЛА</span><span className="section-index">[ 01 — ПРЕИМУЩЕСТВА ]</span></div>
-        <div className="section-heading"><h2>Ваш опыт.<br /><span className="muted-heading">Теперь с усилением.</span></h2><p>Хорошая разработка — это решения, а не количество<br className="desktop-break" /> написанных строк. Освободите для них место.</p></div>
-        <div className="benefit-grid">
-          <article className="benefit-card benefit-focus"><div className="benefit-title"><span className="benefit-icon"><Icon name="target" size={23} /></span><span className="card-number">01 /</span></div><h3>Фокус на главном</h3><p>Архитектура, продукт, сложные решения —<br className="desktop-break" /> ваши. Шаблонный код и повторяющиеся<br className="desktop-break" /> задачи можно делегировать.</p><div className="focus-visual" aria-hidden="true"><span className="focus-chip chip-tests"><Icon name="check" size={12} /> Тесты</span><span className="focus-chip chip-docs"><Icon name="check" size={12} /> Документация</span><div className="focus-core"><Icon name="spark" size={27} /><span>Ваша идея</span></div><span className="focus-chip chip-code"><Icon name="check" size={12} /> Рутинный код</span><div className="focus-orbit" /></div></article>
-          <article className="benefit-card"><div className="benefit-title"><span className="benefit-icon"><Icon name="branch" size={23} /></span><span className="card-number">02 /</span></div><h3>От идеи к реализации</h3><p>Пока вы продумываете следующий шаг,<br className="desktop-break" /> агенты помогают исследовать код,<br className="desktop-break" /> собрать прототип и проверить гипотезу.</p><div className="speed-visual" aria-hidden="true"><div className="speed-row"><span>Идея</span><div className="speed-track"><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></div><Icon name="arrow" size={18} /></div><div className="speed-result"><span className="speed-check"><Icon name="check" size={14} /></span><span>Первый рабочий прототип</span><span className="speed-spark">✳</span></div><span className="visual-caption">КОРОЧЕ ПУТЬ ДО ОБРАТНОЙ СВЯЗИ</span></div></article>
-          <article className="benefit-card"><div className="benefit-title"><span className="benefit-icon"><Icon name="shield" size={23} /></span><span className="card-number">03 /</span></div><h3>Ещё один взгляд на код</h3><p>Попросите агента найти крайние случаи,<br className="desktop-break" /> добавить тесты и посмотреть на diff.<br className="desktop-break" /> Финальное ревью остаётся за вами.</p><div className="review-visual" aria-hidden="true"><div><Icon name="branch" size={13} /><span>feature / your-next-idea</span><span className="review-tag">REVIEW</span></div><p><span className="review-plus">+</span> expect(result).toBeDefined();</p><p><span className="review-plus">+</span> expect(errors).toHaveLength(0);</p><span className="review-bottom"><Icon name="check" size={12} /> Сначала проверка. Затем релиз.</span></div></article>
+      <section className="skills container" aria-labelledby="skills-title">
+        <div className="story-head" data-reveal="head">
+          <span className="story-eyebrow"><i /> Навыки оператора</span>
+          <h2 id="skills-title">Агент печатает.{' '}<br />Вы{' '}— <em className="accent">думаете.</em></h2>
+          <p>{nbsp('Набор кода больше не узкое место. Узкое место — ясность мысли. Вот что теперь отличает сильного разработчика.')}</p>
+        </div>
+        <div className="skill-grid" onPointerMove={trackSpotlight}>
+          {/* `--i` offsets each card's sticky top in the phone stack. */}
+          {skills.map((skill, index) => <article className={`skill-card reveal ${skill.wide ? 'skill-wide' : ''}`} key={skill.title} style={{ '--i': index } as CSSProperties}>
+            <span className="skill-icon"><Icon name={skill.icon} size={22} /></span>
+            <h3>{skill.title}</h3>
+            <p>{skill.text}</p>
+            <div className="skill-visual" aria-hidden="true">{skill.visual}</div>
+          </article>)}
         </div>
       </section>
 
-      <section className="comparison-section" aria-labelledby="comparison-title">
-        <div className="container comparison-inner">
-          <div className="comparison-copy"><span className="section-eyebrow"><span className="small-square" /> ДРУГАЯ ДИНАМИКА РАБОТЫ</span><h2 id="comparison-title">Тот же разработчик.<br /><span>Больше возможностей.</span></h2><p>Делегируйте последовательные шаги агентам,<br className="desktop-break" /> чтобы чаще возвращаться к сути задачи.<br className="desktop-break" /> Вы определяете цель и принимаете результат.</p><div className="comparison-note"><Icon name="command" size={20} /><span>Ваше мышление — главный инструмент.</span></div></div>
-          <div className="comparison-demo">
-            <div className="comparison-toggle" role="group" aria-label="Сравнение подходов"><button aria-pressed={!withAgents} onClick={() => setWithAgents(false)}>Самостоятельно</button><button aria-pressed={withAgents} onClick={() => setWithAgents(true)}><Icon name="spark" size={14} /> С ИИ-агентами</button></div>
-            <div className="comparison-task"><span>ЗАДАЧА</span><strong>Добавить новую функцию</strong><Icon name="arrowUp" size={15} /></div>
-            <div className="timeline" aria-live="polite">
-              {timelines[withAgents ? 'agents' : 'solo'].map((item, index) => <div className={`timeline-row ${withAgents && item.who === 'ВЫ' ? 'timeline-accent' : ''}`} key={`${withAgents}-${index}`}><span className="timeline-icon"><Icon name={item.icon} size={16} /></span><span>{item.label}</span><span className="timeline-who">{item.who}</span></div>)}
+      <section className="path container" id="how" aria-labelledby="path-title">
+        <div className="story-head" data-reveal="head">
+          <span className="story-eyebrow"><i /> Путь перехода</span>
+          <h2 id="path-title">Шесть шагов{' '}<br />от клавиатуры <em className="accent">к{' '}оркестровке.</em></h2>
+          <p>{nbsp('Переход не случается за один день. Это последовательность привычек — каждая снимает с вас часть рутины.')}</p>
+        </div>
+        <PathScene />
+      </section>
+
+      <section className="guide container" id="guide" aria-labelledby="guide-title">
+        <div className="guide-copy" data-reveal="head">
+          <span className="story-eyebrow"><i /> Только для участников</span>
+          <h2 id="guide-title">Путеводитель по{' '}переходу{' '}<br />уже готовится <em className="accent">внутри.</em></h2>
+          <p>{nbsp('Маршрут от первого запуска Claude Code до работы с командой агентов: практики, шаблоны запросов, разборы ошибок. Зарегистрируйтесь сейчас — путеводитель появится в вашем аккаунте сразу после выхода.')}</p>
+          <ul className="guide-perks">
+            <li><Icon name="check" size={17} /> {nbsp('Вход через Google за пару кликов')}</li>
+            <li><Icon name="check" size={17} /> Без отдельного пароля</li>
+            <li><Icon name="check" size={17} /> {nbsp('Только профиль и email')}</li>
+          </ul>
+          <SignupLink morph="guide">Зарегистрироваться <Icon name="arrowUp" size={18} /></SignupLink>
+        </div>
+        <div className="guide-visual reveal">
+          <div className="guide-volume">
+            <div className="guide-book">
+              <div className="guide-book-top"><span><Icon name="layers" size={15} /> Путеводитель</span><span className="guide-soon">Скоро</span></div>
+              <h3>Планируемые главы</h3>
+              <ol className="guide-chapters">{chapters.map((chapter, index) => <li key={chapter}><span>Глава {index + 1}</span><strong>{chapter}</strong><Icon name="lock" size={16} /></li>)}</ol>
+              <p className="guide-book-note">{nbsp('Состав глав может измениться до выхода.')}</p>
             </div>
-            <div className="comparison-result"><span className="live-dot" /><span>{withAgents ? 'Меньше переключений. Больше пространства для решений.' : 'На каждом этапе — ваше время и внимание.'}</span></div>
+            {/* With motion the cover opens as the section scrolls in (motion/book.ts). */}
+            <div className="guide-cover" aria-hidden="true">
+              <span className="guide-soon">Скоро</span>
+              <strong>Путеводитель <em className="accent">по{' '}переходу</em></strong>
+              <span className="guide-cover-foot"><b>agentica<i>.</i></b> для участников</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="section how-section container" id="how">
-        <div className="section-topline"><span className="section-eyebrow"><span className="small-square" /> ПРОЩЕ, ЧЕМ КАЖЕТСЯ</span><span className="section-index">[ 02 — ПРОЦЕСС ]</span></div>
-        <div className="section-heading"><h2>От вас — направление.<br /><span className="muted-heading">От агентов — движение.</span></h2><a className="text-link" href="#workflow-demo">Посмотреть демо <Icon name="arrowUp" size={17} /></a></div>
-        <div className="process-grid">{processSteps.map(step => <article className="process-step" key={step.number}><div className="process-step-top"><span className="process-number">{step.number}</span><div className="process-line" /><Icon name={step.icon} size={23} /></div><h3>{step.title}</h3><p>{step.text}</p></article>)}</div>
+      <section className="ask container" id="questions" aria-labelledby="ask-title">
+        <div className="story-head" data-reveal="head">
+          <span className="story-eyebrow"><i /> Вопросы</span>
+          <h2 id="ask-title">Честно{' '}<br /><em className="accent">о{' '}главном.</em></h2>
+          <p>{nbsp('Коротко о том, что меняется и что остаётся за вами.')}</p>
+        </div>
+        <div className="ask-list">{questions.map((question, index) => <details className="ask-item reveal" name="questions" open={index === 0} key={question.title}>
+          <summary>{question.title}<Icon name="plus" size={19} /></summary>
+          <p>{question.answer}</p>
+        </details>)}</div>
       </section>
 
-      <section className="faq-section container" id="questions">
-        <div className="faq-heading"><span className="section-eyebrow"><span className="small-square" /> БЕЗ МАГИИ</span><h2>Хорошие вопросы.<br /><span className="muted-heading">Честные ответы.</span></h2><p>Новый подход, понятные принципы.</p></div>
-        <div className="faq-list">{questions.map((question, index) => <article className={`faq-item ${openQuestion === index ? 'faq-open' : ''}`} key={question.title}><h3><button aria-expanded={openQuestion === index} aria-controls={`answer-${index}`} id={`question-${index}`} onClick={() => setOpenQuestion(openQuestion === index ? null : index)}>{question.title}<Icon name="plus" size={19} /></button></h3><div id={`answer-${index}`} role="region" aria-labelledby={`question-${index}`} hidden={openQuestion !== index}><p>{question.answer}</p></div></article>)}</div>
+      <section className="outro container" aria-labelledby="outro-title">
+        <div className="outro-card" data-reveal="head">
+          <span className="story-eyebrow"><i /> Следующий шаг</span>
+          <h2 id="outro-title">Перестаньте печатать.{' '}<br />Начните <em className="accent glow-text">управлять.</em></h2>
+          <p>{nbsp('Присоединяйтесь сейчас — и получите путеводитель по переходу, как только он выйдет.')}</p>
+          <div className="outro-actions">
+            <SignupLink morph="outro">Получить доступ <Icon name="arrowUp" size={18} /></SignupLink>
+            <button type="button" className="ghost-button" onClick={openStarter}>Готовые запросы для старта <Icon name="terminal" size={17} /></button>
+          </div>
+        </div>
       </section>
-
-      <section className="closing-section container"><div className="closing-grid" aria-hidden="true" /><div className="closing-copy"><span className="section-eyebrow"><span className="small-square" /> СЛЕДУЮЩИЙ КОММИТ МОЖЕТ БЫТЬ ДРУГИМ</span><h2>Большие идеи.<br />Теперь — с командой.</h2><p>Начните с одной задачи. Почувствуйте разницу.</p><button className="button button-dark" onClick={openStarter}>Начать с агентами <Icon name="arrowUp" size={19} /></button></div><div className="closing-art" aria-hidden="true"><span /><span /><span /><span /><div><Icon name="spark" size={60} /></div></div><span className="closing-coordinate">ИНИЦИАТИВА: ВАША. ВОЗМОЖНОСТИ: ШИРЕ.</span></section>
     </main>
 
-    <footer className="site-footer container"><div className="footer-top"><Brand /><span>Создавайте то, что имеет значение.</span><a href="#home" className="footer-up">Наверх <Icon name="arrowUp" size={15} /></a></div><div className="footer-bottom"><span>© {new Date().getFullYear()} agentica</span><span>Сделано людьми. Вместе с агентами. <span className="footer-spark">✳</span></span></div></footer>
+    <footer className="site-footer container"><div className="footer-top"><Brand /><span>{nbsp('Из разработчика — в оператора ИИ.')}</span><Link to="#home" className="footer-up">Наверх <Icon name="arrowUp" size={15} /></Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} agentica</span><span>Сделано людьми. Вместе с агентами. <span className="footer-spark">✳</span></span></div><div className="footer-mark" aria-hidden="true">agentica</div></footer>
+    {motion && <Suspense fallback={null}><LandingMotion main={main} /></Suspense>}
   </>;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { lockScroll, unlockScroll } from '../../lib/smoothScroll';
 
 const prompts = {
   feature: { label: 'Новая функция', text: 'Ты — мой помощник по разработке. Сначала изучи структуру проекта и существующие соглашения. Помоги реализовать [опишите функцию].\n\n1. Задай вопросы, если требований недостаточно.\n2. Предложи короткий план и дождись моего согласования.\n3. Реализуй решение небольшими, понятными изменениями.\n4. Добавь проверки для важных сценариев и запусти их.\n5. Покажи результат, риски и то, что нужно проверить мне.\n\nНе добавляй новые зависимости без необходимости. Не публикуй изменения без моего подтверждения.' },
@@ -17,8 +18,8 @@ export function StarterDialog({ open, onClose }: { open: boolean; onClose: () =>
   useEffect(() => {
     if (!open) { dialog.current?.close(); return; }
     dialog.current?.showModal();
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    lockScroll();
+    return unlockScroll;
   }, [open]);
 
   useEffect(() => {
@@ -36,8 +37,9 @@ export function StarterDialog({ open, onClose }: { open: boolean; onClose: () =>
     }
   }
 
+  // `data-lenis-prevent`: wheel and touch inside the dialog stay native, so its text area scrolls.
   // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click; Escape closes natively.
-  return <dialog ref={dialog} className="starter-dialog" aria-labelledby="starter-title" onClose={onClose} onClick={event => { if (event.target === dialog.current) { const rect = dialog.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); } }}>
+  return <dialog ref={dialog} className="starter-dialog" aria-labelledby="starter-title" data-lenis-prevent onClose={onClose} onClick={event => { if (event.target === dialog.current) { const rect = dialog.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); } }}>
     <button className="dialog-close icon-button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button>
     <span className="section-eyebrow"><Icon name="spark" size={15} /> ВАШ ПЕРВЫЙ ШАГ</span>
     <h2 id="starter-title">Начните с одной задачи.</h2>

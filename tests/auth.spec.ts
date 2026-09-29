@@ -15,6 +15,36 @@ test('guest cannot see protected pages and return destinations are allowlisted',
   await expect(page.getByRole('button', { name: 'Меню аккаунта' })).toBeVisible();
 });
 
+test('guests get the landing and members get the home page', async ({ page, context }) => {
+  await mockAuth(context);
+  await page.goto('/');
+  await expect(page.locator('main.landing-page')).toBeVisible();
+  await page.getByRole('link', { name: 'Войти', exact: true }).click();
+  await page.getByRole('button', { name: 'Продолжить с Google' }).click();
+  await expect(page).toHaveURL('http://localhost:4317/');
+  await expect(page.getByRole('button', { name: 'Меню аккаунта' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Вы создаёте.');
+  await expect(page.locator('main.landing-page')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Меню аккаунта' }).click();
+  await page.getByRole('menuitem', { name: 'Выйти' }).click();
+  await expect(page.locator('main.landing-page')).toBeVisible();
+});
+
+test('a stored session shows the home page, not the landing, while the auth SDK loads', async ({ page, context }, testInfo) => {
+  await mockAuth(context, { signedIn: true });
+  let release!: () => void;
+  const released = new Promise<void>(resolve => { release = resolve; });
+  await context.route(/@supabase[_/]supabase-js/, async route => { await released; await route.continue(); });
+  await page.goto('/', { waitUntil: 'commit' });
+  await expect(page.getByText('Загрузка…')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Вы создаёте.');
+  await expect(page.locator('main.landing-page')).toHaveCount(0);
+  release();
+  await expect(page.getByRole('button', { name: 'Меню аккаунта' })).toBeVisible();
+  await expect(page.locator('main.landing-page')).toHaveCount(0);
+  await page.screenshot({ path: `.local/screenshots/home-${testInfo.project.name}.png`, fullPage: true });
+});
+
 test('Google PKCE login returns to content and exchanges the code once', async ({ page, context }) => {
   const auth = await mockAuth(context);
   await page.goto('/content');
@@ -171,7 +201,7 @@ test('unknown and invalid callback URLs have useful recovery links', async ({ pa
   await page.goto('/missing-page');
   await expect(page.getByRole('heading', { name: 'Страница не найдена' })).toBeVisible();
   await page.getByRole('link', { name: 'На главную', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Вы создаёте.');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Код пишет Claude.');
   await page.goto('/auth/callback');
   await expect(page.getByRole('heading', { name: 'Вход не завершён' })).toBeVisible();
 });
@@ -180,7 +210,7 @@ test('missing configuration keeps the landing and login usable', async ({ page }
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('http://localhost:4318/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Вы создаёте.');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Код пишет Claude.');
   await page.getByRole('link', { name: 'Войти', exact: true }).click();
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
   await expect(page.getByRole('alert')).toContainText('Вход временно недоступен');
@@ -196,7 +226,7 @@ test('landing stays usable when the lazily loaded auth SDK fails to download', a
   // Matches the SDK module in both pre-bundled (@supabase_supabase-js) and raw (@supabase/supabase-js) form.
   await context.route(/@supabase[_/]supabase-js/, route => route.abort());
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Вы создаёте.');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Код пишет Claude.');
   await expect(page.getByText('Не удалось восстановить сессию')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Войти', exact: true })).toBeVisible();
   expect(errors).toEqual([]);

@@ -1,12 +1,24 @@
-import { useState } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router';
+import { useState, ViewTransition, type ReactNode } from 'react';
+import { Link, Navigate, useLocation, useNavigationType, useSearchParams } from 'react-router';
 import { Icon } from '../../components/Icon';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { safeDestination } from '../../features/auth/redirect';
 import { PageStatus } from '../../components/PageStatus';
 
+const morphs = ['hero', 'guide', 'outro'];
+
+// The landing's call to action that led here (see SignupLink), when it was a fresh step forward.
+function morphFrom(state: unknown) {
+  const morph = state && typeof state === 'object' && 'morph' in state ? state.morph : null;
+  return typeof morph === 'string' && morphs.includes(morph) ? morph : null;
+}
+
 export function LoginPage() {
   const { user, loading, configured, error: sessionError, signIn } = useAuth();
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  // Read once: the card takes the pill's transition name only on the way in, never on back or reload.
+  const [morph] = useState(() => navigationType === 'PUSH' ? morphFrom(location.state) : null);
   const [params] = useSearchParams();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -21,8 +33,10 @@ export function LoginPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Не удалось войти. Попробуйте ещё раз.'); setBusy(false); }
   }
 
+  const morphing = (card: ReactNode) => morph ? <ViewTransition name={`signup-${morph}`} share="signup-morph">{card}</ViewTransition> : card;
+
   return <main id="main" className="account-page container login-page">
-    <section className="account-card login-card">
+    {morphing(<section className="account-card login-card">
       <span className="account-emblem"><Icon name="spark" size={31} /></span>
       <span className="section-eyebrow">ВАШЕ ПРОСТРАНСТВО В AGENTICA</span>
       <h1>Большие идеи.<br /><span className="muted-heading">Начнём с вас.</span></h1>
@@ -34,7 +48,7 @@ export function LoginPage() {
       <p className="login-caption">Первый вход автоматически создаст аккаунт.<br />Отдельный пароль не нужен.</p>
       {(!configured || error || sessionError) && <p className="form-error" role="alert">{error || (!configured ? 'Вход временно недоступен. Попробуйте позже.' : sessionError)}</p>}
       <Link className="text-link" to="/">Вернуться на главную <Icon name="arrow" size={15} /></Link>
-    </section>
+    </section>)}
     <span className="account-page-note"><Icon name="shield" size={14} /> Только профиль и email. Без доступа к письмам.</span>
   </main>;
 }

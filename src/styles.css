@@ -247,6 +247,14 @@
   .copy-button { width: 100%; margin-top: 16px; gap: 9px; }
   .copy-button svg:last-child { margin-left: auto; }
   .copy-feedback { display: block; min-height: 34px; font-size: 10px; line-height: 1.6; color: #819371; margin-top: 12px; }
+  /* Page changes cross-fade; the landing's sign-up pill grows into the login card (SignupLink, LoginPage).
+     Neither picture is scaled: the pill fades where it was, the card is uncovered from the top as the shape grows. */
+  ::view-transition-group(*) { animation-duration: .45s; animation-timing-function: cubic-bezier(.2, .7, .2, 1); }
+  ::view-transition-group(.signup-morph) { overflow: clip; border-radius: 24px; }
+  ::view-transition-old(.signup-morph), ::view-transition-new(.signup-morph) { height: 100%; object-fit: none; object-position: 50% 0; }
+  ::view-transition-old(.signup-morph) { object-position: 50% 50%; animation: vt-fade .12s ease both reverse; }
+  ::view-transition-new(.signup-morph) { animation: vt-fade .28s .1s ease both; }
+  @keyframes vt-fade { from { opacity: 0; } }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 }
 
@@ -443,5 +451,7 @@
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after { animation: none !important; transition: none !important; }
+    /* The rule above does not reach a view transition's pseudo-elements. */
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   }
 }
