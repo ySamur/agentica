@@ -6,8 +6,10 @@ The owner does these steps in their own accounts; never handle their secrets. Un
 2. **Google Cloud** project `agentica` → Google Auth Platform. Branding: app name, support and contact email. Audience: External (in Testing mode add test users; public use needs Google verification). Data Access: only `openid`, `userinfo.email`, `userinfo.profile`. Client: Web application; JS origins `http://localhost:3000`, `http://localhost:3001` (plus any other local port); redirect URI is the Supabase callback. Client ID and Secret go only into Supabase's Google provider; enable it.
 3. **Supabase URL Configuration**: Site URL `http://localhost:3000`; Redirect URLs `http://localhost:*/auth/callback` (dev only; production needs HTTPS and exact URLs). Flow: site → Supabase → Google → Supabase callback → `/auth/callback`. Open the site via `localhost`, not a LAN IP.
 4. **Migrations**: apply each file in `supabase/migrations/` once, in name order (SQL Editor, or `apply_migration` through Supabase MCP with write access, then back to `read_only=true`):
-   - `202609240001_member_content.sql`: legacy table with row `slug = 'test'`.
+   - `202609240001_member_content.sql`: legacy test table, dropped by `…0003`.
    - `202609290001_guide.sql`: `guide_steps` (35 step texts, members read), `guide_progress` (own rows only; `user_id`/`updated_at` set by the server), RPC `open_guide_step`; grants + RLS.
+   - `202609290002_guide_progress_step_index.sql`: index for the `step_id` foreign key.
+   - `202609290003_drop_member_content.sql`.
    The site name lives in `user_metadata.display_name`; no profiles table.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 

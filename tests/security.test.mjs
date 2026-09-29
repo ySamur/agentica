@@ -20,6 +20,7 @@ test('migrations enforce database privileges and RLS', async t => {
     try { return await run(); } finally { await db.exec('reset role'); }
   }
   const rows = async (sql, params) => (await db.query(sql, params)).rows;
+  const execute = async (role, fn) => (await rows('select has_function_privilege($1, $2, $3) as granted', [role, fn, 'EXECUTE']))[0].granted;
   // Effective privileges (direct, PUBLIC, inherited), since RLS rejects writes with the same 42501.
   async function tablePrivileges(role, table) {
     const held = [];
@@ -56,32 +57,12 @@ test('migrations enforce database privileges and RLS', async t => {
       await db.exec(await readFile(new URL(file, migrations), 'utf8'));
     }
 
-    await t.test('member_content: guests cannot read the table', () => asRole('anon', {}, () =>
-      assert.rejects(db.query('select * from public.member_content'), denied)));
+    await t.test('the public schema holds only the route tables', async () =>
+      assert.deepEqual((await rows("select tablename from pg_tables where schemaname = 'public' order by tablename")).map(row => row.tablename), ['guide_progress', 'guide_steps']));
 
-    await t.test('member_content: authenticated users can read the seeded text', () => asRole('authenticated', member, async () =>
-      assert.deepEqual(await rows('select slug, body from public.member_content'), [{ slug: 'test', body: 'тест контент' }])));
-
-    await t.test('member_content: no identity or an anonymous account reads nothing', async () => {
-      for (const claims of [{}, { sub: userId, is_anonymous: true }]) await asRole('authenticated', claims, async () =>
-        assert.deepEqual(await rows('select * from public.member_content'), []));
-    });
-
-    await t.test('member_content: browser roles cannot write', async () => {
-      for (const role of ['anon', 'authenticated']) await asRole(role, member, async () => {
-        for (const sql of [
-          "insert into public.member_content values ('injected', 'unexpected')",
-          "update public.member_content set body = 'unexpected'",
-          'delete from public.member_content',
-          'truncate public.member_content',
-        ]) await assert.rejects(db.query(sql), denied);
-      });
-    });
-
-    await t.test('member_content: browser roles hold no grants beyond authenticated SELECT', async () => {
-      assert.deepEqual(await tablePrivileges('anon', 'public.member_content'), []);
-      assert.deepEqual(await tablePrivileges('authenticated', 'public.member_content'), ['table SELECT', 'slug SELECT', 'body SELECT']);
-    });
+    await t.test('guide_progress rows are found by step for step removals', async () =>
+      assert.deepEqual(await rows("select indexdef from pg_indexes where schemaname = 'public' and indexname = 'guide_progress_step_id_idx'"),
+        [{ indexdef: 'CREATE INDEX guide_progress_step_id_idx ON public.guide_progress USING btree (step_id)' }]));
 
     await t.test('guide_steps: one text per catalog step, no more', async () => {
       const seeded = (await rows('select step_id from public.guide_steps order by step_id')).map(row => row.step_id);
@@ -203,7 +184,6 @@ test('migrations enforce database privileges and RLS', async t => {
         'status SELECT', 'status INSERT', 'status UPDATE',
         'updated_at SELECT',
       ]);
-      const execute = async (role, fn) => (await rows('select has_function_privilege($1, $2, $3) as granted', [role, fn, 'EXECUTE']))[0].granted;
       assert.equal(await execute('anon', 'public.open_guide_step(text)'), false);
       assert.equal(await execute('authenticated', 'public.open_guide_step(text)'), true);
       for (const role of ['anon', 'authenticated']) assert.equal(await execute(role, 'public.guide_progress_touch()'), false);

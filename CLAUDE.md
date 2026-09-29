@@ -1,16 +1,17 @@
 # agentica
 
-Russian-language React 19 + TypeScript 7 + Vite app: landing, Google sign-in via Supabase, profile, members-only content.
+Russian-language React 19 + TypeScript 7 + Vite app: guest landing, Google sign-in via Supabase, members' route (cabinet, stages, steps with progress), profile.
 
 ## Architecture
-- `src/app/App.tsx` owns routes; `/` renders the landing for guests and `HomePage` for members. Only the landing ships in the main chunk; other pages use `React.lazy`.
+- `src/app/App.tsx` owns routes: `/` is the landing for guests and `CabinetPage` for members (a stored session counts while the SDK restores); `/path` (map), `/path/:stage/:step`, `/profile` sit behind `RequireAuth`; `/content`, `/settings/profile` redirect. Only the landing ships in the main chunk; other pages use `React.lazy`. The header switches to the members' nav and «Продолжить».
 - `src/lib/supabase.ts` loads the SDK lazily and creates one client (`getSupabase()`, `null` when unconfigured).
-- Feature code stays in `src/features/<name>/`; shared UI in `src/components/`; layered styles in `src/styles.css`, `src/account.css` and `src/landing.css` (dark landing theme; header/footer overrides via `:root:has(.landing-page)`).
+- Feature code stays in `src/features/<name>/`; shared UI in `src/components/`. Layered styles: `src/styles.css` (the one dark palette on `:root`; header, footer and shared pieces `.aurora`, `.glow-button`, `.ghost-button`, `.story-eyebrow`, `.accent`), `src/account.css` (account menu, login, work-page glass), `src/guide.css` (cabinet, route, step), `src/landing.css` (landing only: film, sections, `data-header` modes). Work pages share Layout's still `.aurora-calm`; one `.glow-button` per screen.
+- The route lives in `src/features/guide/`: `catalog.ts` is the public map (8 stages, 35 steps; ids are progress keys, stable and unique, without stage prefix; no imports, so Node tests load it). Step texts are members-only rows in `guide_steps`; progress is `guide_progress` (own rows via grants + RLS; the server sets `user_id` and `updated_at`); RPC `open_guide_step` records the resume point without undoing finished steps. `GuideProgressProvider` (in `App`) loads once per member and saves optimistically with rollback; `resumeStep` picks the latest opened unfinished step. A new step needs a catalog entry and a `guide_steps` migration.
 - The landing opens with one sticky scene (`TypingFilm`): scroll-scrubbed WebP frames, the agent's terminal (`ClaudeSession`) typing by scroll, then the hero with the CTAs. Scene progress points live in `introPhases.ts` (shared with tests). Frames: `public/frames/typing/{desktop,desktop-hd,mobile}`, 120 each, cut from Pexels clip 7534237 by Mikhail Nilov (free license) with the brand grade baked in; reduced motion and data saver get one still.
 - Landing motion is the lazy chunk `src/features/landing/motion/`: GSAP (ScrollTrigger, SplitText, ScrambleText, DrawSVG; Standard no-charge license) and Lenis smooth scrolling for fine pointers only. Components render static, finished markup; `main[data-motion]` is `pending|on|off` (`off`: reduced motion, data saver, screens under 560px tall, or the chunk not arriving within 4 s). Import `gsap`/`@gsap/react`/`lenis` only there, or they land in the main chunk. Scrubbed staggers need explicit start states (`gsap.set`); a callback that renders from a tween also runs `onRefresh`.
-- Anchors scroll through `scrollToTarget` and modals use `lockScroll`/`unlockScroll` (`src/lib/smoothScroll.ts`). Landing copy goes through `nbsp()` (`src/lib/typography.ts`); accent words use `.accent` (Cormorant Italic).
+- Anchors scroll through `scrollToTarget` and modals use `lockScroll`/`unlockScroll` (`src/lib/smoothScroll.ts`). All UI copy goes through `nbsp()` (`src/lib/typography.ts`); accent words use `.accent` (Cormorant Italic). Member pages focus their `h1` after a link (`useArrivalFocus`).
 - Route changes cross-fade through React's `<ViewTransition>` in `Layout`; the landing's `SignupLink` pill morphs into the login card (`.signup-morph` in `styles.css`).
-- The landing's Claude Code session and the home page's agent demo are simulated. Out of scope: hosting, other sign-in methods, avatar upload, account deletion.
+- The landing's Claude Code session is simulated. Out of scope: hosting, other sign-in methods, avatar upload, account deletion.
 
 ## Rules
 - Keep Russian UI copy, keyboard navigation and focus handling, reduced-motion support, strict types.
@@ -18,7 +19,7 @@ Russian-language React 19 + TypeScript 7 + Vite app: landing, Google sign-in via
 - Lint is oxlint (`.oxlintrc.json`; typescript-eslint lacks TS 7 support): 0 errors, justify every `oxlint-disable` inline.
 - Checks: `npm run lint`, `npm run build` (includes typecheck), `npm test` (`-- --project=desktop` for logic-only changes), `npm run test:security` after migration changes.
 - Tests: Playwright on installed Chrome, desktop + iPhone emulation. Mock Supabase only at the network boundary via `tests/helpers/auth.ts`; never add production auth bypasses. Cover changed interactions, focus, responsive layout.
-- Security: `.env.local` holds only the Supabase URL and Publishable key, never OAuth secrets or service-role keys. Enforce access with grants and RLS, not route guards alone. Owner-run setup: `docs/AUTH_SETUP.md`.
+- Security: `.env.local` holds only the Supabase URL and Publishable key, never OAuth secrets or service-role keys. Enforce access with grants and RLS, not route guards alone. Owner-run setup and the migration list: `docs/AUTH_SETUP.md`. Supabase MCP (`.mcp.json`, untracked) stays `read_only=true`; write access only when the owner allows it for a migration, then back.
 - Playwright owns ports 4317/4318. Dev prefers port 3000 and falls back to a free one (use the printed `Local` URL). Stop servers you start; never kill unrelated processes. PowerShell: `npm.cmd`.
 - Keep `dist/`, `test-results/`, `.local/` out of commits.
 - Commits: focused, imperative conventional subjects (`fix: …`). PRs: problem, behavior, validation commands, desktop/mobile screenshots for visual changes.
