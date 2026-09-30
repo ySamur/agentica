@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { Icon } from '../../components/Icon';
+import { hasStoredSession } from '../../lib/supabase';
 import { useAuth } from './AuthProvider';
 import { UserAvatar } from './UserAvatar';
 
 export function AccountMenu() {
   const { user, loading, signOut } = useAuth();
+  const { pathname } = useLocation();
+  // Without a stored session a visitor is a guest until they sign in, so «Войти» needs no wait;
+  // only a session being restored, or a sign-in being completed, shows the loading state.
+  const restoring = loading && (hasStoredSession() || pathname === '/auth/callback');
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +50,7 @@ export function AccountMenu() {
     finally { setBusy(false); }
   }
 
-  if (loading) return <span className="auth-loading" role="status">Загрузка…</span>;
+  if (restoring) return <span className="auth-loading" role="status">Загрузка…</span>;
   if (!user) return <Link className="login-link" to="/login">Войти <Icon name="arrowUp" size={15} /></Link>;
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- delegates arrow keys from the trigger and menu items.
   return <div className="account-menu" ref={wrapper} onKeyDown={handleKeys} onBlur={event => {

@@ -46,8 +46,8 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
   });
   master.to({}, { duration: 1 }, 0);
   if (canvas) master.fromTo(canvas, { scale: 1.02 }, { scale: 1.08, duration: phases.frames[1] }, 0);
-  master.fromTo(film, { '--dim': 0 }, { '--dim': 0.5, duration: 0.12 }, phases.agentIn)
-    .to(film, { '--dim': 0.76, duration: 0.08 }, phases.heroIn[0])
+  master.fromTo(film, { '--shade': 0 }, { '--shade': 0.5, duration: 0.12 }, phases.agentIn)
+    .to(film, { '--shade': 0.76, duration: 0.08 }, phases.heroIn[0])
     .to(find('.film-cue'), { opacity: 0, duration: 0.03 }, 0)
     .to(hands, { yPercent: -35, opacity: 0, duration: 0.05 }, phases.handsOut)
     .set(lines, { opacity: 1 }, phases.linesIn[0])
@@ -101,6 +101,6 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     stopSession();
     agentLines.forEach(([span, text]) => { span.textContent = text; });
     film.classList.remove('is-hero');
-    ['--dim', '--mx', '--my'].forEach(property => film.style.removeProperty(property));
+    ['--shade', '--mx', '--my'].forEach(property => film.style.removeProperty(property));
   };
 }

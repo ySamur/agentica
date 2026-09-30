@@ -1,16 +1,19 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { sceneOffset } from './scene';
 
-// The header stays clear over the film, turns to glass below it, and steps aside while the reader
-// scrolls down (it returns on the way up). CSS reads `main[data-header]`.
+// The header stays clear while the opening scene holds the stage, turns to glass the moment it lets
+// go (the hero then moves up under it), and steps aside while the reader scrolls down (it returns on
+// the way up). CSS reads `main[data-header]`.
 export function headerStates(root: HTMLElement, film: HTMLElement) {
   const set = (state: string) => { if (root.dataset.header !== state) root.dataset.header = state; };
+  let release = sceneOffset(film, 1);
   ScrollTrigger.create({
     start: 0,
     end: 'max',
+    onRefresh: () => { release = sceneOffset(film, 1); },
     onUpdate: self => {
-      const filmEnd = film.offsetTop + film.offsetHeight - 120;
-      if (window.scrollY < filmEnd) set('clear');
+      if (self.scroll() < release) set('clear');
       else if (self.direction === 1 && self.getVelocity() > 60) set('hidden');
       else if (self.direction === -1) set('glass');
       else if (root.dataset.header === 'clear') set('glass');

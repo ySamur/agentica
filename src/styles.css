@@ -89,9 +89,9 @@
   .footer-top { display: flex; align-items: center; gap: 28px; padding-bottom: 30px; }
   .footer-top > .brand { font-size: 23px; }
   .footer-top .brand-symbol { transform: scale(.8); margin-right: 5px; }
-  .footer-top > span { font-size: 10px; color: var(--dim); }
-  .footer-up { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 10px; color: var(--soft); }
-  .footer-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--edge); padding-block: 21px; font-size: 9px; color: var(--dim); }
+  .footer-top > span { font-size: 14px; color: var(--dim); }
+  .footer-up { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--soft); }
+  .footer-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--edge); padding-block: 21px; font-size: 13px; color: var(--dim); }
   .footer-spark { font-size: 15px; margin-left: 7px; color: var(--coral); }
 
   .starter-dialog { padding: 38px; border: 1px solid #ffffff1c; border-radius: 26px; background: linear-gradient(160deg, #151833, #0a0c19); color: var(--text); width: min(600px, calc(100% - 32px)); max-height: calc(100dvh - 40px); box-shadow: 0 50px 100px -40px #000, 0 0 90px -40px #a28fff70; }
@@ -147,9 +147,9 @@
     .main-nav > a[aria-current="page"]::after { display: none; }
     .site-footer { padding-top: 34px; }
     .footer-top { flex-wrap: wrap; gap: 10px; padding-bottom: 23px; }
-    .footer-top > span { order: 3; flex-basis: 100%; font-size: 10px; }
-    .footer-bottom { align-items: flex-start; gap: 14px; font-size: 7px; }
-    .footer-spark { font-size: 10px; margin-left: 3px; }
+    .footer-top > span { order: 3; flex-basis: 100%; font-size: 13px; }
+    .footer-bottom { flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; font-size: 12px; }
+    .footer-spark { font-size: 13px; margin-left: 3px; }
     .starter-dialog { padding: 29px 22px 20px; }
     .starter-dialog h2 { font-size: 28px; margin-top: 20px; }
     .starter-dialog textarea { min-height: 210px; font-size: 11px; }

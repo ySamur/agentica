@@ -33,8 +33,9 @@
   .film-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0; translate: calc(var(--mx, 0) * -16px) calc(var(--my, 0) * -10px); transition: opacity .4s, translate .6s cubic-bezier(.2, .7, .2, 1); will-change: transform; }
   .film-canvas.is-ready { opacity: 1; }
   .film-shade { position: absolute; inset: 0; background: linear-gradient(90deg, #07080fe0, #07080f99 36%, transparent 72%), linear-gradient(180deg, #07080fb3, transparent 26%); }
-  /* Darkens as the terminal and then the hero take the stage (`--dim` is scrubbed on the section). */
-  .film-shade::after { content: ''; position: absolute; inset: 0; background: var(--night); opacity: var(--dim, 0); }
+  /* Darkens as the terminal and then the hero take the stage (`--shade` is scrubbed on the section).
+     Its own name: the colour token `--dim` would resolve here and cover the poster until motion loads. */
+  .film-shade::after { content: ''; position: absolute; inset: 0; background: var(--night); opacity: var(--shade, 0); }
   .film-copy { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding-top: 88px; }
   .film-eyebrow { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 30px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--soft); text-shadow: 0 2px 14px #000, 0 0 4px #000; }
   .film-eyebrow > i { width: 22px; height: 2px; border-radius: 2px; background: var(--glow); }

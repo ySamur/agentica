@@ -62,6 +62,23 @@ test('once the hero has settled, scrolling on moves the page at once', async ({ 
   await expect.poll(async () => before - (await title.boundingBox())!.y).toBeGreaterThan(40);
 });
 
+test('the header turns to glass the moment the opening scene lets go', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  const release = await page.evaluate(() => {
+    const film = document.querySelector<HTMLElement>('.film')!;
+    return film.offsetTop + film.offsetHeight - innerHeight;
+  });
+  const jump = (top: number) => page.evaluate(value => window.scrollTo({ top: value, behavior: 'instant' }), top);
+  await jump(release - 40);
+  await expect(page.locator('main')).toHaveAttribute('data-header', 'clear');
+  // Past it the hero moves up under the header, which must not stay see-through.
+  await jump(release + 60);
+  await expect(page.locator('main')).not.toHaveAttribute('data-header', 'clear');
+  await jump(release + 30);
+  await expect(page.locator('main')).toHaveAttribute('data-header', 'glass');
+});
+
 test('the terminal types as the scene scrolls and rewinds when scrolling back', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
@@ -109,11 +126,21 @@ test('reduced motion shows the finished session and every section in place', asy
   await expect(session.locator('.session-status')).toHaveText('готово к ревью');
   await expect(session.locator('.session-log')).toContainText('Готово. Проверьте diff перед коммитом.');
   expect(await page.locator('.reveal').evaluateAll(elements => elements.every(element => getComputedStyle(element).opacity === '1'))).toBe(true);
+  // The still is the film's poster, and nothing darkens it without motion.
+  expect(await page.locator('.film-shade').evaluate(shade => getComputedStyle(shade, '::after').opacity)).toBe('0');
   // Only the poster still is fetched: no scroll film without motion.
   expect(frames.filter(url => !url.endsWith('/f_001.webp'))).toEqual([]);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `.local/screenshots/${testInfo.project.name}-viewport.png` });
   await page.screenshot({ path: `.local/screenshots/${testInfo.project.name}.png`, fullPage: true });
+});
+
+test('the poster shows while the motion layer is still on its way', async ({ page, context }) => {
+  // Never answered: the page stays in its first, pending state.
+  await context.route(/LandingMotion/, () => {});
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'pending');
+  expect(await page.locator('.film-shade').evaluate(shade => getComputedStyle(shade, '::after').opacity)).toBe('0');
 });
 
 test('the motion layer starts, with smooth scrolling for wheel and trackpad only', async ({ page }, testInfo) => {
@@ -218,6 +245,17 @@ test('reduced motion keeps the role comparison still and clear of the new column
       return text.getBoundingClientRect().left > border.right;
     });
   })).toBe(true);
+});
+
+test('a guest sees «Войти» at once, while the auth SDK is still loading', async ({ page, context }) => {
+  let release!: () => void;
+  const released = new Promise<void>(resolve => { release = resolve; });
+  // Matches the SDK module in both pre-bundled and raw form, as in auth.spec.ts.
+  await context.route(/@supabase[_/]supabase-js/, async route => { await released; await route.continue(); });
+  await page.goto('/');
+  await expect(page.locator('.site-header').getByRole('link', { name: 'Войти', exact: true })).toBeVisible();
+  await expect(page.getByText('Загрузка…')).toHaveCount(0);
+  release();
 });
 
 test('sign-up calls to action lead through Google sign-in to the route', async ({ page, context }) => {
