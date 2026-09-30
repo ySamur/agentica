@@ -2,7 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import { scrollToY } from '../../../lib/smoothScroll';
-import { chapters, frameCount, heroAt, phases, type ChapterKey } from '../introPhases';
+import { frameCount, heroAt, phases } from '../introPhases';
 import { frameSequence } from './frames';
 import { rise, sceneOffset, sceneRange } from './scene';
 import { buildSession } from './session';
@@ -32,7 +32,6 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
   gsap.set(characters, { opacity: 0 });
   gsap.set(heroRest, { opacity: 0, y: rise(22) });
 
-  let chapter: ChapterKey = 'hands';
   // Reverting replays updates; once the cleanup below has run, the section keeps its static state.
   let active = true;
   const master = gsap.timeline({
@@ -40,11 +39,7 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     scrollTrigger: {
       ...sceneRange(film, 0, 1, scrub),
       onUpdate: self => {
-        if (!active) return;
-        film.style.setProperty('--film', self.progress.toFixed(4));
-        const next = chapters.find(item => self.progress < item.to)?.key ?? 'you';
-        if (next !== chapter) film.dataset.chapter = chapter = next;
-        film.classList.toggle('is-hero', self.progress >= phases.heroLive);
+        if (active) film.classList.toggle('is-hero', self.progress >= phases.heroLive);
       },
     },
   });
@@ -61,9 +56,7 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     .to([agent, find('.film-eyebrow')], { yPercent: -35, opacity: 0, duration: 0.04 }, phases.agentOut)
     .fromTo(find('.session-scene'), { opacity: 0, y: 70, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.08 }, phases.terminalIn)
     .to(heroRest, { opacity: 1, y: 0, duration: 0.05, stagger: 0.012 }, phases.heroIn[0] + 0.03)
-    .to(find('.film-skip'), { opacity: 0, duration: 0.03 }, phases.heroIn[0])
-    // A phone needs the chapters' place for the hero, so they leave as it arrives.
-    .to(find('.film-chapters'), { opacity: 0, duration: 0.04 }, wide ? phases.hudOut : phases.heroIn[0]);
+    .to(find('.film-skip'), { opacity: 0, duration: 0.03 }, phases.heroIn[0]);
   // On a phone the terminal takes the eyebrow's place and later yields the stage to the hero;
   // on wide screens it stays beside it.
   if (!wide) master.to(find('.film-eyebrow'), { opacity: 0, duration: 0.03 }, phases.terminalIn)
@@ -81,7 +74,7 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     });
   }
 
-  // "Теперь код пишет агент." decodes itself as the agent's chapter begins.
+  // "Теперь код пишет агент." decodes itself as the agent takes over.
   const agentLines = agent ? [...agent.querySelectorAll('span')].map(span => [span, span.textContent ?? ''] as const) : [];
   ScrollTrigger.create({
     ...sceneRange(film, phases.agentIn, 1, false),
@@ -107,7 +100,6 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     stopSession();
     agentLines.forEach(([span, text]) => { span.textContent = text; });
     film.classList.remove('is-hero');
-    film.dataset.chapter = 'hands';
-    ['--film', '--dim', '--mx', '--my'].forEach(property => film.style.removeProperty(property));
+    ['--dim', '--mx', '--my'].forEach(property => film.style.removeProperty(property));
   };
 }

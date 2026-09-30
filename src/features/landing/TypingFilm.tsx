@@ -1,9 +1,9 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Icon } from '../../components/Icon';
 import { motionAllowed } from '../../lib/motion';
 import { scrollToY } from '../../lib/smoothScroll';
 import { ClaudeSession } from './ClaudeSession';
-import { chapters, heroAt } from './introPhases';
+import { heroAt } from './introPhases';
 
 // Stills cut from "A Person Typing on a Keyboard" by Mikhail Nilov (Pexels license, free to use), with the
 // brand grade baked in. The motion layer (motion/film.ts) plays them and every other part of this scene.
@@ -27,7 +27,7 @@ export function TypingFilm({ children }: { children: ReactNode }) {
     scrollToY(film.offsetTop + (film.offsetHeight - window.innerHeight) * heroAt, () => cta?.focus({ preventScroll: true }));
   }
 
-  return <section ref={section} className="film" id="home" aria-label="Вступление" data-chapter="hands">
+  return <section ref={section} className="film" id="home" aria-label="Вступление">
     <div className="film-sticky">
       <div className="film-scene">
         <div className="film-media" aria-hidden="true">
@@ -48,9 +48,6 @@ export function TypingFilm({ children }: { children: ReactNode }) {
         <ClaudeSession />
       </div>
       {moving && <>
-        <ol className="film-chapters" aria-hidden="true">
-          {chapters.map(chapter => <li key={chapter.key} data-chapter={chapter.key} style={{ '--from': chapter.from, '--to': chapter.to } as CSSProperties}><span>{chapter.label}</span><i /></li>)}
-        </ol>
         <button type="button" className="film-skip" onClick={skipIntro}>Пропустить интро <Icon name="arrow" size={15} /></button>
         <span className="film-cue" aria-hidden="true">Листайте<i /></span>
       </>}

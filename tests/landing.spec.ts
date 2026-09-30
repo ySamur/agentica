@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { chapters, phases } from '../src/features/landing/introPhases';
+import { heroAt, phases } from '../src/features/landing/introPhases';
 import { mockAuth } from './helpers/auth';
 
 // Jumps to a point of the opening scene's scroll progress (see introPhases.ts).
@@ -23,7 +23,7 @@ test('landing loads without runtime errors or horizontal overflow', async ({ pag
   expect(errors).toEqual([]);
 });
 
-test('the opening scene moves through its chapters into the hero', async ({ page }, testInfo) => {
+test('the opening scene tells its story line by line and resolves into the hero', async ({ page }, testInfo) => {
   const set = testInfo.project.name === 'mobile' ? 'mobile' : 'desktop';
   const sets = new Set<string>();
   page.on('request', request => {
@@ -33,10 +33,17 @@ test('the opening scene moves through its chapters into the hero', async ({ page
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
   await expect(page.locator('.film-canvas')).toHaveClass(/is-ready/);
-  for (const chapter of chapters) {
-    await scrollScene(page, (chapter.from + chapter.to) / 2);
-    await expect(page.locator('.film')).toHaveAttribute('data-chapter', chapter.key);
+  // Each line has the stage to itself in its own stretch of the scroll.
+  const story = [
+    ['hands', phases.handsOut / 2],
+    ['lines', (phases.linesIn[1] + phases.linesOut) / 2],
+    ['agent', (phases.agentIn + phases.agentOut) / 2],
+  ] as const;
+  for (const [key, progress] of story) {
+    await scrollScene(page, progress);
+    for (const [line] of story) await expect(page.locator(`.film-line[data-beat="${line}"]`)).toHaveCSS('opacity', line === key ? '1' : '0');
   }
+  await scrollScene(page, heroAt);
   await expect(heroLink(page)).toBeInViewport();
   await expect(heroLink(page)).toHaveCSS('opacity', '1');
   // One frame set per screen: the portrait crop on phones, the 1280px set on this desktop.
