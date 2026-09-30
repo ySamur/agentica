@@ -206,6 +206,9 @@ test('sign-up calls to action lead through Google sign-in to the route', async (
   await page.goto('/');
   await page.locator('#guide').getByRole('link', { name: 'Зарегистрироваться' }).click();
   await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
+  // The address changes first and the login page follows its chunk and page transition; going back
+  // before it shows would only cancel the navigation, leaving the landing scrolled down at #guide.
+  await expect(page.getByRole('button', { name: 'Продолжить с Google' })).toBeVisible();
   await page.goBack();
   await page.getByRole('button', { name: 'Пропустить интро' }).click();
   await heroLink(page).click();
