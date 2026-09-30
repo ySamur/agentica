@@ -47,6 +47,23 @@
   .google-button:hover { background: #1e1f22; border-color: #b4b7b5; }
   .login-caption { margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--dim); }
   .login-card .text-link { margin-top: 26px; }
+  /* Email and password below Google, a quieter second way in. */
+  .login-divider { display: flex; align-items: center; gap: 14px; width: 100%; margin-top: 26px; font-size: 12px; color: var(--dim); }
+  .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--edge); }
+  .login-form { display: grid; width: 100%; margin-top: 22px; text-align: left; }
+  .login-form label { margin-bottom: 8px; }
+  .login-form input { margin-bottom: 16px; }
+  .login-form .field-help { margin: -8px 0 16px; font-size: 13px; line-height: 1.6; color: var(--dim); }
+  .login-feedback { margin-bottom: 14px; }
+  .login-feedback:empty { margin: 0; }
+  .login-form .ghost-button { width: 100%; padding-block: 14px; }
+  .login-letter { display: grid; justify-items: start; gap: 8px; margin-bottom: 18px; }
+  .login-letter button { padding: 0; background: none; color: var(--text); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; }
+  .login-letter button[aria-disabled=true] { cursor: default; color: var(--dim); text-decoration: none; }
+  .login-letter p { font-size: 13px; line-height: 1.6; color: var(--dim); }
+  .login-switch { margin-top: 18px; font-size: 14px; color: var(--dim); }
+  .login-switch button { padding: 0; background: none; color: var(--text); font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; transition: text-decoration-color .2s; }
+  .login-switch button:hover { text-decoration-color: currentColor; }
   .account-page-note { display: flex; align-items: center; gap: 8px; margin-top: 24px; font-size: 13px; color: var(--dim); text-align: center; }
   .account-page-note > svg { color: var(--mint); }
 
@@ -65,12 +82,12 @@
   .connected-label { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--edge); border-radius: 999px; background: #ffffff06; font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--soft); white-space: nowrap; }
   .connected-label > i { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 10px var(--mint); }
   .profile-identity > .connected-label { margin-left: auto; }
-  .profile-card label { display: block; margin-bottom: 10px; font-size: 14px; font-weight: 500; }
-  .profile-card input { display: block; width: 100%; padding: 14px 16px; border: 1px solid #ffffff1f; border-radius: 14px; background: #0a0c18; color: var(--text); font-size: 15px; transition: border-color .2s; }
-  .profile-card input:hover { border-color: #ffffff38; }
-  .profile-card input:focus-visible { outline-offset: 2px; }
+  :is(.profile-card, .login-form) label { display: block; margin-bottom: 10px; font-size: 14px; font-weight: 500; }
+  :is(.profile-card, .login-form) input { display: block; width: 100%; padding: 14px 16px; border: 1px solid #ffffff1f; border-radius: 14px; background: #0a0c18; color: var(--text); font-size: 15px; transition: border-color .2s; }
+  :is(.profile-card, .login-form) input:hover { border-color: #ffffff38; }
+  :is(.profile-card, .login-form) input:focus-visible { outline-offset: 2px; }
   .profile-card input[readonly] { background: #ffffff05; color: var(--dim); }
-  .profile-card input[aria-invalid=true] { border-color: #ff8f9d; }
+  :is(.profile-card, .login-form) input[aria-invalid=true] { border-color: #ff8f9d; }
   .profile-card .field-help { margin-block: 10px 24px; font-size: 13px; line-height: 1.6; color: var(--dim); }
   .profile-card .field-help:last-child { margin-bottom: 0; }
   .profile-form-footer { display: flex; align-items: center; gap: 20px; padding-top: 6px; }
@@ -104,7 +121,7 @@
     .page-heading { margin-bottom: 24px; }
     .profile-card { padding: 25px 21px; }
     .profile-form-footer { align-items: flex-start; flex-direction: column; gap: 13px; }
-    .profile-card input { font-size: 16px; }
+    :is(.profile-card, .login-form) input { font-size: 16px; }
     .status-card { margin-top: 10px; padding-inline: 22px; }
     .status-card h1 { font-size: 29px; }
   }

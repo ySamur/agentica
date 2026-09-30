@@ -10,19 +10,33 @@ const stepBody = 'Закрытый текст шага для участнико
 let clock = Date.now();
 const stamp = () => new Date(clock += 1000).toISOString();
 
+function accountUser(email: string, provider: 'google' | 'email', metadata: Record<string, unknown>) {
+  return {
+    id: userId,
+    aud: 'authenticated',
+    role: 'authenticated',
+    email,
+    email_confirmed_at: '2026-09-24T00:00:00Z' as string | null,
+    app_metadata: { provider, providers: [provider] },
+    user_metadata: metadata,
+    created_at: '2026-09-24T00:00:00Z',
+  };
+}
+
 function createState() {
   const progress = new Map<string, ProgressRow>();
   return {
-    user: {
-      id: userId,
-      aud: 'authenticated',
-      role: 'authenticated',
-      email: 'developer@example.com',
-      email_confirmed_at: '2026-09-24T00:00:00Z',
-      app_metadata: { provider: 'google', providers: ['google'] },
-      user_metadata: { full_name: 'Тестовый Разработчик', avatar_url: null },
-      created_at: '2026-09-24T00:00:00Z',
-    },
+    // Signed in through Google, until a password sign-in or sign-up switches the account.
+    user: accountUser('developer@example.com', 'google', { full_name: 'Тестовый Разработчик', avatar_url: null }),
+    // Email and password accounts by address. `confirmEmail`: sign-up waits for the letter's link.
+    accounts: new Map<string, { password: string; name: string; confirmed: boolean }>(),
+    confirmEmail: false,
+    // The address of the latest letter; its link's code exchange confirms and signs in that account.
+    letter: null as string | null,
+    resendCount: 0,
+    resendLimited: false,
+    // SMTP down: GoTrue's 500 on sign-up with confirmations on.
+    letterFails: false,
     exchangeCount: 0,
     refreshCount: 0,
     authorizeUrl: '',
@@ -123,13 +137,50 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
       if (state.denied) callback.searchParams.set('error', 'access_denied');
       else callback.searchParams.set('code', 'fixture-one-time-code');
       await route.fulfill({ status: 302, headers: { location: callback.href } });
+    } else if (url.pathname === '/auth/v1/signup') {
+      const { email, password, data: metadata } = request.postDataJSON() as { email: string; password: string; data: { display_name: string } };
+      if (state.accounts.has(email) || email === state.user.email) {
+        await json(route, { error_code: 'user_already_exists', msg: 'User already registered' }, 422);
+        return;
+      }
+      if (state.confirmEmail && state.letterFails) {
+        await json(route, { error_code: 'unexpected_failure', msg: 'Error sending confirmation email' }, 500);
+        return;
+      }
+      state.accounts.set(email, { password, name: metadata.display_name, confirmed: !state.confirmEmail });
+      const user = accountUser(email, 'email', metadata);
+      // Like GoTrue: with confirmations on, a letter and the unconfirmed user alone, no session.
+      if (state.confirmEmail) { state.letter = email; await json(route, { ...user, email_confirmed_at: null }); return; }
+      state.user = user;
+      await json(route, session());
+    } else if (url.pathname === '/auth/v1/resend') {
+      if (state.resendLimited) { await json(route, { error_code: 'over_email_send_rate_limit', msg: 'Email rate limit exceeded' }, 429); return; }
+      state.resendCount += 1;
+      state.letter = (request.postDataJSON() as { email: string }).email;
+      await json(route, {});
     } else if (url.pathname === '/auth/v1/token') {
-      if (url.searchParams.get('grant_type') === 'pkce') {
+      if (url.searchParams.get('grant_type') === 'password') {
+        const { email, password } = request.postDataJSON() as { email: string; password: string };
+        const account = state.accounts.get(email);
+        if (account?.password !== password) {
+          await json(route, { error_code: 'invalid_credentials', msg: 'Invalid login credentials' }, 400);
+          return;
+        }
+        if (!account.confirmed) { await json(route, { error_code: 'email_not_confirmed', msg: 'Email not confirmed' }, 400); return; }
+        state.user = accountUser(email, 'email', { display_name: account.name });
+      } else if (url.searchParams.get('grant_type') === 'pkce') {
         state.exchangeCount += 1;
         const body = request.postDataJSON();
         if (state.badCode || body.auth_code !== 'fixture-one-time-code' || !body.code_verifier) {
           await json(route, { error_code: 'bad_code_verifier', msg: 'Invalid code' }, 400);
           return;
+        }
+        // A letter's link: the account is confirmed and signed in.
+        const account = state.letter ? state.accounts.get(state.letter) : undefined;
+        if (state.letter && account) {
+          account.confirmed = true;
+          state.user = accountUser(state.letter, 'email', { display_name: account.name });
+          state.letter = null;
         }
       } else {
         state.refreshCount += 1;
