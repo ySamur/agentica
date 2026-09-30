@@ -28,7 +28,8 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
 
   // "Строка за строкой. Символ за символом." arrives character by character. Scrubbed staggers only
   // render their first target's start, so every start state below is set explicitly first.
-  const characters = lines ? SplitText.create(lines, { type: 'words,chars', aria: 'none' }).chars : [];
+  // Keeping white space as written keeps the copy's non-breaking spaces (nbsp) binding their words.
+  const characters = lines ? SplitText.create(lines, { type: 'words,chars', aria: 'none', reduceWhiteSpace: false }).chars : [];
   gsap.set(characters, { opacity: 0 });
   gsap.set(heroRest, { opacity: 0, y: rise(22) });
 

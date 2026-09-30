@@ -2,6 +2,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { Icon } from '../../components/Icon';
 import { motionAllowed } from '../../lib/motion';
 import { scrollToY } from '../../lib/smoothScroll';
+import { nbsp } from '../../lib/typography';
 import { ClaudeSession } from './ClaudeSession';
 import { heroAt } from './introPhases';
 
@@ -9,7 +10,7 @@ import { heroAt } from './introPhases';
 // brand grade baked in. The motion layer (motion/film.ts) plays them and every other part of this scene.
 const beats = [
   { key: 'hands', text: <>Годами разработчик<br />писал код руками.</> },
-  { key: 'lines', text: <>Строка за строкой.<br />Символ за символом.</> },
+  { key: 'lines', text: <>{nbsp('Строка за строкой.')}<br />{nbsp('Символ за символом.')}</> },
   { key: 'agent', text: <><span>Теперь код</span><br /><span>пишет агент.</span></> },
 ];
 
