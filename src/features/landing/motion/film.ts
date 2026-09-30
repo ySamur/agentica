@@ -19,11 +19,11 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
   const title = hero?.querySelector<HTMLElement>('h1');
   const heroRest = hero ? [...hero.children].filter(child => child !== title) : [];
 
-  // Frames follow a snapped proxy, so the scrub smooths them like everything else.
+  // The footage follows the scroll to a fraction of a frame; the sequence blends the two nearest ones.
   const sequence = canvas ? frameSequence(canvas) : null;
-  const frame = { index: 0 };
+  const frame = { position: 0 };
   // A refresh moves the proxy without its update, hence the second hook.
-  gsap.to(frame, { index: frameCount - 1, ease: 'none', snap: 'index', scrollTrigger: { ...sceneRange(film, ...phases.frames, scrub), onRefresh: () => sequence?.show(frame.index) }, onUpdate: () => sequence?.show(frame.index) });
+  gsap.to(frame, { position: frameCount - 1, ease: 'none', scrollTrigger: { ...sceneRange(film, ...phases.frames, scrub), onRefresh: () => sequence?.show(frame.position) }, onUpdate: () => sequence?.show(frame.position) });
   sequence?.show(0);
 
   // "Строка за строкой. Символ за символом." arrives character by character. Scrubbed staggers only
