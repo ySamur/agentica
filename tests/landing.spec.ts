@@ -128,7 +128,26 @@ test('section links glide below the header, also when followed a second time', a
   const link = page.getByRole('navigation').getByRole('link', { name: 'Как это работает' });
   await link.click();
   await expect.poll(gap, { timeout: 8000 }).toBeLessThan(4);
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  // Back to the top once the glide has settled (a jump during it would be overridden), at the worst
+  // moment: the smooth scroller skips the scroll event after its last step, so the next glide has to
+  // start from the page's position rather than the one it remembers.
+  await page.evaluate(() => new Promise<void>(resolve => {
+    const root = document.documentElement;
+    const jump = () => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      resolve();
+    };
+    if (!root.classList.contains('lenis-scrolling')) {
+      jump();
+      return;
+    }
+    new MutationObserver((_, observer) => {
+      if (root.classList.contains('lenis-scrolling')) return;
+      observer.disconnect();
+      jump();
+    }).observe(root, { attributeFilter: ['class'] });
+  }));
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
   await link.click();
   await expect.poll(gap, { timeout: 8000 }).toBeLessThan(4);
 });
@@ -182,18 +201,21 @@ test('reduced motion keeps the role comparison still and clear of the new column
   })).toBe(true);
 });
 
-test('sign-up calls to action lead through Google sign-in to members content', async ({ page, context }) => {
+test('sign-up calls to action lead through Google sign-in to the route', async ({ page, context }) => {
   await mockAuth(context);
   await page.goto('/');
   await page.locator('#guide').getByRole('link', { name: 'Зарегистрироваться' }).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fcontent$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
+  // The address changes first and the login page follows its chunk and page transition; going back
+  // before it shows would only cancel the navigation, leaving the landing scrolled down at #guide.
+  await expect(page.getByRole('button', { name: 'Продолжить с Google' })).toBeVisible();
   await page.goBack();
   await page.getByRole('button', { name: 'Пропустить интро' }).click();
   await heroLink(page).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fcontent$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
-  await expect(page).toHaveURL('http://localhost:4317/content');
-  await expect(page.getByText('тест контент', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL('http://localhost:4317/path');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('От клавиатуры');
 });
 
 test('a call to action grows into the login card, while section links move without a page transition', async ({ page, context }) => {

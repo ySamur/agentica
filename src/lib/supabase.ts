@@ -1,18 +1,29 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type MemberContent = { slug: string; body: string };
+// The route's tables and RPC (supabase/migrations/202609290001_guide.sql).
+export type GuideProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };
+type GuideStepRow = { step_id: string; body: string };
 type Database = {
   public: {
     Tables: {
-      member_content: {
-        Row: MemberContent;
-        Insert: MemberContent;
-        Update: Partial<MemberContent>;
+      guide_steps: {
+        Row: GuideStepRow;
+        Insert: GuideStepRow;
+        Update: Partial<GuideStepRow>;
+        Relationships: [];
+      };
+      guide_progress: {
+        Row: GuideProgressRow;
+        // `user_id` and `updated_at` are the server's: auth.uid() and its clock.
+        Insert: Pick<GuideProgressRow, 'step_id' | 'status'>;
+        Update: Partial<Pick<GuideProgressRow, 'step_id' | 'status'>>;
         Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      open_guide_step: { Args: { step: string }; Returns: GuideProgressRow[] };
+    };
   };
 };
 

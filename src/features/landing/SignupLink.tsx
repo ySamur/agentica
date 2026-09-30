@@ -3,8 +3,8 @@ import { Link } from 'react-router';
 
 export type SignupMorph = 'hero' | 'guide' | 'outro';
 
-// Signing up from the landing brings new members straight to the members-only content.
-const signUp = '/login?next=%2Fcontent';
+// Signing up from the landing brings new members straight to their route.
+const signUp = '/login?next=%2Fpath';
 
 // The login page's chunk loads while the pointer or focus is on its way, so the transition starts at once.
 const preloadLogin = () => { void import('../../pages/auth/LoginPage'); };

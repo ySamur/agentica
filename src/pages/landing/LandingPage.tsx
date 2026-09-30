@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useOutletContext } from 'react-router';
 import type { PageContext } from '../../app/App';
 import { Brand, Icon, type IconName } from '../../components/Icon';
@@ -7,6 +7,7 @@ import { RoleShift } from '../../features/landing/RoleShift';
 import { SignupLink } from '../../features/landing/SignupLink';
 import { TypingFilm } from '../../features/landing/TypingFilm';
 import { motionAllowed } from '../../lib/motion';
+import { spotlight } from '../../lib/spotlight';
 import { nbsp } from '../../lib/typography';
 
 // GSAP, its plugins and smooth scrolling ship as their own chunk, so the main one (members' too) stays light.
@@ -61,18 +62,12 @@ const chapters = ['Первый день с Claude Code', 'CLAUDE.md, котор
 const questions = [
   { title: 'Заменит ли ИИ разработчиков?', answer: 'Он меняет содержание работы. Набор кода всё больше делегируется агентам, а ценность смещается к постановке задач, архитектуре, ревью и ответственности за результат. Именно этим навыкам посвящён путеводитель.' },
   { title: 'Что такое Claude Code?', answer: 'Инструмент Anthropic для агентной разработки. Он работает в терминале, IDE, десктопном приложении и браузере: читает проект, редактирует файлы и выполняет команды — с вашего разрешения.' },
-  { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оператор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
+  { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оркестратор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
   { title: 'Что будет в путеводителе и когда?', answer: 'Маршрут перехода по шагам, шаблоны запросов, настройка CLAUDE.md и автоматических проверок, разборы типичных ошибок. Он появится в разделе для участников — зарегистрированные пользователи получат доступ сразу после выхода.' },
   { title: 'Регистрация платная?', answer: 'Нет. Вход через Google: отдельный пароль не нужен, мы получаем только профиль и email.' },
 ].map(question => ({ title: nbsp(question.title), answer: nbsp(question.answer) }));
 
-function trackSpotlight(event: PointerEvent<HTMLDivElement>) {
-  const card = (event.target as Element).closest<HTMLElement>('.skill-card');
-  if (!card) return;
-  const box = card.getBoundingClientRect();
-  card.style.setProperty('--x', `${event.clientX - box.left}px`);
-  card.style.setProperty('--y', `${event.clientY - box.top}px`);
-}
+const trackSpotlight = spotlight('.skill-card');
 
 export function LandingPage() {
   const { openStarter } = useOutletContext<PageContext>();
@@ -89,15 +84,6 @@ export function LandingPage() {
     }, 4000);
     return () => window.clearTimeout(timer);
   }, [motion]);
-
-  useEffect(() => {
-    // The browser UI follows the landing's dark theme and returns to the site default on leave.
-    const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (!meta) return;
-    const previous = meta.content;
-    meta.content = '#07080f';
-    return () => { meta.content = previous; };
-  }, []);
 
   // `data-reveal="head"` groups and `.reveal` blocks are animated by the motion layer; without it they stay in place.
   return <>
@@ -130,7 +116,7 @@ export function LandingPage() {
 
       <section className="skills container" aria-labelledby="skills-title">
         <div className="story-head" data-reveal="head">
-          <span className="story-eyebrow"><i /> Навыки оператора</span>
+          <span className="story-eyebrow"><i /> Навыки оркестратора</span>
           <h2 id="skills-title">Агент печатает.{' '}<br />Вы{' '}— <em className="accent">думаете.</em></h2>
           <p>{nbsp('Набор кода больше не узкое место. Узкое место — ясность мысли. Вот что теперь отличает сильного разработчика.')}</p>
         </div>
@@ -209,7 +195,7 @@ export function LandingPage() {
       </section>
     </main>
 
-    <footer className="site-footer container"><div className="footer-top"><Brand /><span>{nbsp('Из разработчика — в оператора ИИ.')}</span><Link to="#home" className="footer-up">Наверх <Icon name="arrowUp" size={15} /></Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} agentica</span><span>Сделано людьми. Вместе с агентами. <span className="footer-spark">✳</span></span></div><div className="footer-mark" aria-hidden="true">agentica</div></footer>
+    <footer className="site-footer container"><div className="footer-top"><Brand /><span>{nbsp('Разработчик, который управляет агентами.')}</span><Link to="#home" className="footer-up">Наверх <Icon name="arrowUp" size={15} /></Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} agentica</span><span>Сделано людьми. Вместе с агентами. <span className="footer-spark">✳</span></span></div><div className="footer-mark" aria-hidden="true">agentica</div></footer>
     {motion && <Suspense fallback={null}><LandingMotion main={main} /></Suspense>}
   </>;
 }

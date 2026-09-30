@@ -4,6 +4,8 @@ import { LandingPage } from '../pages/landing/LandingPage';
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { clearDestination } from '../features/auth/redirect';
+import { stepAtPath } from '../features/guide/catalog';
+import { GuideProgressProvider } from '../features/guide/GuideProgress';
 import { StarterDialog } from '../features/starter/StarterDialog';
 import { SiteHeader } from '../components/SiteHeader';
 import { PageStatus } from '../components/PageStatus';
@@ -13,24 +15,32 @@ import { hasStoredSession } from '../lib/supabase';
 export type PageContext = { openStarter: () => void };
 
 // Only the guest landing ships in the main chunk; other pages load on first visit.
-const HomePage = lazy(() => import('../pages/home/HomePage').then(module => ({ default: module.HomePage })));
+const CabinetPage = lazy(() => import('../pages/cabinet/CabinetPage').then(module => ({ default: module.CabinetPage })));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage').then(module => ({ default: module.LoginPage })));
 const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage').then(module => ({ default: module.AuthCallbackPage })));
-const ProfilePage = lazy(() => import('../pages/settings/ProfilePage').then(module => ({ default: module.ProfilePage })));
-const ContentPage = lazy(() => import('../pages/content/ContentPage').then(module => ({ default: module.ContentPage })));
+const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(module => ({ default: module.ProfilePage })));
+const PathPage = lazy(() => import('../pages/path/PathPage').then(module => ({ default: module.PathPage })));
+const StepPage = lazy(() => import('../pages/path/StepPage').then(module => ({ default: module.StepPage })));
 
 const titles: Record<string, string> = {
-  '/login': 'Вход и регистрация',
+  '/login': 'Вход',
   '/auth/callback': 'Завершение входа',
-  '/settings/profile': 'Настройки профиля',
-  '/content': 'Контент для участников',
+  '/profile': 'Профиль',
+  '/path': 'Маршрут',
 };
 
-// `/` is the members' home page or the guest landing. Until the SDK restores the session,
+// `/` is the members' cabinet or the guest landing. Until the SDK restores the session,
 // a stored one predicts it, so members never see the landing flash.
-function useMemberHome() {
+function useMember() {
   const { user, loading } = useAuth();
   return Boolean(user) || (loading && hasStoredSession());
+}
+
+function pageTitle(pathname: string, member: boolean) {
+  if (pathname === '/') return member ? 'Кабинет' : 'Код пишет Claude. Решения — ваши.';
+  const step = stepAtPath(pathname);
+  if (step) return `${step.label} ${step.title}`;
+  return titles[pathname] || 'Страница не найдена';
 }
 
 // Lazy pages mount after navigation, so wait briefly for the anchor to appear.
@@ -60,11 +70,9 @@ function Layout() {
   const location = useLocation();
   const navigationType = useNavigationType();
   const { error, user } = useAuth();
-  const memberHome = useMemberHome();
+  const member = useMember();
   const openStarter = () => setStarterOpen(true);
-  const title = location.pathname === '/'
-    ? memberHome ? 'Вы создаёте. Агенты ускоряют.' : 'Код пишет Claude. Решения — ваши.'
-    : titles[location.pathname] || 'Страница не найдена';
+  const title = pageTitle(location.pathname, member);
 
   useEffect(() => {
     document.title = `agentica — ${title}`;
@@ -84,8 +92,10 @@ function Layout() {
   }, [location.pathname, location.hash, location.key, navigationType]);
 
   return <>
+    {/* Work pages share one calm backdrop; the landing draws its own. It stays out of the header's `+` selectors. */}
+    <div className="aurora aurora-calm" aria-hidden="true"><i /><i /><i /><i /></div>
     {/* Remounting per route resets the mobile and account menus after any navigation. */}
-    <SiteHeader key={location.pathname} onStart={openStarter} />
+    <SiteHeader key={location.pathname} member={member} onStart={openStarter} />
     {error && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error}</p>}
     {/* Router updates run as transitions, so each new page cross-fades in; a hash change on the same
         page is an update and stays still. Suspense sits outside, so a lazy page keeps the old one on
@@ -100,21 +110,25 @@ function Layout() {
 }
 
 function IndexRoute() {
-  return useMemberHome() ? <HomePage /> : <LandingPage />;
+  return useMember() ? <CabinetPage /> : <LandingPage />;
 }
 
 export default function App() {
-  return <BrowserRouter><AuthProvider><Routes>
+  return <BrowserRouter><AuthProvider><GuideProgressProvider><Routes>
     <Route element={<Layout />}>
       <Route index element={<IndexRoute />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="auth/callback" element={<AuthCallbackPage />} />
+      {/* Old addresses stay valid: sign-up links carried `?next=%2Fcontent`. */}
+      <Route path="content" element={<Navigate to="/path" replace />} />
+      <Route path="settings" element={<Navigate to="/profile" replace />} />
+      <Route path="settings/profile" element={<Navigate to="/profile" replace />} />
       <Route element={<RequireAuth />}>
-        <Route path="settings" element={<Navigate to="/settings/profile" replace />} />
-        <Route path="settings/profile" element={<ProfilePage />} />
-        <Route path="content" element={<ContentPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="path" element={<PathPage />} />
+        <Route path="path/:stage/:step" element={<StepPage />} />
       </Route>
       <Route path="*" element={<PageStatus title="Страница не найдена" message="Возможно, адрес изменился. Вернёмся к вашим идеям?" />} />
     </Route>
-  </Routes></AuthProvider></BrowserRouter>;
+  </Routes></GuideProgressProvider></AuthProvider></BrowserRouter>;
 }
