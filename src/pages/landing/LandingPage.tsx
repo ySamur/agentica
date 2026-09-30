@@ -39,7 +39,12 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
   {
     title: 'Автоматические проверки', icon: 'command', wide: true,
     text: nbsp('Хуки, линтер и тесты проверяют каждую правку агента раньше, чем вы откроете diff.'),
-    visual: <div className="visual-pipeline"><span>lint</span><i /><span>build</span><i /><span>test</span><i /><b><Icon name="check" size={14} /></b></div>,
+    // The hook fires on the agent's edit; each check hands over to the next and logs its time.
+    visual: <div className="visual-pipeline">
+      <p className="pipeline-hook">PostToolUse · src/cart/promo.ts</p>
+      <div className="pipeline-track"><span>lint</span><i /><span>build</span><i /><span>test</span><i /><b><Icon name="check" size={14} /></b></div>
+      <ul className="pipeline-log"><li><span>✓</span>lint<em>1,2 с</em></li><li><span>✓</span>build<em>3,4 с</em></li><li><span>✓</span>23 теста<em>5,1 с</em></li></ul>
+    </div>,
   },
   {
     title: 'Параллельные агенты', icon: 'branch',
@@ -97,7 +102,7 @@ export function LandingPage() {
         <h1 className="intro-title" id="intro-title">Код пишет Claude.{' '}<br />Решения{' '}— <em className="accent glow-text">ваши.</em></h1>
         <p className="intro-lead">{nbsp('Время, когда ценность разработчика измерялась набранными строками, уходит. Вы ставите задачу — Claude Code изучает проект, правит файлы и запускает тесты. За вами архитектура, ревью и последнее слово.')}</p>
         <div className="intro-actions">
-          <SignupLink morph="hero">Получить доступ <Icon name="arrowUp" size={18} /></SignupLink>
+          <SignupLink morph="hero">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
           <Link className="ghost-button" to="#why">Как меняется роль <Icon name="arrow" size={17} /></Link>
         </div>
         <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google. Путеводитель по переходу готовится для участников.')}</p>
@@ -114,7 +119,7 @@ export function LandingPage() {
         <RoleShift />
       </section>
 
-      <section className="skills container" aria-labelledby="skills-title">
+      <section className="skills container" id="skills" aria-labelledby="skills-title">
         <div className="story-head" data-reveal="head">
           <span className="story-eyebrow"><i /> Навыки оркестратора</span>
           <h2 id="skills-title">Агент печатает.{' '}<br />Вы{' '}— <em className="accent">думаете.</em></h2>
@@ -150,7 +155,7 @@ export function LandingPage() {
             <li><Icon name="check" size={17} /> Без отдельного пароля</li>
             <li><Icon name="check" size={17} /> {nbsp('Только профиль и email')}</li>
           </ul>
-          <SignupLink morph="guide">Зарегистрироваться <Icon name="arrowUp" size={18} /></SignupLink>
+          <SignupLink morph="guide">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
         </div>
         <div className="guide-visual reveal">
           <div className="guide-volume">
@@ -188,7 +193,7 @@ export function LandingPage() {
           <h2 id="outro-title">Перестаньте печатать.{' '}<br />Начните <em className="accent glow-text">управлять.</em></h2>
           <p>{nbsp('Присоединяйтесь сейчас — и получите путеводитель по переходу, как только он выйдет.')}</p>
           <div className="outro-actions">
-            <SignupLink morph="outro">Получить доступ <Icon name="arrowUp" size={18} /></SignupLink>
+            <SignupLink morph="outro">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
             <button type="button" className="ghost-button" onClick={openStarter}>Готовые запросы для старта <Icon name="terminal" size={17} /></button>
           </div>
         </div>

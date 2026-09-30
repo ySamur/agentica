@@ -10,7 +10,7 @@ import 'lenis/dist/lenis.css';
 import { setScroller } from '../../../lib/smoothScroll';
 import { playVisuals, stackCards, tiltCards } from './bento';
 import { buildBook } from './book';
-import { footerSweep, headerStates, magnetize, outroLight, tickerSpeed } from './chrome';
+import { footerSweep, headerStates, magnetize, navSpy, outroLight, tickerSpeed } from './chrome';
 import { buildFilm } from './film';
 import { buildPath, scrubPath } from './path';
 import { onScreen, rise } from './scene';
@@ -47,7 +47,8 @@ function smoothScroll() {
 function revealHeads(root: HTMLElement) {
   gsap.utils.toArray<HTMLElement>('[data-reveal="head"]', root).forEach(head => {
     if (onScreen(head)) return;
-    const trigger = () => ({ trigger: head, start: 'top 82%', once: true });
+    // Early enough that a heading is already rising when it comes into view, so no empty band opens above it.
+    const trigger = () => ({ trigger: head, start: 'top 90%', once: true });
     const title = head.querySelector<HTMLElement>('h1, h2');
     if (title) SplitText.create(title, {
       // `reduceWhiteSpace` would turn the copy's non-breaking spaces into plain ones and free the words they bind.
@@ -65,7 +66,7 @@ function revealBlocks(root: HTMLElement, wide: boolean) {
   if (!blocks.length) return;
   gsap.set(blocks, { opacity: 0, y: rise(48) });
   ScrollTrigger.batch(blocks, {
-    start: 'top 88%',
+    start: 'top 94%',
     once: true,
     onEnter: batch => gsap.to(batch, { opacity: 1, y: 0, duration: 1.1, stagger: 0.09, overwrite: true }),
   });
@@ -130,6 +131,7 @@ export default function LandingMotion({ main }: { main: RefObject<HTMLElement | 
       else scrubPath(root);
       buildBook(root, { fine, wide, signal });
       const stopHeader = headerStates(root, film);
+      const stopSpy = navSpy();
       if (fine) {
         magnetize(root, signal);
         outroLight(root, signal);
@@ -144,6 +146,7 @@ export default function LandingMotion({ main }: { main: RefObject<HTMLElement | 
         stop.abort();
         stopMeasuring();
         stopHeader();
+        stopSpy();
         stopFilm();
         stopScrolling?.();
         root.dataset.motion = 'pending';

@@ -43,12 +43,13 @@
   .brand-symbol > span:nth-child(4) { transform: rotate(135deg); }
   .main-nav { display: flex; align-items: center; gap: 25px; }
   .main-nav > a { position: relative; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--soft); transition: color .2s; }
-  .main-nav > a:hover, .main-nav > a[aria-current="page"] { color: var(--text); }
-  /* The members' current section is underlined with the landing's gradient. */
-  .main-nav > a[aria-current="page"]::after { content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 2px; border-radius: 2px; background: var(--glow); }
+  .main-nav > a:hover, .main-nav > a[aria-current] { color: var(--text); }
+  /* The current page (members) or the section being read (landing) is underlined with the landing's gradient. */
+  .main-nav > a[aria-current]::after { content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 2px; border-radius: 2px; background: var(--glow); }
   .header-cta { display: flex; align-items: center; gap: 17px; font-size: 12px; font-weight: 500; background: transparent; border: 1px solid var(--edge); border-radius: 6px; padding: 12px 15px; transition: background .2s; }
   .header-cta:hover { background: #ffffff12; }
-  .mobile-menu, .mobile-start { display: none; }
+  /* The nav's own sign-up link shows only once the header's button hides (≤900px, account.css). */
+  .mobile-menu, .main-nav > .mobile-start { display: none; }
 
   /* Shared pieces, first drawn for the landing. */
   /* Fixed backdrop: drifting aurora blobs plus film grain. Work pages get a calm, still one (Layout). */
@@ -132,7 +133,7 @@
     .container { width: calc(100% - 48px); }
     .site-header { height: 76px; }
     .brand { font-size: 25px; }
-    .main-nav > a { font-size: 10px; }
+    .main-nav > a { font-size: 12px; }
   }
   @media (max-width: 700px) {
     html { scroll-padding-top: 90px; }
@@ -144,7 +145,7 @@
     .main-nav { display: none; position: absolute; top: 69px; left: 0; right: 0; padding: 16px 24px 22px; background: #0b0c17f7; border-bottom: 1px solid var(--edge); box-shadow: 0 20px 40px #0009; }
     .main-nav.nav-open { display: flex; align-items: stretch; flex-direction: column; gap: 0; }
     .main-nav > a { padding-block: 14px; font-size: 13px; }
-    .main-nav > a[aria-current="page"]::after { display: none; }
+    .main-nav > a[aria-current]::after { display: none; }
     .site-footer { padding-top: 34px; }
     .footer-top { flex-wrap: wrap; gap: 10px; padding-bottom: 23px; }
     .footer-top > span { order: 3; flex-basis: 100%; font-size: 13px; }

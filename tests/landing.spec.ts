@@ -10,7 +10,7 @@ async function scrollScene(page: Page, progress: number) {
   }, progress);
 }
 
-const heroLink = (page: Page) => page.locator('.film-hero').getByRole('link', { name: 'Получить доступ' });
+const heroLink = (page: Page) => page.locator('.film-hero').getByRole('link', { name: 'Начать бесплатно' });
 
 test('landing loads without runtime errors or horizontal overflow', async ({ page }) => {
   const errors: string[] = [];
@@ -171,7 +171,7 @@ test('section links glide below the header, also when followed a second time', a
   await expect(page.locator('html')).toHaveClass(/\blenis\b/);
   const offset = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop));
   const gap = () => page.locator('#how').evaluate((element, expected) => Math.abs(element.getBoundingClientRect().top - expected), offset);
-  const link = page.getByRole('navigation').getByRole('link', { name: 'Как это работает' });
+  const link = page.getByRole('navigation').getByRole('link', { name: 'Путь' });
   await link.click();
   await expect.poll(gap, { timeout: 8000 }).toBeLessThan(4);
   // Back to the top once the glide has settled (a jump during it would be overridden), at the worst
@@ -202,7 +202,7 @@ test('an open dialog keeps the page still under the wheel', async ({ page }, tes
   test.skip(testInfo.project.name === 'mobile', 'Wheel scrolling is a desktop gesture.');
   await page.goto('/');
   await expect(page.locator('html')).toHaveClass(/\blenis\b/);
-  await page.locator('.header-cta').click();
+  await page.locator('.outro').getByRole('button', { name: 'Готовые запросы для старта' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   const before = await page.evaluate(() => scrollY);
   await page.mouse.move(720, 150);
@@ -261,7 +261,7 @@ test('a guest sees «Войти» at once, while the auth SDK is still loading',
 test('sign-up calls to action lead through Google sign-in to the route', async ({ page, context }) => {
   await mockAuth(context);
   await page.goto('/');
-  await page.locator('#guide').getByRole('link', { name: 'Зарегистрироваться' }).click();
+  await page.locator('#guide').getByRole('link', { name: 'Начать бесплатно' }).click();
   await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
   // The address changes first and the login page follows its chunk and page transition; going back
   // before it shows would only cancel the navigation, leaving the landing scrolled down at #guide.
@@ -291,7 +291,7 @@ test('a call to action grows into the login card, while section links move witho
   await page.getByRole('navigation').getByRole('link', { name: 'Вопросы' }).click();
   await expect(page).toHaveURL(/#questions$/);
   expect(await transitions()).toBe(0);
-  await page.locator('#guide').getByRole('link', { name: 'Зарегистрироваться' }).click();
+  await page.locator('#guide').getByRole('link', { name: 'Начать бесплатно' }).click();
   await expect(page.locator('.login-card')).toBeVisible();
   expect(await transitions()).toBeGreaterThan(0);
 });
@@ -333,10 +333,41 @@ test('navigation reaches its destination and mobile menu closes', async ({ page 
     await page.getByRole('button', { name: 'Открыть меню' }).click();
     await expect(page.getByRole('navigation')).toBeVisible();
   }
-  await page.getByRole('navigation').getByRole('link', { name: 'Почему агенты' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Роль' }).click();
   await expect(page).toHaveURL(/#why$/);
   if (testInfo.project.name === 'mobile') {
     await expect(page.getByRole('navigation')).not.toBeVisible();
     await expect(page.getByRole('button', { name: 'Открыть меню' })).toHaveAttribute('aria-expanded', 'false');
   }
+});
+
+test('every sign-up call to action has one label and leads to sign-in', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await expect(page.getByText(/Начать с агентами|Получить доступ|Зарегистрироваться/)).toHaveCount(0);
+  const signUps = page.getByRole('link', { name: 'Начать бесплатно' });
+  // Header, hero, guide and outro; on a phone the header's one waits in the menu.
+  if (testInfo.project.name === 'mobile') {
+    await expect(signUps).toHaveCount(3);
+    await page.getByRole('button', { name: 'Открыть меню' }).click();
+  }
+  await expect(signUps).toHaveCount(4);
+  for (const link of await signUps.all()) await expect(link).toHaveAttribute('href', '/login?next=%2Fpath');
+  // The ready prompts stay as the outro's secondary action; «Вопросы» is a plain link without a dropdown's chevron.
+  await expect(page.locator('.outro').getByRole('button', { name: 'Готовые запросы для старта' })).toBeVisible();
+  await expect(page.getByRole('navigation').getByRole('link', { name: 'Вопросы' }).locator('svg')).toHaveCount(0);
+  // The sign-in page is where they all lead, so its header has none.
+  await page.goto('/login');
+  await expect(page.locator('.site-header').getByRole('link', { name: 'Начать бесплатно' })).toHaveCount(0);
+});
+
+test('the header marks the section being read', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  const link = (id: string) => page.locator(`.main-nav a[href="/#${id}"]`);
+  await page.evaluate(() => document.getElementById('questions')!.scrollIntoView({ behavior: 'instant' }));
+  await expect(link('questions')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('.main-nav a[aria-current]')).toHaveCount(1);
+  await page.evaluate(() => document.getElementById('skills')!.scrollIntoView({ behavior: 'instant' }));
+  await expect(link('skills')).toHaveAttribute('aria-current', 'true');
+  await expect(link('questions')).not.toHaveAttribute('aria-current');
 });

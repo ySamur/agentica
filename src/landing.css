@@ -16,7 +16,7 @@
   .split-line-mask { padding: 0 .14em .16em; margin: 0 -.14em -.16em; }
   .story-head { display: grid; justify-items: start; gap: 20px; max-width: 1100px; margin-bottom: 60px; }
   .story-head > p { max-width: 620px; font-size: 17px; line-height: 1.75; color: var(--soft); }
-  .shift, .skills, .path, .guide, .ask { padding-block: 130px; }
+  .shift, .skills, .path, .guide, .ask { padding-block: clamp(88px, 9vw, 112px); }
 
   /* Opening scene: the film's story, the agent's terminal and the hero share one sticky stage
      (TypingFilm, motion/film.ts). With `data-motion="off"` the same parts simply stack. */
@@ -179,12 +179,20 @@
   .diff-del { color: #ffa0ad; background: #ff5c7a16; }
   .diff-add { color: #a3f2cd; background: #3ddc9716; }
   .visual-diff > span { display: inline-flex; margin: 12px 16px 0; padding: 8px 13px; border-radius: 12px 12px 12px 3px; background: #a28fff2b; color: #ddd6ff; font-family: 'Golos Text Variable', Arial, sans-serif; font-size: 13px; }
-  .visual-pipeline { display: flex; align-items: center; gap: 10px; }
-  .visual-pipeline > span { padding: 9px 13px; border: 1px solid #ffffff1f; border-radius: 11px; background: #ffffff08; font-family: var(--mono); font-size: 12px; color: var(--soft); }
-  .visual-pipeline > i { position: relative; flex: 1; height: 2px; overflow: hidden; background: #ffffff1a; }
+  /* The agent's edit through the hook's checks: a track that fills stage by stage, and a log with times. */
+  .visual-pipeline { display: grid; gap: 14px; padding: 16px; border-radius: 14px; border: 1px solid #ffffff14; background: #0a0c18; font-family: var(--mono); font-size: 12px; }
+  .pipeline-hook { color: var(--dim); }
+  .pipeline-hook::before { content: '● '; color: #ffb48c; }
+  .pipeline-track { display: flex; align-items: center; gap: 10px; }
+  .pipeline-track > span { padding: 9px 13px; border: 1px solid #ffffff1f; border-radius: 11px; background: #ffffff08; color: var(--soft); }
+  .pipeline-track > i { position: relative; flex: 1; height: 2px; overflow: hidden; background: #ffffff1a; }
   /* `--fill` (0–1) is how far a stage has handed over to the next; full unless the motion layer plays it. */
-  .visual-pipeline > i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #62e6d140, var(--mint)); transform-origin: 0 50%; scale: var(--fill, 1) 1; }
-  .visual-pipeline > b { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--mint); color: var(--night); box-shadow: 0 0 26px #62e6d18c; }
+  .pipeline-track > i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #62e6d140, var(--mint)); transform-origin: 0 50%; scale: var(--fill, 1) 1; }
+  .pipeline-track > b { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--mint); color: var(--night); box-shadow: 0 0 26px #62e6d18c; }
+  .pipeline-log { display: grid; gap: 7px; margin: 0; padding: 12px 0 0; border-top: 1px solid #ffffff0f; list-style: none; color: var(--soft); }
+  .pipeline-log > li { display: flex; gap: 10px; }
+  .pipeline-log span { color: var(--mint); }
+  .pipeline-log em { margin-left: auto; font-style: normal; color: var(--dim); }
   .diff-reply { margin-top: 10px; }
   /* A small git graph: three branches, a commit each, merged back into main. */
   .visual-branches { display: block; width: 100%; height: auto; overflow: visible; }
@@ -215,7 +223,8 @@
   /* Only the pinned path (wide screens with motion) shows its counter, terminal and rail. */
   .path-counter, .path-panel, .path-rail { display: none; }
   @media (min-width: 901px) {
-    .landing-page:not([data-motion="off"]) .path-scene { height: calc(6 * 62svh); }
+    /* About 300px of scroll per step on a 900px screen: enough to read one, never long enough to stall. */
+    .landing-page:not([data-motion="off"]) .path-scene { height: calc(6 * 48svh); }
     .landing-page:not([data-motion="off"]) .path-sticky { position: sticky; top: 88px; display: grid; grid-template: "counter panel" auto "step panel" 1fr "rail rail" auto / minmax(0, 1fr) minmax(0, 1.1fr); column-gap: 64px; height: calc(100svh - 88px); padding-block: 28px 36px; }
     .landing-page:not([data-motion="off"]) .path-counter { grid-area: counter; display: flex; align-items: flex-end; gap: 14px; }
     .path-digits { display: block; height: 1em; overflow: hidden; font-size: clamp(96px, 10vw, 156px); font-weight: 600; line-height: 1; letter-spacing: -.06em; }
@@ -352,7 +361,7 @@
     .landing-page[data-motion="off"] .film-copy { justify-content: center; }
     .landing-page[data-motion="off"] .film-hero { min-height: 0; padding-block: 56px 64px; }
     .session-scene { width: 100%; max-width: 640px; margin-inline: auto; }
-    .shift, .skills, .path, .guide, .ask { padding-block: 100px; }
+    .shift, .skills, .path, .guide, .ask { padding-block: 84px; }
     .shift-layer { padding: 36px 30px; }
     .path-list::before, .path-list::after { left: 23px; }
     .path-step, .path-step:nth-child(even) { justify-self: stretch; width: auto; margin-left: 70px; }
@@ -392,7 +401,7 @@
     .session-chip-tests { right: 4px; bottom: 0; }
     .ticker { padding-block: 18px; }
     .ticker-track > span { gap: 22px; padding-right: 22px; font-size: 17px; }
-    .shift, .skills, .path, .guide, .ask { padding-block: 76px; }
+    .shift, .skills, .path, .guide, .ask { padding-block: 64px; }
     .story-head { margin-bottom: 40px; }
     .shift-stage { min-height: 0; border-radius: 20px; }
     /* The bottom padding keeps a lane for the knob, clear of both columns' text. */

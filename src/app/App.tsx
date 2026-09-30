@@ -95,7 +95,7 @@ function Layout() {
     {/* Work pages share one calm backdrop; the landing draws its own. It stays out of the header's `+` selectors. */}
     <div className="aurora aurora-calm" aria-hidden="true"><i /><i /><i /><i /></div>
     {/* Remounting per route resets the mobile and account menus after any navigation. */}
-    <SiteHeader key={location.pathname} member={member} onStart={openStarter} />
+    <SiteHeader key={location.pathname} member={member} />
     {error && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error}</p>}
     {/* Router updates run as transitions, so each new page cross-fades in; a hash change on the same
         page is an update and stays still. Suspense sits outside, so a lazy page keeps the old one on

@@ -86,7 +86,7 @@
   }
   @media (max-width: 900px) {
     .header-actions > .header-cta { display: none; }
-    .main-nav .mobile-start { display: flex; align-items: center; gap: 8px; font-size: 10px; background: none; padding: 0; }
+    .main-nav .mobile-start { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--text); background: none; padding: 0; }
     .account-card { padding: 28px; }
     .profile-identity { gap: 12px; }
     .profile-identity .connected-label { display: none; }

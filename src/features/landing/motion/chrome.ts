@@ -22,6 +22,22 @@ export function headerStates(root: HTMLElement, film: HTMLElement) {
   return () => { root.dataset.header = 'clear'; };
 }
 
+// The header's section links mark the section being read, while it crosses the upper part of the screen.
+export function navSpy() {
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.main-nav a[href^="/#"]')];
+  links.forEach(link => {
+    const section = document.getElementById(link.hash.slice(1));
+    if (!section) return;
+    ScrollTrigger.create({
+      trigger: section,
+      start: 'top 40%',
+      end: 'bottom 40%',
+      onToggle: self => { if (self.isActive) link.setAttribute('aria-current', 'true'); else link.removeAttribute('aria-current'); },
+    });
+  });
+  return () => links.forEach(link => link.removeAttribute('aria-current'));
+}
+
 // Call-to-action pills lean toward a mouse pointer and spring back when it leaves.
 export function magnetize(root: HTMLElement, signal: AbortSignal) {
   root.querySelectorAll<HTMLElement>('.glow-button').forEach(button => {
