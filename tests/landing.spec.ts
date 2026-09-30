@@ -50,6 +50,18 @@ test('the opening scene tells its story line by line and resolves into the hero'
   expect([...sets]).toEqual([set]);
 });
 
+test('once the hero has settled, scrolling on moves the page at once', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  await scrollScene(page, heroAt);
+  // The hero's last part has arrived before the scene lets go.
+  await expect(page.locator('.film-hero-copy > *').last()).toHaveCSS('opacity', '1');
+  const title = page.locator('.film-hero h1');
+  const before = (await title.boundingBox())!.y;
+  await page.evaluate(() => window.scrollBy({ top: innerHeight * 0.2, behavior: 'instant' }));
+  await expect.poll(async () => before - (await title.boundingBox())!.y).toBeGreaterThan(40);
+});
+
 test('the terminal types as the scene scrolls and rewinds when scrolling back', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');

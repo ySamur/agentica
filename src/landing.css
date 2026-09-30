@@ -20,7 +20,8 @@
 
   /* Opening scene: the film's story, the agent's terminal and the hero share one sticky stage
      (TypingFilm, motion/film.ts). With `data-motion="off"` the same parts simply stack. */
-  .film { position: relative; height: 460svh; }
+  /* The height is part of the scene's timing (introPhases.ts). */
+  .film { position: relative; height: 430svh; }
   .site-header + .landing-page > .film { margin-top: -88px; }
   .film-sticky { position: sticky; top: 0; height: 100svh; overflow: hidden; }
   .film-scene { position: absolute; inset: 0; }

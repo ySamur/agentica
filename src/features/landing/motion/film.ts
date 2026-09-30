@@ -56,7 +56,7 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     .fromTo(agent, { opacity: 0, yPercent: 25 }, { opacity: 1, yPercent: 0, duration: 0.03 }, phases.agentIn)
     .to([agent, find('.film-eyebrow')], { yPercent: -35, opacity: 0, duration: 0.04 }, phases.agentOut)
     .fromTo(find('.session-scene'), { opacity: 0, y: 70, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.08 }, phases.terminalIn)
-    .to(heroRest, { opacity: 1, y: 0, duration: 0.05, stagger: 0.012 }, phases.heroIn[0] + 0.03)
+    .to(heroRest, { opacity: 1, y: 0, duration: 0.05, stagger: 0.012 }, phases.heroRest)
     .to(find('.film-skip'), { opacity: 0, duration: 0.03 }, phases.heroIn[0]);
   // On a phone the terminal takes the eyebrow's place and later yields the stage to the hero;
   // on wide screens it stays beside it.
