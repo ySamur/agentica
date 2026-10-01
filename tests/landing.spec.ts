@@ -61,7 +61,8 @@ function watchFrames(page: Page) {
   return frames;
 }
 
-const sorted = (frames: Set<number>) => [...frames].sort((a, b) => a - b);
+// In order; with the size checks next to it, also nothing outside the film.
+const sorted = (frames: Set<number>) => [...Array(frameCount).keys()].filter(index => frames.has(index));
 
 test('the film fetches a coarse pass first and the rest once the reader scrolls', async ({ page }) => {
   const frames = watchFrames(page);
@@ -423,4 +424,52 @@ test('the header marks the section being read', async ({ page }) => {
   await page.evaluate(() => document.getElementById('skills')!.scrollIntoView({ behavior: 'instant' }));
   await expect(link('skills')).toHaveAttribute('aria-current', 'true');
   await expect(link('questions')).not.toHaveAttribute('aria-current');
+});
+
+const meta = (page: Page, property: string) => page.locator(`meta[property="${property}"]`);
+
+test.describe('link previews and site files', () => {
+  test.skip(({ isMobile }) => isMobile, 'document head and static files only');
+
+  test('a shared link shows the title, the image and the site\'s address', async ({ page, request }) => {
+    // This test server knows its origin (VITE_SITE_URL in playwright.config.ts).
+    await page.goto('/');
+    await expect(meta(page, 'og:title')).toHaveAttribute('content', 'Код пишет Claude. Решения — ваши.');
+    await expect(meta(page, 'og:url')).toHaveAttribute('content', 'https://agentica.test/');
+    await expect(meta(page, 'og:image')).toHaveAttribute('content', 'https://agentica.test/og.jpg');
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+    const site = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent() ?? '{}') as Record<string, string>;
+    expect(site).toMatchObject({ '@type': 'WebSite', name: 'agentica', url: 'https://agentica.test/' });
+    const image = await request.get('/og.jpg');
+    expect(image.ok()).toBe(true);
+    expect(image.headers()['content-type']).toBe('image/jpeg');
+  });
+
+  test('without the site\'s origin the page leaves out the tags that need it', async ({ page }) => {
+    await page.goto('http://localhost:4318/');
+    await expect(meta(page, 'og:title')).toHaveCount(1);
+    await expect(meta(page, 'og:image')).toHaveCount(0);
+    await expect(meta(page, 'og:url')).toHaveCount(0);
+    await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0);
+  });
+
+  test('the manifest\'s icons exist and crawlers stay out of the members\' pages', async ({ request }) => {
+    const manifest = await (await request.get('/site.webmanifest')).json() as { start_url: string; icons: { src: string }[] };
+    expect(manifest.start_url).toBe('/');
+    for (const icon of manifest.icons) expect((await request.get(icon.src)).ok(), icon.src).toBe(true);
+    const robots = await (await request.get('/robots.txt')).text();
+    for (const path of ['/path', '/profile', '/login', '/auth/']) expect(robots).toContain(`Disallow: ${path}\n`);
+  });
+});
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('the page says that it needs JavaScript', async ({ page }) => {
+    await page.goto('/');
+    // Text locators skip <noscript>, hence the selector.
+    const notice = page.locator('noscript > p');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText('Для работы agentica нужен JavaScript.');
+  });
 });
