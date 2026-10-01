@@ -40,18 +40,20 @@ export function ProfilePage() {
         <form onSubmit={save} noValidate>
           <label htmlFor="profile-name">Имя на сайте</label>
           <input id="profile-name" name="displayName" autoComplete="name" value={name} disabled={busy} aria-invalid={Boolean(error)} aria-describedby="name-help profile-feedback" onChange={event => { setDraft(event.target.value); setError(''); setSaved(false); }} />
-          <p className="field-help" id="name-help">{nbsp('Изменится только в agentica. Имя в Google останется прежним.')}</p>
+          <p className="field-help" id="name-help">{nbsp(user.viaGoogle ? 'Изменится только в agentica. Имя в Google останется прежним.' : 'Так вас видят в agentica.')}</p>
           <div className="profile-form-footer"><button className="glow-button" type="submit" disabled={busy}>{busy ? 'Сохраняем…' : 'Сохранить'}<Icon name="check" size={17} /></button><span id="profile-feedback" className={error ? 'form-error' : 'form-success'} role={error ? 'alert' : 'status'}>{error || (saved ? 'Имя сохранено' : '')}</span></div>
         </form>
       </section>
       <section className="account-card profile-card" aria-labelledby="profile-account-title">
         <div className="profile-identity profile-account">
-          <div><h2 id="profile-account-title">Аккаунт Google</h2><p className="profile-card-note">{nbsp('Вход и фотография связаны с вашим Google-аккаунтом.')}</p></div>
+          {user.viaGoogle
+            ? <div><h2 id="profile-account-title">Аккаунт Google</h2><p className="profile-card-note">{nbsp('Вход и фотография связаны с вашим Google-аккаунтом.')}</p></div>
+            : <div><h2 id="profile-account-title">Email и пароль</h2><p className="profile-card-note">{nbsp('Вы входите по email и паролю.')}</p></div>}
           <span className="connected-label"><i /> Подключён</span>
         </div>
         <label htmlFor="profile-email">Email</label>
         <input id="profile-email" type="email" value={user.email} readOnly aria-describedby="email-help" />
-        <p className="field-help" id="email-help">{nbsp('Адрес меняется только в Google.')}</p>
+        <p className="field-help" id="email-help">{nbsp(user.viaGoogle ? 'Адрес меняется только в Google.' : 'Адрес пока нельзя изменить.')}</p>
       </section>
     </div>
   </main>;

@@ -71,7 +71,7 @@ const questions = [
   { title: 'Что такое Claude Code?', answer: 'Инструмент Anthropic для агентной разработки. Он работает в терминале, IDE, десктопном приложении и браузере: читает проект, редактирует файлы и выполняет команды — с вашего разрешения.' },
   { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оркестратор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
   { title: 'Что внутри путеводителя?', answer: 'Семь этапов перехода и выпускной проект — от первого запуска до команды агентов. Шаги можно отмечать выполненными, прогресс сохраняется на любом устройстве. Материалы шагов дополняются постепенно.' },
-  { title: 'Регистрация платная?', answer: 'Нет. Вход через Google: отдельный пароль не нужен, мы получаем только профиль и email.' },
+  { title: 'Регистрация платная?', answer: 'Нет. Войдите через Google или по email и паролю: мы храним только имя, email и ваш прогресс.' },
 ].map(question => ({ title: nbsp(question.title), answer: nbsp(question.answer) }));
 
 const trackSpotlight = spotlight('.skill-card');
@@ -107,7 +107,7 @@ export function LandingPage() {
           <SignupLink morph="hero">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
           <Link className="ghost-button" to="#why">Как меняется роль <Icon name="arrow" size={17} /></Link>
         </div>
-        <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google, без пароля: только профиль и email.')}</p>
+        <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google или по email. Храним только имя, email и прогресс.')}</p>
       </TypingFilm>
 
       <div className="ticker" aria-hidden="true"><div className="ticker-track">{[...ticker, ...ticker].map((item, index) => <span key={`${item}-${index}`}>{item}<i>✦</i></span>)}</div></div>
@@ -156,7 +156,7 @@ export function LandingPage() {
           <p>{nbsp('Семь этапов и выпускной проект: от первого запуска Claude Code до команды агентов. Отмечайте пройденное — прогресс сохраняется в аккаунте. Материалы этапов дополняются, новые появляются у вас сразу.')}</p>
           <ul className="guide-perks">
             <li><Icon name="check" size={17} /> {nbsp('Вход через Google за пару кликов')}</li>
-            <li><Icon name="check" size={17} /> Без отдельного пароля</li>
+            <li><Icon name="check" size={17} /> {nbsp('Или по email и паролю')}</li>
             <li><Icon name="check" size={17} /> {nbsp('Только профиль и email')}</li>
           </ul>
           <SignupLink morph="guide">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
@@ -194,7 +194,7 @@ export function LandingPage() {
         <div className="outro-card" data-reveal="head">
           <span className="story-eyebrow"><i /> Следующий шаг</span>
           <h2 id="outro-title">Перестаньте печатать.{' '}<br />Начните <em className="accent glow-text">управлять.</em></h2>
-          <p>{nbsp('Один вход через Google — и путеводитель с вашим прогрессом на любом устройстве.')}</p>
+          <p>{nbsp('Войдите через Google или по email — и путеводитель с вашим прогрессом будет на любом устройстве.')}</p>
           <div className="outro-actions">
             <SignupLink morph="outro">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
             <button type="button" className="ghost-button" onClick={openStarter}>Готовые запросы для старта <Icon name="terminal" size={17} /></button>

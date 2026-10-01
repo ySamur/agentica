@@ -40,7 +40,7 @@ test('migrations enforce database privileges and RLS', async t => {
     return held;
   }
   try {
-    // Real PostgreSQL policy execution. Only Supabase's auth schema and JWT helpers are stubbed.
+    // Real PostgreSQL policy execution. Only Supabase's auth schema, JWT helpers and auto-RLS function are stubbed.
     await db.exec(`
       create role anon;
       create role authenticated;
@@ -52,6 +52,9 @@ test('migrations enforce database privileges and RLS', async t => {
         $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
       create function auth.uid() returns uuid language sql stable as
         $$ select (auth.jwt() ->> 'sub')::uuid $$;
+      create function public.rls_auto_enable() returns event_trigger language plpgsql security definer as
+        $$ begin end $$;
+      grant execute on function public.rls_auto_enable() to anon, authenticated;
     `);
     for (const file of (await readdir(migrations)).filter(name => name.endsWith('.sql')).toSorted()) {
       await db.exec(await readFile(new URL(file, migrations), 'utf8'));
@@ -187,6 +190,10 @@ test('migrations enforce database privileges and RLS', async t => {
       assert.equal(await execute('anon', 'public.open_guide_step(text)'), false);
       assert.equal(await execute('authenticated', 'public.open_guide_step(text)'), true);
       for (const role of ['anon', 'authenticated']) assert.equal(await execute(role, 'public.guide_progress_touch()'), false);
+    });
+
+    await t.test("browser roles cannot call Supabase's auto-RLS function", async () => {
+      for (const role of ['anon', 'authenticated']) assert.equal(await execute(role, 'public.rls_auto_enable()'), false);
     });
   } finally {
     await db.close();

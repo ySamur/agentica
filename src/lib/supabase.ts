@@ -33,6 +33,8 @@ const callbackHash = new URLSearchParams(callbackUrl.hash.slice(1));
 export const callbackAttempt = {
   hasCode: callbackUrl.searchParams.has('code'),
   error: callbackUrl.searchParams.get('error') || callbackHash.get('error'),
+  // `otp_expired`: an old or already used letter link.
+  errorCode: callbackUrl.searchParams.get('error_code') || callbackHash.get('error_code'),
 };
 
 function getConfiguration() {

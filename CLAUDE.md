@@ -1,9 +1,10 @@
 # agentica
 
-Russian-language React 19 + TypeScript 7 + Vite app: guest landing, Google sign-in via Supabase, members' route (cabinet, stages, steps with progress), profile.
+Russian-language React 19 + TypeScript 7 + Vite app: guest landing, Google or email+password sign-in via Supabase, members' route (cabinet, stages, steps with progress), profile.
 
 ## Architecture
 - `src/app/App.tsx` owns routes: `/` is the landing for guests and `CabinetPage` for members (while the SDK loads, `useSessionPending` counts a stored session or an OAuth code as a member, for the header too); `/path` (map), `/path/:stage/:step`, `/profile` sit behind `RequireAuth`; `/content`, `/settings/profile` redirect. Only the landing ships in the main chunk; other pages use `React.lazy`. The header switches to the members' nav and «Продолжить».
+- `AuthProvider` (`src/features/auth/`): `signIn` (Google OAuth, PKCE), `signInWithPassword`, `signUp` (name into `user_metadata.display_name`), `resendConfirmation`. Email confirmation is on: sign-up, and sign-in before confirming, return `confirm`; the letter's link returns through `/auth/callback` (PKCE, so only in the browser that started it; elsewhere the callback says the email is confirmed and to sign in with the password; `otp_expired` gets its own message). Auth error codes map to Russian messages there; `LoginPage` holds the email form below Google.
 - `src/lib/supabase.ts` loads the SDK lazily and creates one client (`getSupabase()`, `null` when unconfigured).
 - Feature code stays in `src/features/<name>/`; shared UI in `src/components/`. Layered styles: `src/styles.css` (the one dark palette on `:root`; header, footer and shared pieces `.aurora`, `.glow-button`, `.ghost-button`, `.story-eyebrow`, `.accent`), `src/account.css` (account menu, login, work-page glass), `src/guide.css` (cabinet, route, step), `src/landing.css` (landing only: film, sections, `data-header` modes). Work pages share Layout's still `.aurora-calm`; one `.glow-button` per screen.
 - The route lives in `src/features/guide/`: `catalog.ts` is the public map (8 stages, 35 steps; ids are progress keys, stable and unique, without stage prefix; no imports, so Node tests load it). Step texts are members-only rows in `guide_steps`; progress is `guide_progress` (own rows via grants + RLS; the server sets `user_id` and `updated_at`); RPC `open_guide_step` records the resume point without undoing finished steps. `GuideProgressProvider` (in `App`) loads once per member and saves optimistically with rollback; `resumeStep` picks the latest opened unfinished step. A new step needs a catalog entry and a `guide_steps` migration.
@@ -12,17 +13,18 @@ Russian-language React 19 + TypeScript 7 + Vite app: guest landing, Google sign-
 - Anchors scroll through `scrollToTarget` and modals use `lockScroll`/`unlockScroll` (`src/lib/smoothScroll.ts`). All UI copy goes through `nbsp()` (`src/lib/typography.ts`); accent words use `.accent` (Cormorant Italic). Member pages focus their `h1` after a link (`useArrivalFocus`).
 - Route changes cross-fade through React's `<ViewTransition>` in `Layout`; the landing's `SignupLink` pill morphs into the login card (`.signup-morph` in `styles.css`). Every «Начать бесплатно» link is a `JoinLink` (`src/features/auth/JoinLink.tsx`).
 - `index.html` carries the link-preview tags and a `<noscript>` notice; `vite.config.ts` (`siteMeta`) adds `og:url`, `og:image` (`public/og.jpg`, 1200×630) and JSON-LD only when `VITE_SITE_URL` is set (the 4317 test server sets `https://agentica.test`). `public/` also holds `site.webmanifest` (icons 192/512), `robots.txt` (members' pages and sign-in disallowed).
-- The landing's Claude Code session is simulated. Out of scope: hosting, other sign-in methods, avatar upload, account deletion.
+- The landing's Claude Code session is simulated. Out of scope: hosting, other sign-in methods, avatar upload, account deletion; password reset and email change (next stage).
 
 ## Rules
+- Desktop only for now: the mobile version is not in development. Don't build responsive/adaptive layouts (no mobile or tablet breakpoints/media queries), don't write mobile tests, don't run the iPhone Playwright project or check mobile viewports. Leave existing mobile code as is unless asked.
 - Keep Russian UI copy, keyboard navigation and focus handling, reduced-motion support, strict types.
 - Style: 2 spaces, single quotes, semicolons, ESM; PascalCase components and files, camelCase code, kebab-case CSS. No formatter: match surrounding code.
 - Lint is oxlint (`.oxlintrc.json`; typescript-eslint lacks TS 7 support): 0 errors, justify every `oxlint-disable` inline.
-- Checks: `npm run lint`, `npm run build` (includes typecheck), `npm test` (`-- --project=desktop` for logic-only changes), `npm run test:security` after migration changes.
-- Tests: Playwright on installed Chrome, desktop + iPhone emulation. Mock Supabase only at the network boundary via `tests/helpers/auth.ts`; never add production auth bypasses. Cover changed interactions, focus, responsive layout.
+- Checks: `npm run lint`, `npm run build` (includes typecheck), `npm test -- --project=desktop`, `npm run test:security` after migration changes.
+- Tests: Playwright on installed Chrome, desktop project only (the iPhone project stays in config but is not run). Mock Supabase only at the network boundary via `tests/helpers/auth.ts`; never add production auth bypasses. Cover changed interactions and focus (desktop only).
 - Security: `.env.local` holds only the Supabase URL and Publishable key (plus the optional public `VITE_SITE_URL`), never OAuth secrets or service-role keys. Enforce access with grants and RLS, not route guards alone. Owner-run setup and the migration list: `docs/AUTH_SETUP.md`. Supabase MCP (`.mcp.json`, untracked) stays `read_only=true`; write access only when the owner allows it for a migration, then back.
 - Playwright owns ports 4317/4318. Dev prefers port 3000 and falls back to a free one (use the printed `Local` URL). Stop servers you start; never kill unrelated processes. PowerShell: `npm.cmd`.
 - Keep `dist/`, `test-results/`, `.local/` out of commits.
-- Commits: focused, imperative conventional subjects (`fix: …`). PRs: problem, behavior, validation commands, desktop/mobile screenshots for visual changes.
+- Commits: focused, imperative conventional subjects (`fix: …`). PRs: problem, behavior, validation commands, desktop screenshots for visual changes.
 - A PostToolUse hook type-checks after `.ts`/`.tsx` edits; fix reported errors before moving on.
 - `.env*` files are deny-listed; never ask for their contents.

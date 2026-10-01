@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigat
 import { LandingPage } from '../pages/landing/LandingPage';
 import { AuthProvider, useAuth, useSessionPending } from '../features/auth/AuthProvider';
 import { RequireAuth } from '../features/auth/RequireAuth';
-import { clearDestination } from '../features/auth/redirect';
+import { clearDestination, clearLetterDestination } from '../features/auth/redirect';
 import { stepAtPath } from '../features/guide/catalog';
 import { GuideProgressProvider } from '../features/guide/GuideProgress';
 import { StarterDialog } from '../features/starter/StarterDialog';
@@ -77,6 +77,11 @@ function Layout() {
   useEffect(() => {
     document.title = `agentica — ${title}`;
   }, [title]);
+
+  useEffect(() => {
+    // A member has arrived, so a pending letter's destination is spent.
+    if (member && !['/login', '/auth/callback'].includes(location.pathname)) clearLetterDestination();
+  }, [member, location.pathname]);
 
   useEffect(() => {
     if (!['/login', '/auth/callback'].includes(location.pathname)) clearDestination();

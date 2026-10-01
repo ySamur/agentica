@@ -61,6 +61,156 @@ test('Google PKCE login returns to the route and exchanges the code once', async
   expect(auth.exchangeCount).toBe(1);
 });
 
+test('email sign-up checks the form, then creates the account and returns to the route', async ({ page, context }, testInfo) => {
+  await mockAuth(context);
+  await page.goto('/path');
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
+  const name = page.getByRole('textbox', { name: 'Имя на сайте' });
+  const email = page.getByRole('textbox', { name: 'Email', exact: true });
+  const password = page.getByLabel('Пароль', { exact: true });
+  await expect(name).toBeFocused();
+  await page.getByRole('button', { name: 'Создать аккаунт' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Введите имя.');
+  await expect(name).toBeFocused();
+  await expect(name).toHaveAttribute('aria-invalid', 'true');
+  await name.fill('Новый Участник');
+  await email.fill('new-at-example.com');
+  await email.press('Enter');
+  await expect(page.getByRole('alert')).toContainText('Проверьте email');
+  await expect(email).toBeFocused();
+  await email.fill('new@example.com');
+  await password.fill('short');
+  await password.press('Enter');
+  await expect(page.getByRole('alert')).toHaveText('Пароль слишком короткий.');
+  await expect(password).toBeFocused();
+  await expect(password).toHaveAttribute('autocomplete', 'new-password');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.evaluate(() => scrollTo(0, 0));
+  await settle(page);
+  await page.screenshot({ path: `.local/screenshots/login-signup-${testInfo.project.name}.png`, fullPage: true });
+  await password.fill('long-enough-9');
+  await password.press('Enter');
+  await expect(page).toHaveURL('http://localhost:4317/path');
+  await page.getByRole('button', { name: 'Меню аккаунта' }).click();
+  await expect(page.locator('.account-summary strong')).toHaveText('Новый Участник');
+  await page.keyboard.press('Escape');
+  await page.goto('/profile');
+  await expect(page.getByRole('heading', { name: 'Email и пароль' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Аккаунт Google' })).toHaveCount(0);
+});
+
+test('email sign-in rejects a wrong password; sign-up reports a taken address', async ({ page, context }) => {
+  const auth = await mockAuth(context);
+  auth.accounts.set('member@example.com', { password: 'right-password-1', name: 'Участник По Почте', confirmed: true });
+  await page.goto('/login');
+  const email = page.getByRole('textbox', { name: 'Email', exact: true });
+  const password = page.getByLabel('Пароль', { exact: true });
+  await email.fill('member@example.com');
+  await password.fill('wrong-password');
+  await password.press('Enter');
+  await expect(page.getByRole('alert')).toHaveText('Неверный email или пароль.');
+  await expect(password).toBeFocused();
+  await expect(email).toHaveValue('member@example.com');
+  await password.fill('right-password-1');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page).toHaveURL('http://localhost:4317/');
+  await page.getByRole('button', { name: 'Меню аккаунта' }).click();
+  await expect(page.locator('.account-summary strong')).toHaveText('Участник По Почте');
+  await page.getByRole('menuitem', { name: 'Выйти' }).click();
+  await expect(page.locator('main.landing-page')).toBeVisible();
+
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
+  await page.getByRole('textbox', { name: 'Имя на сайте' }).fill('Двойник');
+  await email.fill('member@example.com');
+  await password.fill('long-enough-9');
+  await password.press('Enter');
+  await expect(page.getByRole('alert')).toContainText('Этот email уже зарегистрирован');
+  // Back to signing in: the email field takes focus.
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(email).toBeFocused();
+  await expect(page.getByRole('textbox', { name: 'Имя на сайте' })).toHaveCount(0);
+});
+
+test('email confirmation: resend, sign-in before the link, the link in another browser and in a new tab here', async ({ page, context, browser }, testInfo) => {
+  const auth = await mockAuth(context);
+  auth.confirmEmail = true;
+  await page.goto('/path');
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
+  await page.getByRole('textbox', { name: 'Имя на сайте' }).fill('Подтверждающий');
+  const email = page.getByRole('textbox', { name: 'Email', exact: true });
+  const password = page.getByLabel('Пароль', { exact: true });
+  await email.fill('confirm@example.com');
+  await password.fill('long-enough-9');
+  await password.press('Enter');
+  const note = page.getByRole('status').filter({ hasText: 'confirm@example.com' });
+  await expect(note).toContainText('Отправили письмо со ссылкой');
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
+  // The letter has just gone out: resending waits out Supabase's minute.
+  const sent = page.getByRole('button', { name: 'Письмо отправлено, повторно — через минуту' });
+  await expect(sent).toHaveAttribute('aria-disabled', 'true');
+  await sent.dispatchEvent('click');
+  expect(auth.resendCount).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.evaluate(() => scrollTo(0, 0));
+  await settle(page);
+  await page.screenshot({ path: `.local/screenshots/login-letter-${testInfo.project.name}.png`, fullPage: true });
+
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await password.fill('long-enough-9');
+  await password.press('Enter');
+  await expect(page.getByRole('status').filter({ hasText: 'confirm@example.com' })).toContainText('Email ещё не подтверждён');
+  const again = page.getByRole('button', { name: 'Отправить письмо ещё раз' });
+  auth.resendLimited = true;
+  await again.click();
+  await expect(page.getByRole('alert')).toContainText('Слишком много попыток');
+  auth.resendLimited = false;
+  await again.click();
+  await expect(sent).toHaveAttribute('aria-disabled', 'true');
+  await expect(sent).toBeFocused();
+  expect(auth.resendCount).toBe(1);
+
+  // Another browser has no PKCE verifier for the link.
+  const other = await browser.newContext();
+  await mockAuth(other, { state: auth });
+  const elsewhere = await other.newPage();
+  await elsewhere.goto('/auth/callback?code=fixture-one-time-code');
+  await expect(elsewhere.getByRole('heading', { name: 'Вход не завершён' })).toBeVisible();
+  await expect(elsewhere.getByText('не в том браузере')).toBeVisible();
+  await other.close();
+
+  // A mail app opens the link in a new tab: no sessionStorage there, the destination still holds.
+  const tab = await context.newPage();
+  await tab.goto('/auth/callback?code=fixture-one-time-code');
+  await expect(tab).toHaveURL('http://localhost:4317/path');
+  await tab.getByRole('button', { name: 'Меню аккаунта' }).click();
+  await expect(tab.locator('.account-summary strong')).toHaveText('Подтверждающий');
+  // Spent once a member arrives.
+  expect(await tab.evaluate(() => localStorage.getItem('agentica.auth.letter-next'))).toBeNull();
+});
+
+test('a letter that cannot be sent says so, not a connection problem', async ({ page, context }) => {
+  const auth = await mockAuth(context);
+  auth.confirmEmail = true;
+  auth.letterFails = true;
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
+  await page.getByRole('textbox', { name: 'Имя на сайте' }).fill('Без Письма');
+  await page.getByRole('textbox', { name: 'Email', exact: true }).fill('nomail@example.com');
+  const password = page.getByLabel('Пароль', { exact: true });
+  await password.fill('long-enough-9');
+  await password.press('Enter');
+  await expect(page.getByRole('alert')).toHaveText('Не удалось отправить письмо с подтверждением. Попробуйте позже.');
+  await expect(password).toBeFocused();
+});
+
+test('an expired letter link says so and leads back to signing in', async ({ page, context }) => {
+  await mockAuth(context);
+  await page.goto('/auth/callback?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
+  await expect(page.getByRole('heading', { name: 'Вход не завершён' })).toBeVisible();
+  await expect(page.getByText('Ссылка из письма устарела')).toBeVisible();
+});
+
 test('profile saves name, survives reload and keeps Google email read-only', async ({ page, context }, testInfo) => {
   await mockAuth(context, { signedIn: true });
   await page.goto('/profile');
