@@ -57,8 +57,7 @@ export function AccountMenu() {
     {open && <div className="account-dropdown" id="account-dropdown">
       <div className="account-summary"><strong>{user.displayName}</strong><span>{user.email}</span></div>
       <div role="menu" aria-label="Аккаунт">
-        <Link role="menuitem" to="/settings/profile" onClick={() => close()}>Профиль <Icon name="target" size={16} /></Link>
-        <Link role="menuitem" to="/content" onClick={() => close()}>Контент <Icon name="layers" size={16} /></Link>
+        <Link role="menuitem" to="/profile" onClick={() => close()}>Профиль <Icon name="target" size={16} /></Link>
         <button role="menuitem" onClick={logout} disabled={busy}>{busy ? 'Выходим…' : 'Выйти'}<Icon name="arrow" size={16} /></button>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}

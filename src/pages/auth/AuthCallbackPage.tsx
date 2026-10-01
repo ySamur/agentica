@@ -8,7 +8,9 @@ import { PageStatus } from '../../components/PageStatus';
 export function AuthCallbackPage() {
   const { user, loading, configured, error } = useAuth();
   const navigate = useNavigate();
-  const failure = callbackAttempt.error === 'access_denied'
+  const failure = callbackAttempt.errorCode === 'otp_expired'
+    ? 'Ссылка из письма устарела или уже использована. Войдите с паролем: мы предложим отправить новое письмо.'
+    : callbackAttempt.error === 'access_denied'
     ? 'Вход отменён. Вы можете попробовать снова.'
     : callbackAttempt.error || error || !callbackAttempt.hasCode
       ? 'Не удалось завершить вход. Ссылка могла устареть — попробуйте войти снова.'
@@ -25,7 +27,10 @@ export function AuthCallbackPage() {
 
   if (loading) return <PageStatus title="Завершаем вход…" message="Возвращаем вас в agentica." />;
   if (user && !failure) return <PageStatus title="Всё готово…" />;
-  const message = !configured ? 'Вход временно недоступен. Попробуйте позже.' : failure || 'Не удалось получить сессию. Попробуйте войти снова.';
+  // A code without a failure or a session: the SDK had no PKCE verifier for it, so the link was
+  // opened in another browser. A letter's link has confirmed the email by then.
+  const message = !configured ? 'Вход временно недоступен. Попробуйте позже.' : failure
+    || 'Ссылка открыта не в том браузере, где начинали вход. Если вы подтверждали email, он уже подтверждён: войдите здесь с паролем.';
   return <PageStatus title="Вход не завершён" message={message} retry={() => {
     const next = getDestination();
     clearDestination();

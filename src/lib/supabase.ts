@@ -1,18 +1,29 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type MemberContent = { slug: string; body: string };
+// The route's tables and RPC (supabase/migrations/202609290001_guide.sql).
+export type GuideProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };
+type GuideStepRow = { step_id: string; body: string };
 type Database = {
   public: {
     Tables: {
-      member_content: {
-        Row: MemberContent;
-        Insert: MemberContent;
-        Update: Partial<MemberContent>;
+      guide_steps: {
+        Row: GuideStepRow;
+        Insert: GuideStepRow;
+        Update: Partial<GuideStepRow>;
+        Relationships: [];
+      };
+      guide_progress: {
+        Row: GuideProgressRow;
+        // `user_id` and `updated_at` are the server's: auth.uid() and its clock.
+        Insert: Pick<GuideProgressRow, 'step_id' | 'status'>;
+        Update: Partial<Pick<GuideProgressRow, 'step_id' | 'status'>>;
         Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      open_guide_step: { Args: { step: string }; Returns: GuideProgressRow[] };
+    };
   };
 };
 
@@ -22,6 +33,8 @@ const callbackHash = new URLSearchParams(callbackUrl.hash.slice(1));
 export const callbackAttempt = {
   hasCode: callbackUrl.searchParams.has('code'),
   error: callbackUrl.searchParams.get('error') || callbackHash.get('error'),
+  // `otp_expired`: an old or already used letter link.
+  errorCode: callbackUrl.searchParams.get('error_code') || callbackHash.get('error_code'),
 };
 
 function getConfiguration() {
@@ -40,6 +53,20 @@ function getConfiguration() {
 const configuration = getConfiguration();
 export const supabaseConfigured = configuration !== null;
 
+// Passed to the client below, so the synchronous check can never drift from the SDK. It equals
+// the SDK's default key, which keeps existing sessions. The check only picks which page to
+// show before the SDK loads; access is still enforced by RLS.
+const storageKey = configuration && `sb-${new URL(configuration.url).hostname.split('.')[0]}-auth-token`;
+
+export function hasStoredSession() {
+  if (!storageKey) return false;
+  try {
+    return localStorage.getItem(storageKey) !== null;
+  } catch {
+    return false;
+  }
+}
+
 let client: Promise<SupabaseClient<Database>> | null = null;
 
 // The SDK is about 40% of the bundle, so it loads after the first render.
@@ -50,6 +77,7 @@ export function getSupabase() {
     auth: {
       flowType: 'pkce',
       persistSession: true,
+      storageKey: storageKey ?? undefined,
       autoRefreshToken: true,
       detectSessionInUrl: callbackUrl.pathname === '/auth/callback',
     },

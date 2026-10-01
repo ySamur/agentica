@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
-type IconName = 'arrow' | 'arrowUp' | 'chevron' | 'play' | 'pause' | 'check' | 'code' | 'layers' | 'shield' | 'spark' | 'terminal' | 'branch' | 'close' | 'menu' | 'copy' | 'plus' | 'refresh' | 'command' | 'target';
+export type IconName = 'arrow' | 'arrowUp' | 'chevron' | 'play' | 'pause' | 'check' | 'code' | 'layers' | 'shield' | 'spark' | 'terminal' | 'branch' | 'close' | 'menu' | 'copy' | 'plus' | 'refresh' | 'command' | 'target' | 'lock';
 
 const paths: Record<IconName, ReactNode> = {
   arrow: <path d="M4 12h15m-6-6 6 6-6 6" />,
@@ -23,12 +23,13 @@ const paths: Record<IconName, ReactNode> = {
   refresh: <path d="M20 11a8 8 0 1 0-2 7M20 4v7h-7" />,
   command: <path d="M9 9V5a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v14a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V9Z" />,
   target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></>,
+  lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
 };
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 
-export function Brand() {
-  return <Link className="brand" to="/#home" aria-label="agentica — на главную"><span className="brand-symbol" aria-hidden="true"><span /><span /><span /><span /></span>agentica<span className="brand-dot">.</span></Link>;
+export function Brand({ to = '/#home' }: { to?: string }) {
+  return <Link className="brand" to={to} aria-label="agentica — на главную"><span className="brand-symbol" aria-hidden="true"><span /><span /><span /><span /></span>agentica<span className="brand-dot">.</span></Link>;
 }

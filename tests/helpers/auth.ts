@@ -1,32 +1,82 @@
-import type { BrowserContext, Route } from '@playwright/test';
+import type { BrowserContext, Request, Route } from '@playwright/test';
 
 const userId = '34ae3545-ae23-41b1-a2c1-8292e58ba0dc';
 const storageKey = 'sb-agentica-test-auth-token';
 
-export async function mockAuth(context: BrowserContext, options: { signedIn?: boolean; expired?: boolean } = {}) {
-  const state = {
-    user: {
-      id: userId,
-      aud: 'authenticated',
-      role: 'authenticated',
-      email: 'developer@example.com',
-      email_confirmed_at: '2026-09-24T00:00:00Z',
-      app_metadata: { provider: 'google', providers: ['google'] },
-      user_metadata: { full_name: 'Тестовый Разработчик', avatar_url: null },
-      created_at: '2026-09-24T00:00:00Z',
-    },
+export type ProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };
+const stepBody = 'Закрытый текст шага для участников.\n\nВторой абзац с заданием.';
+
+// The server's clock: every write is a second later than the one before, as in «last opened».
+let clock = Date.now();
+const stamp = () => new Date(clock += 1000).toISOString();
+
+function accountUser(email: string, provider: 'google' | 'email', metadata: Record<string, unknown>) {
+  return {
+    id: userId,
+    aud: 'authenticated',
+    role: 'authenticated',
+    email,
+    email_confirmed_at: '2026-09-24T00:00:00Z' as string | null,
+    app_metadata: { provider, providers: [provider] },
+    user_metadata: metadata,
+    created_at: '2026-09-24T00:00:00Z',
+  };
+}
+
+function createState() {
+  const progress = new Map<string, ProgressRow>();
+  return {
+    // Signed in through Google, until a password sign-in or sign-up switches the account.
+    user: accountUser('developer@example.com', 'google', { full_name: 'Тестовый Разработчик', avatar_url: null }),
+    // Email and password accounts by address. `confirmEmail`: sign-up waits for the letter's link.
+    accounts: new Map<string, { password: string; name: string; confirmed: boolean }>(),
+    confirmEmail: false,
+    // The address of the latest letter; its link's code exchange confirms and signs in that account.
+    letter: null as string | null,
+    resendCount: 0,
+    resendLimited: false,
+    // SMTP down: GoTrue's 500 on sign-up with confirmations on.
+    letterFails: false,
     exchangeCount: 0,
     refreshCount: 0,
-    contentRequests: 0,
     authorizeUrl: '',
     updateFails: false,
-    contentFails: false,
     denied: false,
     badCode: false,
-    expired: false,
     logoutFails: false,
     refreshFails: false,
+    // The route's data (guide_progress, open_guide_step, guide_steps), shared by every context of a test.
+    progress,
+    dataRequests: 0,
+    loadFails: false,
+    saveFails: false,
+    bodyFails: false,
+    dataExpired: false,
+    seed(stepId: string, status: ProgressRow['status']) {
+      progress.set(stepId, { user_id: userId, step_id: stepId, status, updated_at: stamp() });
+    },
   };
+}
+
+export type FixtureState = ReturnType<typeof createState>;
+
+async function json(route: Route, body: unknown, status = 200) {
+  await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+}
+
+// PostgREST answers `.single()` (object Accept header) with one object, or 406 without exactly one row.
+async function rows(route: Route, request: Request, found: unknown[]) {
+  if (!request.headers().accept?.includes('vnd.pgrst.object')) await json(route, found);
+  else if (found.length === 1) await json(route, found[0]);
+  else await json(route, { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' }, 406);
+}
+
+// `?step_id=eq.plan-first` → 'plan-first'.
+const stepFilter = (url: URL) => url.searchParams.get('step_id')?.replace(/^eq\./, '');
+
+// Pass `state` from an earlier call to share one account between contexts, like a second device.
+export async function mockAuth(context: BrowserContext, options: { signedIn?: boolean; expired?: boolean; state?: FixtureState } = {}) {
+  const state = options.state ?? createState();
 
   function session(expired = false) {
     const expiresAt = Math.floor(Date.now() / 1000) + (expired ? -120 : 3600);
@@ -47,26 +97,90 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     }, { key: storageKey, initialSession: session(options.expired) });
   }
 
-  async function json(route: Route, body: unknown, status = 200) {
-    await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+  async function data(route: Route, request: Request, url: URL) {
+    state.dataRequests += 1;
+    if (state.dataExpired) { await json(route, { code: 'PGRST301', message: 'JWT expired' }, 401); return; }
+    if (!request.headers().authorization?.startsWith('Bearer ey')) { await json(route, { message: 'Not authorized' }, 401); return; }
+    const method = request.method();
+    if (url.pathname === '/rest/v1/guide_progress' && method === 'GET') {
+      if (state.loadFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
+      const step = stepFilter(url);
+      await rows(route, request, [...state.progress.values()].filter(row => !step || row.step_id === step));
+    } else if (url.pathname === '/rest/v1/guide_progress' && method === 'POST') {
+      if (state.saveFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
+      const { step_id: stepId, status } = request.postDataJSON() as Pick<ProgressRow, 'step_id' | 'status'>;
+      state.seed(stepId, status);
+      await rows(route, request, [state.progress.get(stepId)]);
+    } else if (url.pathname === '/rest/v1/rpc/open_guide_step') {
+      const { step } = request.postDataJSON() as { step: string };
+      const existing = state.progress.get(step);
+      // Like the SQL function: a finished step stays finished.
+      if (existing && existing.status !== 'in_progress') { await json(route, []); return; }
+      state.seed(step, 'in_progress');
+      await json(route, [state.progress.get(step)]);
+    } else if (url.pathname === '/rest/v1/guide_steps' && method === 'GET') {
+      if (state.bodyFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
+      await rows(route, request, stepFilter(url) ? [{ body: stepBody }] : []);
+    } else {
+      await json(route, { message: `Unexpected fixture endpoint: ${method} ${url.pathname}` }, 501);
+    }
   }
 
   await context.route('https://agentica-test.supabase.co/**', async route => {
     const request = route.request();
     const url = new URL(request.url());
-    if (url.pathname === '/auth/v1/authorize') {
+    if (url.pathname.startsWith('/rest/v1/')) {
+      await data(route, request, url);
+    } else if (url.pathname === '/auth/v1/authorize') {
       state.authorizeUrl = url.href;
       const callback = new URL(url.searchParams.get('redirect_to')!);
       if (state.denied) callback.searchParams.set('error', 'access_denied');
       else callback.searchParams.set('code', 'fixture-one-time-code');
       await route.fulfill({ status: 302, headers: { location: callback.href } });
+    } else if (url.pathname === '/auth/v1/signup') {
+      const { email, password, data: metadata } = request.postDataJSON() as { email: string; password: string; data: { display_name: string } };
+      if (state.accounts.has(email) || email === state.user.email) {
+        await json(route, { error_code: 'user_already_exists', msg: 'User already registered' }, 422);
+        return;
+      }
+      if (state.confirmEmail && state.letterFails) {
+        await json(route, { error_code: 'unexpected_failure', msg: 'Error sending confirmation email' }, 500);
+        return;
+      }
+      state.accounts.set(email, { password, name: metadata.display_name, confirmed: !state.confirmEmail });
+      const user = accountUser(email, 'email', metadata);
+      // Like GoTrue: with confirmations on, a letter and the unconfirmed user alone, no session.
+      if (state.confirmEmail) { state.letter = email; await json(route, { ...user, email_confirmed_at: null }); return; }
+      state.user = user;
+      await json(route, session());
+    } else if (url.pathname === '/auth/v1/resend') {
+      if (state.resendLimited) { await json(route, { error_code: 'over_email_send_rate_limit', msg: 'Email rate limit exceeded' }, 429); return; }
+      state.resendCount += 1;
+      state.letter = (request.postDataJSON() as { email: string }).email;
+      await json(route, {});
     } else if (url.pathname === '/auth/v1/token') {
-      if (url.searchParams.get('grant_type') === 'pkce') {
+      if (url.searchParams.get('grant_type') === 'password') {
+        const { email, password } = request.postDataJSON() as { email: string; password: string };
+        const account = state.accounts.get(email);
+        if (account?.password !== password) {
+          await json(route, { error_code: 'invalid_credentials', msg: 'Invalid login credentials' }, 400);
+          return;
+        }
+        if (!account.confirmed) { await json(route, { error_code: 'email_not_confirmed', msg: 'Email not confirmed' }, 400); return; }
+        state.user = accountUser(email, 'email', { display_name: account.name });
+      } else if (url.searchParams.get('grant_type') === 'pkce') {
         state.exchangeCount += 1;
         const body = request.postDataJSON();
         if (state.badCode || body.auth_code !== 'fixture-one-time-code' || !body.code_verifier) {
           await json(route, { error_code: 'bad_code_verifier', msg: 'Invalid code' }, 400);
           return;
+        }
+        // A letter's link: the account is confirmed and signed in.
+        const account = state.letter ? state.accounts.get(state.letter) : undefined;
+        if (state.letter && account) {
+          account.confirmed = true;
+          state.user = accountUser(state.letter, 'email', { display_name: account.name });
+          state.letter = null;
         }
       } else {
         state.refreshCount += 1;
@@ -85,12 +199,6 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     } else if (url.pathname === '/auth/v1/logout') {
       if (state.logoutFails) await json(route, { message: 'Server unavailable' }, 503);
       else await route.fulfill({ status: 204 });
-    } else if (url.pathname === '/rest/v1/member_content') {
-      state.contentRequests += 1;
-      if (state.expired) await json(route, { code: 'PGRST301', message: 'JWT expired' }, 401);
-      else if (state.contentFails) await json(route, { message: 'Database unavailable' }, 503);
-      else if (!request.headers().authorization?.startsWith('Bearer ey')) await json(route, { message: 'Not authorized' }, 401);
-      else await json(route, { slug: 'test', body: 'тест контент' });
     } else {
       await json(route, { message: `Unexpected fixture endpoint: ${url.pathname}` }, 501);
     }

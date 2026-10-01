@@ -1,0 +1,123 @@
+@layer components {
+  /* Shared by the cabinet, the route and a step: service text is mono, as on the landing. */
+  .mono-count { font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); }
+  .mono-count > b { font-weight: 500; color: var(--text); }
+  .button-code { font-family: var(--mono); font-size: .88em; font-weight: 500; }
+  /* The main action while the progress is on its way: the pill's place, without the pill's pull. */
+  .resume-pending { opacity: .55; box-shadow: none; pointer-events: none; }
+  .resume-pending::before { display: none; }
+  .progress-error { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; }
+  .progress-error > p { max-width: 420px; color: #ffa0ad; font-size: 14px; line-height: 1.6; }
+  /* A thin progress bar in the landing's gradient; `--fill` goes from 0 to 1. */
+  :is(.stage-meter-cell, .path-total, .stage-card-tally) > i { position: relative; display: block; height: 2px; overflow: hidden; border-radius: 2px; background: #ffffff1a; }
+  :is(.stage-meter-cell, .path-total, .stage-card-tally) > i::after { content: ''; position: absolute; inset: 0; background: var(--glow); transform-origin: 0 50%; scale: var(--fill, 0) 1; transition: scale .6s cubic-bezier(.2, .7, .2, 1); }
+
+  /* The film's chapter pill, spread over the eight stages. */
+  .stage-meter { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--edge); border-radius: 22px; background: #07080fcc; }
+  .stage-meter > li { display: grid; min-width: 0; }
+  .stage-meter-cell { display: grid; grid-template-columns: 1fr auto; align-content: start; gap: 8px; padding: 12px 12px 13px; border-radius: 16px; color: var(--dim); transition: background .3s, color .3s; }
+  a.stage-meter-cell:hover { background: #ffffff0a; color: var(--soft); }
+  a.stage-meter-cell:focus-visible { outline-offset: 1px; }
+  .stage-meter > li[aria-current] .stage-meter-cell { background: #ffffff0f; color: var(--text); }
+  .stage-meter-code, .stage-meter-count { font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px; }
+  .stage-meter > li[data-complete] .stage-meter-code { color: var(--mint); }
+  .stage-meter-title { grid-column: 1 / -1; min-height: 2.6em; font-size: 13px; line-height: 1.3; }
+  .stage-meter-cell > i { grid-column: 1 / -1; }
+
+  /* Cabinet. */
+  .cabinet { display: grid; align-content: start; gap: 64px; }
+  .cabinet-intro { display: grid; justify-items: start; gap: 24px; padding-top: 32px; }
+  .cabinet-intro h1 { font-size: clamp(52px, 5.6vw, 84px); line-height: 1.02; letter-spacing: -.045em; }
+  .cabinet-lead { max-width: 600px; font-size: 18px; line-height: 1.7; color: var(--soft); }
+  .cabinet-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 8px; }
+  .cabinet-progress { padding: 26px; border: 1px solid var(--edge); border-radius: 26px; background: linear-gradient(180deg, #ffffff0a, #ffffff03); }
+  .cabinet-progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 4px 6px 20px; }
+  .cabinet-progress-head h2 { font-size: 20px; letter-spacing: -.02em; }
+
+  /* Route. */
+  .path-heading { margin-bottom: 36px; }
+  .path-heading h1 { font-size: clamp(48px, 5.2vw, 76px); }
+  .path-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 28px; margin-top: 10px; }
+  .path-total { display: grid; gap: 10px; width: 240px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); }
+  .path-total b { font-weight: 500; color: var(--text); }
+  .stage-list { display: grid; gap: 18px; margin: 28px 0 0; padding: 0; list-style: none; }
+  /* `scroll-margin-top`: a stage opened from the strip lands below the header with room to breathe. */
+  .stage-card { position: relative; isolation: isolate; scroll-margin-top: 24px; display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 48px; padding: 34px; overflow: hidden; border: 1px solid var(--edge); border-radius: 24px; background: linear-gradient(180deg, #ffffff0c, #ffffff03); transition: border-color .3s; }
+  .stage-card::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0; background: radial-gradient(520px circle at var(--x, 50%) var(--y, 0%), #a28fff26, transparent 60%); transition: opacity .3s; }
+  .stage-card:hover { border-color: #ffffff2e; }
+  .stage-card:hover::before { opacity: 1; }
+  .stage-card-side { display: grid; align-content: start; justify-items: start; gap: 12px; }
+  /* Big numerals in the gradient, like the landing's path counter. */
+  .stage-card-code { margin-bottom: 6px; font-size: 64px; font-weight: 600; line-height: 1; letter-spacing: -.06em; background: var(--glow); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stage-card h2 { font-size: 30px; line-height: 1.1; letter-spacing: -.03em; }
+  .stage-card-side > p { font-size: 15px; line-height: 1.6; color: var(--soft); }
+  .stage-card-tally { display: grid; grid-template-columns: minmax(0, 150px) auto; align-items: center; gap: 14px; margin-top: 10px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; color: var(--dim); }
+  .stage-card[data-complete] .stage-card-tally { color: var(--mint); }
+  .step-list { display: grid; align-content: start; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .step-row { position: relative; display: grid; grid-template-columns: 22px 40px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 13px 16px; border: 1px solid transparent; border-radius: 14px; color: var(--soft); transition: background .2s, border-color .2s, color .2s; }
+  .step-row:hover { background: #ffffff0a; color: var(--text); }
+  .step-row:focus-visible { outline-offset: 0; }
+  /* Where «Продолжить» leads. */
+  .step-row[aria-current="step"] { border-color: #ffffff24; background: #ffffff0c; color: var(--text); }
+  .step-row[aria-current="step"]::before { content: ''; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 2px; border-radius: 2px; background: linear-gradient(#ffb48c, #a28fff); }
+  .step-mark { display: grid; place-items: center; width: 20px; height: 20px; border: 1.5px solid #ffffff38; border-radius: 50%; color: var(--night); }
+  .step-row[data-status="in_progress"] .step-mark { border-color: var(--coral); background: radial-gradient(circle, var(--coral) 0 3px, transparent 3.5px); }
+  .step-row[data-status="done"] .step-mark { border-color: var(--mint); background: var(--mint); }
+  .step-row[data-status="skipped"] .step-mark { border-color: var(--mint); color: var(--mint); }
+  .step-row-code { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+  .step-row-title { font-size: 15px; line-height: 1.45; }
+  .step-row-status { font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+  .step-row[data-status="in_progress"] .step-row-status { color: #ffb48c; }
+  .step-row:is([data-status="done"], [data-status="skipped"]) .step-row-status { color: var(--mint); }
+
+  /* Step: a reading column aligned with the header. */
+  .step-page { display: grid; align-content: start; gap: 30px; }
+  .step-page > * { width: 100%; max-width: 880px; }
+  .step-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: #ffffff38; }
+  .step-trail a { color: var(--soft); transition: color .2s; }
+  .step-trail a:hover { color: var(--text); }
+  .step-heading { display: grid; justify-items: start; gap: 16px; }
+  .step-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .step-code { padding: 6px 13px; border: 1px solid var(--edge); border-radius: 999px; background: #ffffff08; font-family: var(--mono); font-size: 14px; letter-spacing: 1.6px; color: #ffb48c; }
+  .step-state { padding: 6px 13px; border: 1px solid var(--edge); border-radius: 999px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); }
+  .step-state[data-status="in_progress"] { border-color: #ff947055; color: #ffb48c; }
+  .step-state:is([data-status="done"], [data-status="skipped"]) { border-color: #62e6d155; background: #62e6d112; color: var(--mint); }
+  .step-heading h1 { font-size: clamp(42px, 4.4vw, 64px); }
+  .step-meta { font-size: 15px; color: var(--dim); }
+  /* The step's text sits in a window like the landing's Claude Code session. */
+  .step-window { position: relative; overflow: hidden; border: 1px solid #ffffff1c; border-radius: 18px; background: linear-gradient(160deg, #171b36f0, #0a0c19f5); box-shadow: 0 50px 90px -40px #000, 0 0 90px -40px #a28fff60; }
+  .step-window::before { content: ''; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none; background: linear-gradient(140deg, #ffb48c90, transparent 32%, transparent 68%, #62e6d190); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
+  .step-window-bar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid #ffffff12; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .step-window-path { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .step-body { display: grid; gap: 16px; min-height: 220px; align-content: start; padding: 30px 32px 36px; font-size: 17px; line-height: 1.75; color: #d8dbf1; }
+  .step-body > p { max-width: 68ch; text-wrap: pretty; }
+  .step-body > .ghost-button { justify-self: start; }
+  .step-body-pending { color: var(--dim); }
+  .step-actions { display: grid; gap: 12px; }
+  .step-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  .step-note { min-height: 1.6em; font-size: 14px; line-height: 1.6; color: var(--mint); }
+  .step-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pager-link { display: grid; align-content: start; gap: 8px; padding: 20px 22px; border: 1px solid var(--edge); border-radius: 20px; background: #ffffff06; transition: background .2s, border-color .2s; }
+  .pager-link:hover { background: #ffffff0f; border-color: #ffffff2e; }
+  .pager-link > span { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); }
+  .pager-link > strong { font-size: 16px; font-weight: 500; line-height: 1.4; text-wrap: balance; }
+  .pager-previous svg { rotate: 180deg; }
+  .pager-next { grid-column: 2; justify-items: end; text-align: right; }
+}
+
+@layer responsive {
+  @media (max-width: 1150px) {
+    .stage-meter { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .stage-card { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 32px; }
+  }
+  @media (max-width: 900px) {
+    .stage-card { grid-template-columns: 1fr; gap: 20px; padding: 26px; }
+  }
+  @media (max-width: 700px) {
+    .stage-meter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .step-row { grid-template-columns: 20px 34px minmax(0, 1fr); gap: 10px; padding-inline: 10px; }
+    .step-row-status:not(.visually-hidden) { grid-column: 3; }
+    .step-pager { grid-template-columns: 1fr; }
+    .pager-next { grid-column: auto; }
+  }
+}
