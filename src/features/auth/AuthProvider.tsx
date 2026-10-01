@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { useLocation, useNavigate } from 'react-router';
-import { getSupabase, supabaseConfigured } from '../../lib/supabase';
+import { callbackAttempt, getSupabase, hasStoredSession, supabaseConfigured } from '../../lib/supabase';
 import { clearDestination, rememberDestination } from './redirect';
 
 export type AppUser = { id: string; email: string; displayName: string; avatarUrl: string | null };
@@ -158,4 +158,10 @@ export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used inside AuthProvider');
   return context;
+}
+
+// A session on its way while the SDK loads: one stored by an earlier visit, or a sign-in being
+// completed with an OAuth code. The header, the pages and the account menu all treat it as a member.
+export function useSessionPending() {
+  return useAuth().loading && (hasStoredSession() || callbackAttempt.hasCode);
 }

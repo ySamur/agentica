@@ -1,7 +1,7 @@
 // Where each part of the opening scene sits on its scroll progress: 0 when the film's top meets the
 // viewport's, 1 at the scene's end. Shared by the markup, the motion layer and the tests (no DOM here).
-// Tuned to the scene's height in landing.css (430svh): the scene lets go right after the hero
-// settles, so scrolling on never meets a stage that stands still.
+// Tuned to `sceneLength`: the scene lets go right after the hero settles, so scrolling on never
+// meets a stage that stands still.
 
 export const phases = {
   // The footage plays over the first 87%; its baked grade cools as the agent takes over.
@@ -19,6 +19,9 @@ export const phases = {
   // The hero's links take pointers from here on.
   heroLive: 0.91,
 } as const;
+
+// The scene's height in svh (TypingFilm passes it to landing.css); retune the phases when it changes.
+export const sceneLength = 430;
 
 // "Пропустить интро" lands here, with the hero fully in place.
 export const heroAt = 0.98;

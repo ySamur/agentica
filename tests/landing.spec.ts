@@ -1,17 +1,35 @@
 import { test, expect, type Page } from '@playwright/test';
 import { stages } from '../src/features/guide/catalog';
-import { frameCount, heroAt, phases } from '../src/features/landing/introPhases';
-import { mockAuth } from './helpers/auth';
+import { frameCount, heroAt, phases, sceneLength } from '../src/features/landing/introPhases';
+import { holdSupabaseSdk, mockAuth } from './helpers/auth';
+
+// The page offset of a point of the opening scene's scroll progress, as sceneOffset in motion/scene.ts.
+const sceneTop = (page: Page, progress: number) => page.evaluate(value => {
+  const film = document.querySelector<HTMLElement>('.film')!;
+  return film.offsetTop + (film.offsetHeight - innerHeight) * value;
+}, progress);
+
+const jumpTo = (page: Page, top: number) => page.evaluate(value => window.scrollTo({ top: value, behavior: 'instant' }), top);
 
 // Jumps to a point of the opening scene's scroll progress (see introPhases.ts).
-async function scrollScene(page: Page, progress: number) {
-  await page.evaluate(value => {
-    const film = document.querySelector<HTMLElement>('.film')!;
-    window.scrollTo({ top: film.offsetTop + (film.offsetHeight - innerHeight) * value, behavior: 'instant' });
-  }, progress);
-}
+const scrollScene = async (page: Page, progress: number) => jumpTo(page, await sceneTop(page, progress));
 
 const heroLink = (page: Page) => page.locator('.film-hero').getByRole('link', { name: 'Начать бесплатно' });
+
+// The film frames the page asks for: the set and the index (f_001 is 0) of each request.
+function watchFrames(page: Page) {
+  const frames: { set: string; index: number }[] = [];
+  page.on('request', request => {
+    const match = /\/frames\/typing\/([\w-]+)\/f_(\d+)\.webp$/.exec(request.url());
+    if (match) frames.push({ set: match[1]!, index: Number(match[2]) - 1 });
+  });
+  return frames;
+}
+
+const allFrames = [...Array(frameCount).keys()];
+// Each frame once (the dev rebuild asks again); with `inOrder` equal to the expected list, nothing else was asked for.
+const distinct = (frames: { index: number }[]) => new Set(frames.map(frame => frame.index));
+const inOrder = (frames: { index: number }[]) => allFrames.filter(index => distinct(frames).has(index));
 
 test('landing loads without runtime errors or horizontal overflow', async ({ page }) => {
   const errors: string[] = [];
@@ -26,14 +44,12 @@ test('landing loads without runtime errors or horizontal overflow', async ({ pag
 
 test('the opening scene tells its story line by line and resolves into the hero', async ({ page }, testInfo) => {
   const set = testInfo.project.name === 'mobile' ? 'mobile' : 'desktop';
-  const sets = new Set<string>();
-  page.on('request', request => {
-    const match = /\/frames\/typing\/([\w-]+)\/f_\d+\.webp$/.exec(request.url());
-    if (match) sets.add(match[1]);
-  });
+  const frames = watchFrames(page);
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
   await expect(page.locator('.film-canvas')).toHaveClass(/is-ready/);
+  // The scene is as long as its timing assumes.
+  expect(await page.locator('.film').evaluate((film: HTMLElement) => film.offsetHeight / innerHeight)).toBeCloseTo(sceneLength / 100, 1);
   // Each line has the stage to itself in its own stretch of the scroll.
   const story = [
     ['hands', phases.handsOut / 2],
@@ -48,43 +64,57 @@ test('the opening scene tells its story line by line and resolves into the hero'
   await expect(heroLink(page)).toBeInViewport();
   await expect(heroLink(page)).toHaveCSS('opacity', '1');
   // One frame set per screen: the portrait crop on phones, the 1280px set on this desktop.
-  expect([...sets]).toEqual([set]);
+  expect([...new Set(frames.map(frame => frame.set))]).toEqual([set]);
 });
 
-// The film frames the page asks for, as indices (f_001 is 0).
-function watchFrames(page: Page) {
-  const frames = new Set<number>();
-  page.on('request', request => {
-    const match = /\/frames\/typing\/[\w-]+\/f_(\d+)\.webp$/.exec(request.url());
-    if (match) frames.add(Number(match[1]) - 1);
-  });
-  return frames;
-}
-
-// In order; with the size checks next to it, also nothing outside the film.
-const sorted = (frames: Set<number>) => [...Array(frameCount).keys()].filter(index => frames.has(index));
+// Before any scroll: the poster, every 16th frame and the last, where the scene rests.
+const coarse = allFrames.filter(index => index % 16 === 0 || index === frameCount - 1);
 
 test('the film fetches a coarse pass first and the rest once the reader scrolls', async ({ page }) => {
   const frames = watchFrames(page);
   await page.goto('/');
   await expect(page.locator('.film-canvas')).toHaveClass(/is-ready/);
-  // Before any scroll: the poster, every 16th frame and the last, where the scene rests.
-  const coarse = [...Array(frameCount).keys()].filter(index => index % 16 === 0 || index === frameCount - 1);
-  await expect.poll(() => frames.size).toBe(coarse.length);
-  expect(sorted(frames)).toEqual(coarse);
+  // The idle timer starts only once the coarse pass is in, so it cannot overtake this check.
+  await expect.poll(() => distinct(frames).size).toBe(coarse.length);
+  expect(inOrder(frames)).toEqual(coarse);
   await scrollScene(page, 0.05);
-  await expect.poll(() => frames.size).toBe(frameCount);
+  await expect.poll(() => distinct(frames).size).toBe(frameCount);
 });
 
-test('on a slow connection the film arrives without a scroll and skips every other frame', async ({ page }) => {
-  await page.addInitScript(() => Object.defineProperty(navigator, 'connection', { value: { effectiveType: '3g' } }));
+test('a tab in the background keeps the rest of the film until it is shown', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Loading logic only.');
+  await page.addInitScript(() => {
+    let hidden = true;
+    Object.defineProperty(document, 'visibilityState', { get: () => hidden ? 'hidden' : 'visible' });
+    Object.assign(window, { showTab: () => { hidden = false; document.dispatchEvent(new Event('visibilitychange')); } });
+  });
   const frames = watchFrames(page);
   await page.goto('/');
-  // A visitor who stays on the first screen gets the film after a moment; blending bridges the gaps.
-  const even = [...Array(frameCount).keys()].filter(index => index % 2 === 0);
-  await expect.poll(() => frames.size, { timeout: 10_000 }).toBe(even.length);
-  expect(sorted(frames)).toEqual(even);
+  await expect.poll(() => distinct(frames).size).toBe(coarse.length);
+  // Well past the idle delay: still only the coarse pass.
+  await page.waitForTimeout(3500);
+  expect(inOrder(frames)).toEqual(coarse);
+  await page.evaluate(() => (window as unknown as { showTab: () => void }).showTab());
+  await expect.poll(() => distinct(frames).size, { timeout: 10_000 }).toBe(frameCount);
 });
+
+const lean = [
+  ['a slow connection', () => Object.defineProperty(navigator, 'connection', { value: { effectiveType: '3g' } })],
+  ['a device with little memory', () => Object.defineProperty(navigator, 'deviceMemory', { value: 2 })],
+] as const;
+
+for (const [device, emulate] of lean) {
+  test(`on ${device} the film arrives without a scroll and skips every other frame`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'mobile' && device !== 'a slow connection', 'Loading logic only.');
+    await page.addInitScript(emulate);
+    const frames = watchFrames(page);
+    await page.goto('/');
+    // A visitor who stays on the first screen gets the film after a moment; blending bridges the gaps.
+    const even = allFrames.filter(index => index % 2 === 0);
+    await expect.poll(() => distinct(frames).size, { timeout: 10_000 }).toBe(even.length);
+    expect(inOrder(frames)).toEqual(even);
+  });
+}
 
 test('once the hero has settled, scrolling on moves the page at once', async ({ page }) => {
   await page.goto('/');
@@ -101,17 +131,13 @@ test('once the hero has settled, scrolling on moves the page at once', async ({ 
 test('the header turns to glass the moment the opening scene lets go', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
-  const release = await page.evaluate(() => {
-    const film = document.querySelector<HTMLElement>('.film')!;
-    return film.offsetTop + film.offsetHeight - innerHeight;
-  });
-  const jump = (top: number) => page.evaluate(value => window.scrollTo({ top: value, behavior: 'instant' }), top);
-  await jump(release - 40);
+  const release = await sceneTop(page, 1);
+  await jumpTo(page, release - 40);
   await expect(page.locator('main')).toHaveAttribute('data-header', 'clear');
   // Past it the hero moves up under the header, which must not stay see-through.
-  await jump(release + 60);
+  await jumpTo(page, release + 60);
   await expect(page.locator('main')).not.toHaveAttribute('data-header', 'clear');
-  await jump(release + 30);
+  await jumpTo(page, release + 30);
   await expect(page.locator('main')).toHaveAttribute('data-header', 'glass');
 });
 
@@ -154,8 +180,7 @@ test('keyboard focus on the hero before it arrives brings the stage there', asyn
 });
 
 test('reduced motion shows the finished session and every section in place', async ({ page }, testInfo) => {
-  const frames: string[] = [];
-  page.on('request', request => { if (request.url().includes('/frames/typing/')) frames.push(request.url()); });
+  const frames = watchFrames(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   // The motion layer is never downloaded: no smooth scrolling, no scene; the parts simply stack.
@@ -173,7 +198,7 @@ test('reduced motion shows the finished session and every section in place', asy
   // The still is the film's poster, and nothing darkens it without motion.
   expect(await page.locator('.film-shade').evaluate(shade => getComputedStyle(shade, '::after').opacity)).toBe('0');
   // Only the poster still is fetched: no scroll film without motion.
-  expect(frames.filter(url => !url.endsWith('/f_001.webp'))).toEqual([]);
+  expect(frames.filter(frame => frame.index !== 0)).toEqual([]);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `.local/screenshots/${testInfo.project.name}-viewport.png` });
   await page.screenshot({ path: `.local/screenshots/${testInfo.project.name}.png`, fullPage: true });
@@ -292,13 +317,22 @@ test('reduced motion keeps the role comparison still and clear of the new column
 });
 
 test('a guest sees «Войти» at once, while the auth SDK is still loading', async ({ page, context }) => {
-  let release!: () => void;
-  const released = new Promise<void>(resolve => { release = resolve; });
-  // Matches the SDK module in both pre-bundled and raw form, as in auth.spec.ts.
-  await context.route(/@supabase[_/]supabase-js/, async route => { await released; await route.continue(); });
+  const release = await holdSupabaseSdk(context);
   await page.goto('/');
   await expect(page.locator('.site-header').getByRole('link', { name: 'Войти', exact: true })).toBeVisible();
   await expect(page.getByText('Загрузка…')).toHaveCount(0);
+  release();
+});
+
+test('while a sign-in completes, the header waits with the member and offers no sign-up', async ({ page, context }) => {
+  await mockAuth(context);
+  const release = await holdSupabaseSdk(context);
+  await page.goto('/auth/callback?code=test-code');
+  const header = page.locator('.site-header');
+  await expect(header.getByText('Загрузка…')).toBeVisible();
+  // One answer for the whole header: the account menu and the rest agree a member is arriving.
+  await expect(header.getByRole('link', { name: 'Начать бесплатно' })).toHaveCount(0);
+  await expect(header.getByRole('link', { name: 'Роль' })).toHaveCount(0);
   release();
 });
 
@@ -410,8 +444,9 @@ test('the landing speaks of what is inside today and lists the route\'s stages',
   await expect(page.getByText(/Скоро|готовится|после выхода|как только он выйдет/)).toHaveCount(0);
   const rows = page.locator('#guide .guide-stages > li');
   await expect(rows).toHaveCount(stages.length);
-  await expect(rows.first()).toContainText(stages[0]!.title);
-  await expect(rows.last()).toContainText(stages.at(-1)!.title);
+  // Named as the route's own headings do: «Этап 0», the capstone with its ★.
+  await expect(rows.first()).toContainText(`Этап ${stages[0]!.number}${stages[0]!.title}`);
+  await expect(rows.last()).toContainText(`★${stages.at(-1)!.title}`);
 });
 
 test('the header marks the section being read', async ({ page }) => {

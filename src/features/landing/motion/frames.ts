@@ -1,4 +1,5 @@
 import { gsap } from 'gsap';
+import { leanDevice } from '../../../lib/motion';
 import { frameCount } from '../introPhases';
 
 type FrameSet = 'desktop' | 'desktop-hd' | 'mobile';
@@ -10,29 +11,27 @@ const lanes = 6;
 const follow = 0.04;
 const settle = 0.1;
 const restAfter = 0.12;
-// Milliseconds after the poster before a reader who has not scrolled yet gets the rest anyway.
+// Milliseconds after the coarse pass before a reader who has not scrolled yet gets the rest anyway.
 const idleAfter = 2500;
 
-const slowNetwork = () => /2g|3g/.test((navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType ?? '');
-
-// Phones get the portrait crop around the hands; wide or dense screens on a fast connection the 1920px set.
-function pickSet(slow: boolean): FrameSet {
+// Phones get the portrait crop around the hands; wide or dense screens the 1920px set, unless lean.
+function pickSet(lean: boolean): FrameSet {
   if (window.matchMedia('(max-aspect-ratio: 4/5)').matches) return 'mobile';
-  return window.innerWidth * Math.min(window.devicePixelRatio || 1, 2) > 1700 && !slow ? 'desktop-hd' : 'desktop';
+  return window.innerWidth * Math.min(window.devicePixelRatio || 1, 2) > 1700 && !lean ? 'desktop-hd' : 'desktop';
 }
 
 // Coarse to fine. Right after the poster: every 16th frame and the last, where the scene rests, so
 // a visitor who leaves from the first screen costs a few hundred kilobytes. The rest halves the step
-// (8, 4, 2, 1), so scrubbing sharpens as it arrives; a slow connection skips the finest step and the
-// blending bridges every other frame.
-function loadPlan(slow: boolean) {
+// (8, 4, 2, 1), so scrubbing sharpens as it arrives; a lean device (slow connection, little memory)
+// skips the finest step, half the frames to fetch and keep decoded, and the blending bridges them.
+function loadPlan(lean: boolean) {
   const queued = new Set([0, frameCount - 1]);
   const pass = (step: number) => {
     const indexes: number[] = [];
     for (let index = 0; index < frameCount; index += step) if (!queued.has(index)) { queued.add(index); indexes.push(index); }
     return indexes;
   };
-  return { coarse: [frameCount - 1, ...pass(16)], rest: (slow ? [8, 4, 2] : [8, 4, 2, 1]).flatMap(pass) };
+  return { coarse: [frameCount - 1, ...pass(16)], rest: (lean ? [8, 4, 2] : [8, 4, 2, 1]).flatMap(pass) };
 }
 
 // Plays the frames as one continuous picture. Between two frames it cross-fades them, so the image
@@ -41,11 +40,11 @@ function loadPlan(slow: boolean) {
 // the nearest loaded ones.
 export function frameSequence(canvas: HTMLCanvasElement) {
   const context = canvas.getContext('2d', { alpha: false });
-  const slow = slowNetwork();
-  const set = pickSet(slow);
+  const lean = leanDevice();
+  const set = pickSet(lean);
   const images: HTMLImageElement[] = [];
   const ready = new Set<number>();
-  const { coarse, rest } = loadPlan(slow);
+  const { coarse, rest } = loadPlan(lean);
   const queue = coarse;
   const stop = new AbortController();
   // Downloads in flight, and whether the poster is in (until then it loads alone).
@@ -131,19 +130,29 @@ export function frameSequence(canvas: HTMLCanvasElement) {
     paint();
   };
 
+  // Once the coarse pass is in, a reader who stays on the first screen gets the rest after a moment;
+  // a tab in the background waits until it is shown again.
+  const wait = () => {
+    window.clearTimeout(idle);
+    if (rest.length && !busy && !queue.length && document.visibilityState === 'visible') idle = window.setTimeout(release, idleAfter);
+  };
+
   const pump = () => {
     if (!primed) return;
     while (busy < lanes && queue.length && !stop.signal.aborted) {
+      const index = queue.shift();
+      if (index === undefined) break;
       busy++;
-      void fetchFrame(queue.shift() ?? 0).finally(() => { busy--; pump(); });
+      void fetchFrame(index).finally(() => { busy--; pump(); });
     }
+    if (!stop.signal.aborted) wait();
   };
 
-  const release = () => {
+  function release() {
     window.clearTimeout(idle);
     queue.push(...rest.splice(0));
     pump();
-  };
+  }
 
   // The first frame comes alone, so it never waits behind the others.
   void fetchFrame(0).then(() => {
@@ -151,9 +160,9 @@ export function frameSequence(canvas: HTMLCanvasElement) {
     resize();
     primed = true;
     pump();
-    idle = window.setTimeout(release, idleAfter);
   });
   window.addEventListener('resize', resize, { signal: stop.signal });
+  document.addEventListener('visibilitychange', wait, { signal: stop.signal });
   // A reader already down the page (a reload, a link to a section) or starting to scroll needs it all.
   if (window.scrollY > 0) release();
   else window.addEventListener('scroll', release, { once: true, passive: true, signal: stop.signal });

@@ -1,10 +1,10 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from '../../components/Icon';
 import { motionAllowed } from '../../lib/motion';
 import { scrollToY } from '../../lib/smoothScroll';
 import { nbsp } from '../../lib/typography';
 import { ClaudeSession } from './ClaudeSession';
-import { heroAt } from './introPhases';
+import { heroAt, sceneLength } from './introPhases';
 
 // Stills cut from "A Person Typing on a Keyboard" by Mikhail Nilov (Pexels license, free to use), with the
 // brand grade baked in. The motion layer (motion/film.ts) plays them and every other part of this scene.
@@ -28,7 +28,7 @@ export function TypingFilm({ children }: { children: ReactNode }) {
     scrollToY(film.offsetTop + (film.offsetHeight - window.innerHeight) * heroAt, () => cta?.focus({ preventScroll: true }));
   }
 
-  return <section ref={section} className="film" id="home" aria-label="Вступление">
+  return <section ref={section} className="film" id="home" aria-label="Вступление" style={{ '--scene-length': sceneLength } as CSSProperties}>
     <div className="film-sticky">
       <div className="film-scene">
         <div className="film-media" aria-hidden="true">

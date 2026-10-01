@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import { Brand, Icon } from './Icon';
 import { AccountMenu } from '../features/auth/AccountMenu';
-import { preloadLogin, signUpPath } from '../features/auth/signup';
+import { JoinLink } from '../features/auth/JoinLink';
 import { useGuideProgress } from '../features/guide/GuideProgress';
 import { resumeStep, resumeVerb } from '../features/guide/progress';
 
@@ -38,11 +38,11 @@ export function SiteHeader({ member }: { member: boolean }) {
             <Link to="/#skills" onClick={closeMenu}>Навыки</Link>
             <Link to="/#how" onClick={closeMenu}>Путь</Link>
             <Link to="/#questions" onClick={closeMenu}>Вопросы</Link>
-            {signUp && <Link className="mobile-start" to={signUpPath} onClick={closeMenu} onPointerEnter={preloadLogin} onFocus={preloadLogin}>Начать бесплатно <Icon name="arrow" size={16} /></Link>}
+            {signUp && <JoinLink className="mobile-start" onClick={closeMenu}>Начать бесплатно <Icon name="arrow" size={16} /></JoinLink>}
           </>}
         </nav>
         <div className="header-actions">
-          {member ? <ContinueLink /> : signUp && <Link className="header-cta" to={signUpPath} onPointerEnter={preloadLogin} onFocus={preloadLogin}>Начать бесплатно <Icon name="arrowUp" size={17} /></Link>}
+          {member ? <ContinueLink /> : signUp && <JoinLink className="header-cta">Начать бесплатно <Icon name="arrowUp" size={17} /></JoinLink>}
           <AccountMenu />
           <button className="mobile-menu icon-button" aria-label={menuOpen ? 'Закрыть меню' : 'Открыть меню'} aria-expanded={menuOpen} aria-controls="main-navigation" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? 'close' : 'menu'} /></button>
         </div>

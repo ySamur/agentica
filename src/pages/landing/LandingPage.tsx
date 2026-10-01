@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type R
 import { Link, useOutletContext } from 'react-router';
 import type { PageContext } from '../../app/App';
 import { Brand, Icon, type IconName } from '../../components/Icon';
-import { stageCode, stages, type GuideStage } from '../../features/guide/catalog';
+import { stages, type GuideStage } from '../../features/guide/catalog';
 import { PathScene } from '../../features/landing/PathScene';
 import { RoleShift } from '../../features/landing/RoleShift';
 import { SignupLink } from '../../features/landing/SignupLink';
@@ -42,9 +42,9 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
     text: nbsp('Хуки, линтер и тесты проверяют каждую правку агента раньше, чем вы откроете diff.'),
     // The hook fires on the agent's edit; each check hands over to the next and logs its time.
     visual: <div className="visual-pipeline">
-      <p className="pipeline-hook">PostToolUse · src/cart/promo.ts</p>
+      <p className="pipeline-hook">{nbsp('PostToolUse · src/cart/promo.ts')}</p>
       <div className="pipeline-track"><span>lint</span><i /><span>build</span><i /><span>test</span><i /><b><Icon name="check" size={14} /></b></div>
-      <ul className="pipeline-log"><li><span>✓</span>lint<em>1,2 с</em></li><li><span>✓</span>build<em>3,4 с</em></li><li><span>✓</span>23 теста<em>5,1 с</em></li></ul>
+      <ul className="pipeline-log">{([['lint', '1,2 с'], ['build', '3,4 с'], ['23 теста', '5,1 с']] as const).map(([check, time]) => <li key={check}><span>✓</span>{nbsp(check)}<em>{nbsp(time)}</em></li>)}</ul>
     </div>,
   },
   {
@@ -63,8 +63,8 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
   },
 ];
 
-// The book names each stage as the route does: «Этап 00»…«Этап 06», then the capstone's ★.
-const stageLabel = (stage: GuideStage) => /^\d+$/.test(stage.number) ? `Этап ${stageCode(stage)}` : stageCode(stage);
+// The book names each stage as the route's headings do: «Этап 0»…«Этап 6», then the capstone's ★.
+const stageLabel = (stage: GuideStage) => stage.number === '★' ? stage.number : nbsp(`Этап ${stage.number}`);
 
 const questions = [
   { title: 'Заменит ли ИИ разработчиков?', answer: 'Он меняет содержание работы. Набор кода всё больше делегируется агентам, а ценность смещается к постановке задач, архитектуре, ревью и ответственности за результат. Именно этим навыкам посвящён путеводитель.' },

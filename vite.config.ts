@@ -3,10 +3,20 @@ import react from '@vitejs/plugin-react';
 
 const tag = (attrs: Record<string, string>): HtmlTagDescriptor => ({ tag: 'meta', attrs, injectTo: 'head' });
 
+// The site's origin from VITE_SITE_URL; anything but an absolute http(s) address stops the build,
+// since a relative one would quietly break every link preview.
+function originOf(site: string | undefined) {
+  const value = site?.trim();
+  if (!value) return '';
+  const url = URL.canParse(value) ? new URL(value) : null;
+  if (!url || !/^https?:$/.test(url.protocol)) throw new Error(`VITE_SITE_URL must be an absolute address such as https://agentica.ru, got "${value}"`);
+  return url.origin;
+}
+
 // Link previews (Telegram, Slack, search) need absolute addresses, so the tags that carry them
 // are added only when the build knows the site's origin: VITE_SITE_URL, e.g. https://agentica.ru.
 function siteMeta(site: string | undefined): Plugin {
-  const origin = site?.trim().replace(/\/+$/, '');
+  const origin = originOf(site);
   return {
     name: 'site-meta',
     transformIndexHtml() {

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState, ViewTransition } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { LandingPage } from '../pages/landing/LandingPage';
-import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
+import { AuthProvider, useAuth, useSessionPending } from '../features/auth/AuthProvider';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { clearDestination } from '../features/auth/redirect';
 import { stepAtPath } from '../features/guide/catalog';
@@ -10,7 +10,6 @@ import { StarterDialog } from '../features/starter/StarterDialog';
 import { SiteHeader } from '../components/SiteHeader';
 import { PageStatus } from '../components/PageStatus';
 import { scrollToTarget } from '../lib/smoothScroll';
-import { hasStoredSession } from '../lib/supabase';
 
 export type PageContext = { openStarter: () => void };
 
@@ -32,8 +31,9 @@ const titles: Record<string, string> = {
 // `/` is the members' cabinet or the guest landing. Until the SDK restores the session,
 // a stored one predicts it, so members never see the landing flash.
 function useMember() {
-  const { user, loading } = useAuth();
-  return Boolean(user) || (loading && hasStoredSession());
+  const { user } = useAuth();
+  const pending = useSessionPending();
+  return Boolean(user) || pending;
 }
 
 function pageTitle(pathname: string, member: boolean) {

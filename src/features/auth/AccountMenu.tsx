@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link } from 'react-router';
 import { Icon } from '../../components/Icon';
-import { hasStoredSession } from '../../lib/supabase';
-import { useAuth } from './AuthProvider';
+import { useAuth, useSessionPending } from './AuthProvider';
 import { UserAvatar } from './UserAvatar';
 
 export function AccountMenu() {
-  const { user, loading, signOut } = useAuth();
-  const { pathname } = useLocation();
-  // Without a stored session a visitor is a guest until they sign in, so «Войти» needs no wait;
-  // only a session being restored, or a sign-in being completed, shows the loading state.
-  const restoring = loading && (hasStoredSession() || pathname === '/auth/callback');
+  const { user, signOut } = useAuth();
+  // Without a session on its way a visitor is a guest until they sign in, so «Войти» needs no wait.
+  const restoring = useSessionPending();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');

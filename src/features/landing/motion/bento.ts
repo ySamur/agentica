@@ -34,7 +34,7 @@ const stories: Record<string, (visual: Element, timeline: gsap.core.Timeline) =>
       .to(note, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'back.out(1.7)' }, '+=0.1')
       .to(reply, { clipPath: 'inset(0 0% 0 0)', duration: 0.7, ease: 'steps(24)' }, '+=0.35');
   },
-  // The hook fires on the edit, each check hands over to the next and logs its time, then the edit is cleared.
+  // The hook fires on the edit, each check hands over to the next and logs its time, then the check mark pops.
   'visual-pipeline': (visual, timeline) => {
     const hook = visual.querySelectorAll('.pipeline-hook');
     const links = [...visual.querySelectorAll('.pipeline-track i')];
