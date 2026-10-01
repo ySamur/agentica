@@ -23,4 +23,5 @@ export const phases = {
 // "Пропустить интро" lands here, with the hero fully in place.
 export const heroAt = 0.98;
 
-export const frameCount = 120;
+// Every frame of the clip's 0.2–9.5 s at its own 25 per second.
+export const frameCount = 233;

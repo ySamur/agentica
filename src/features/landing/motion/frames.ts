@@ -10,23 +10,29 @@ const lanes = 6;
 const follow = 0.04;
 const settle = 0.1;
 const restAfter = 0.12;
+// Milliseconds after the poster before a reader who has not scrolled yet gets the rest anyway.
+const idleAfter = 2500;
+
+const slowNetwork = () => /2g|3g/.test((navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType ?? '');
 
 // Phones get the portrait crop around the hands; wide or dense screens on a fast connection the 1920px set.
-function pickSet(): FrameSet {
+function pickSet(slow: boolean): FrameSet {
   if (window.matchMedia('(max-aspect-ratio: 4/5)').matches) return 'mobile';
-  const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
-  const slow = /2g|3g/.test(connection?.effectiveType ?? '');
   return window.innerWidth * Math.min(window.devicePixelRatio || 1, 2) > 1700 && !slow ? 'desktop-hd' : 'desktop';
 }
 
-// Coarse to fine: every 8th frame first (and the last, where the scene rests), then the gaps,
-// so scrubbing works early and sharpens as the rest arrives.
-function loadOrder() {
-  const order = [0, frameCount - 1];
-  for (let step = 8; step >= 1; step /= 2) {
-    for (let index = 0; index < frameCount; index += step) if (!order.includes(index)) order.push(index);
-  }
-  return order;
+// Coarse to fine. Right after the poster: every 16th frame and the last, where the scene rests, so
+// a visitor who leaves from the first screen costs a few hundred kilobytes. The rest halves the step
+// (8, 4, 2, 1), so scrubbing sharpens as it arrives; a slow connection skips the finest step and the
+// blending bridges every other frame.
+function loadPlan(slow: boolean) {
+  const queued = new Set([0, frameCount - 1]);
+  const pass = (step: number) => {
+    const indexes: number[] = [];
+    for (let index = 0; index < frameCount; index += step) if (!queued.has(index)) { queued.add(index); indexes.push(index); }
+    return indexes;
+  };
+  return { coarse: [frameCount - 1, ...pass(16)], rest: (slow ? [8, 4, 2] : [8, 4, 2, 1]).flatMap(pass) };
 }
 
 // Plays the frames as one continuous picture. Between two frames it cross-fades them, so the image
@@ -35,11 +41,17 @@ function loadOrder() {
 // the nearest loaded ones.
 export function frameSequence(canvas: HTMLCanvasElement) {
   const context = canvas.getContext('2d', { alpha: false });
-  const set = pickSet();
+  const slow = slowNetwork();
+  const set = pickSet(slow);
   const images: HTMLImageElement[] = [];
   const ready = new Set<number>();
-  const queue = loadOrder();
+  const { coarse, rest } = loadPlan(slow);
+  const queue = coarse;
   const stop = new AbortController();
+  // Downloads in flight, and whether the poster is in (until then it loads alone).
+  let busy = 0;
+  let primed = false;
+  let idle = 0;
   // Where the scroll puts the footage and what the canvas shows, both in frames.
   let target = 0;
   let shown = 0;
@@ -119,17 +131,32 @@ export function frameSequence(canvas: HTMLCanvasElement) {
     paint();
   };
 
-  const lane = async () => {
-    for (let index = queue.shift(); index !== undefined && !stop.signal.aborted; index = queue.shift()) await fetchFrame(index);
+  const pump = () => {
+    if (!primed) return;
+    while (busy < lanes && queue.length && !stop.signal.aborted) {
+      busy++;
+      void fetchFrame(queue.shift() ?? 0).finally(() => { busy--; pump(); });
+    }
+  };
+
+  const release = () => {
+    window.clearTimeout(idle);
+    queue.push(...rest.splice(0));
+    pump();
   };
 
   // The first frame comes alone, so it never waits behind the others.
-  void fetchFrame(queue.shift() ?? 0).then(() => {
+  void fetchFrame(0).then(() => {
     if (stop.signal.aborted) return;
     resize();
-    for (let count = 0; count < lanes; count++) void lane();
+    primed = true;
+    pump();
+    idle = window.setTimeout(release, idleAfter);
   });
   window.addEventListener('resize', resize, { signal: stop.signal });
+  // A reader already down the page (a reload, a link to a section) or starting to scroll needs it all.
+  if (window.scrollY > 0) release();
+  else window.addEventListener('scroll', release, { once: true, passive: true, signal: stop.signal });
 
   return {
     // `position` is the frame the scroll points at, fractions included.
@@ -142,6 +169,7 @@ export function frameSequence(canvas: HTMLCanvasElement) {
     },
     destroy() {
       stop.abort();
+      window.clearTimeout(idle);
       gsap.ticker.remove(tick);
       images.forEach((image, index) => { if (!ready.has(index)) image.src = ''; });
     },

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { stages } from '../src/features/guide/catalog';
-import { heroAt, phases } from '../src/features/landing/introPhases';
+import { frameCount, heroAt, phases } from '../src/features/landing/introPhases';
 import { mockAuth } from './helpers/auth';
 
 // Jumps to a point of the opening scene's scroll progress (see introPhases.ts).
@@ -49,6 +49,40 @@ test('the opening scene tells its story line by line and resolves into the hero'
   await expect(heroLink(page)).toHaveCSS('opacity', '1');
   // One frame set per screen: the portrait crop on phones, the 1280px set on this desktop.
   expect([...sets]).toEqual([set]);
+});
+
+// The film frames the page asks for, as indices (f_001 is 0).
+function watchFrames(page: Page) {
+  const frames = new Set<number>();
+  page.on('request', request => {
+    const match = /\/frames\/typing\/[\w-]+\/f_(\d+)\.webp$/.exec(request.url());
+    if (match) frames.add(Number(match[1]) - 1);
+  });
+  return frames;
+}
+
+const sorted = (frames: Set<number>) => [...frames].sort((a, b) => a - b);
+
+test('the film fetches a coarse pass first and the rest once the reader scrolls', async ({ page }) => {
+  const frames = watchFrames(page);
+  await page.goto('/');
+  await expect(page.locator('.film-canvas')).toHaveClass(/is-ready/);
+  // Before any scroll: the poster, every 16th frame and the last, where the scene rests.
+  const coarse = [...Array(frameCount).keys()].filter(index => index % 16 === 0 || index === frameCount - 1);
+  await expect.poll(() => frames.size).toBe(coarse.length);
+  expect(sorted(frames)).toEqual(coarse);
+  await scrollScene(page, 0.05);
+  await expect.poll(() => frames.size).toBe(frameCount);
+});
+
+test('on a slow connection the film arrives without a scroll and skips every other frame', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'connection', { value: { effectiveType: '3g' } }));
+  const frames = watchFrames(page);
+  await page.goto('/');
+  // A visitor who stays on the first screen gets the film after a moment; blending bridges the gaps.
+  const even = [...Array(frameCount).keys()].filter(index => index % 2 === 0);
+  await expect.poll(() => frames.size, { timeout: 10_000 }).toBe(even.length);
+  expect(sorted(frames)).toEqual(even);
 });
 
 test('once the hero has settled, scrolling on moves the page at once', async ({ page }) => {
