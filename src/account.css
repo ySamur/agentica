@@ -82,6 +82,8 @@
   .connected-label { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--edge); border-radius: 999px; background: #ffffff06; font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--soft); white-space: nowrap; }
   .connected-label > i { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 10px var(--mint); }
   .profile-identity > .connected-label { margin-left: auto; }
+  /* Here the identity row opens the card, so its heading lines up with the card's beside it. */
+  .profile-account { padding-top: 0; }
   :is(.profile-card, .login-form) label { display: block; margin-bottom: 10px; font-size: 14px; font-weight: 500; }
   :is(.profile-card, .login-form) input { display: block; width: 100%; padding: 14px 16px; border: 1px solid #ffffff1f; border-radius: 14px; background: #0a0c18; color: var(--text); font-size: 15px; transition: border-color .2s; }
   :is(.profile-card, .login-form) input:hover { border-color: #ffffff38; }

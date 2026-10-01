@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { mockAuth } from './helpers/auth';
-import { settle } from './helpers/page';
+import { expectNoOverflow, settle } from './helpers/page';
 
 test('guest cannot see protected pages and return destinations are allowlisted', async ({ page, context }) => {
   await mockAuth(context);
@@ -15,6 +15,39 @@ test('guest cannot see protected pages and return destinations are allowlisted',
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
   await expect(page).toHaveURL('http://localhost:4317/');
   await expect(page.getByRole('button', { name: 'Меню аккаунта' })).toBeVisible();
+});
+
+test('members following old addresses land on the route', async ({ page, context }) => {
+  await mockAuth(context, { signedIn: true });
+  await page.goto('/content');
+  await expect(page).toHaveURL(/\/path$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('От клавиатуры к оркестровке.');
+  // Old sign-up links carried this return address.
+  await page.goto('/login?next=%2Fcontent');
+  await expect(page).toHaveURL(/\/path$/);
+  await page.goto('/settings/profile');
+  await expect(page).toHaveURL(/\/profile$/);
+});
+
+test('following a link focuses the new page heading, the sign-in and not-found pages included', async ({ page, context }) => {
+  await mockAuth(context);
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Войти', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Маршрут начинается здесь.');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.getByRole('button', { name: 'Продолжить с Google' }).click();
+  await expect(page.getByRole('button', { name: 'Меню аккаунта' })).toBeVisible();
+  await page.goto('/no-such-page');
+  await page.getByRole('link', { name: 'На главную', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Добро пожаловать');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  // The header is rebuilt on every page, so its link's focus would otherwise be lost.
+  await page.getByRole('navigation', { name: 'Главная навигация' }).getByRole('link', { name: 'Маршрут' }).press('Enter');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('От клавиатуры к оркестровке.');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  // Loading a page keeps the browser's own focus.
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1 })).not.toBeFocused();
 });
 
 test('guests get the landing and members get the cabinet', async ({ page, context }) => {
@@ -86,7 +119,7 @@ test('email sign-up checks the form, then creates the account and returns to the
   await expect(page.getByRole('alert')).toHaveText('Пароль слишком короткий.');
   await expect(password).toBeFocused();
   await expect(password).toHaveAttribute('autocomplete', 'new-password');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expectNoOverflow(page);
   await page.evaluate(() => scrollTo(0, 0));
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/login-signup-${testInfo.project.name}.png`, fullPage: true });
@@ -153,7 +186,7 @@ test('email confirmation: resend, sign-in before the link, the link in another b
   await expect(sent).toHaveAttribute('aria-disabled', 'true');
   await sent.dispatchEvent('click');
   expect(auth.resendCount).toBe(0);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expectNoOverflow(page);
   await page.evaluate(() => scrollTo(0, 0));
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/login-letter-${testInfo.project.name}.png`, fullPage: true });
@@ -228,7 +261,7 @@ test('profile saves name, survives reload and keeps Google email read-only', asy
   await page.keyboard.press('Escape');
   await page.reload();
   await expect(input).toHaveValue('Новое Имя');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expectNoOverflow(page);
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/profile-${testInfo.project.name}.png`, fullPage: true });
 });
@@ -357,7 +390,7 @@ test('missing configuration keeps the landing and login usable', async ({ page }
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
   await expect(page.getByRole('alert')).toContainText('Вход временно недоступен');
   expect(errors).toEqual([]);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expectNoOverflow(page);
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/login-${testInfo.project.name}.png`, fullPage: true });
 });

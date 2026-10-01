@@ -80,8 +80,7 @@
 
   /* Simulated Claude Code session. */
   .session-scene { --px: 0; --py: 0; position: relative; min-width: 0; padding: 44px 14px 60px; perspective: 1600px; }
-  .session-window { position: relative; overflow: hidden; border-radius: 18px; background: linear-gradient(160deg, #171b36f0, #0a0c19f5); border: 1px solid #ffffff1c; box-shadow: 0 50px 90px -40px #000, 0 0 90px -30px #a28fff70; transform: rotateX(calc(4deg - var(--py) * 8deg)) rotateY(calc(-8deg + var(--px) * 12deg)); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
-  .session-window::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(140deg, #ffb48c90, transparent 32%, transparent 68%, #62e6d190); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
+  .session-window { transform: rotateX(calc(4deg - var(--py) * 8deg)) rotateY(calc(-8deg + var(--px) * 12deg)); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
   .session-bar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid #ffffff12; font-family: var(--mono); font-size: 11px; color: var(--dim); }
   .session-path { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   .session-status { display: flex; align-items: center; gap: 7px; margin-left: auto; padding: 4px 11px; border-radius: 999px; background: #ffffff0e; color: var(--soft); white-space: nowrap; }
@@ -145,10 +144,7 @@
 
   /* Operator skills bento. */
   .skill-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-  .skill-card { position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; min-height: 320px; overflow: hidden; padding: 30px; border-radius: 24px; border: 1px solid var(--edge); background: linear-gradient(180deg, #ffffff0c, #ffffff03); transition: border-color .3s; }
-  .skill-card::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0; background: radial-gradient(460px circle at var(--x, 50%) var(--y, 0%), #a28fff30, transparent 60%); transition: opacity .3s; }
-  .skill-card:hover { border-color: #ffffff33; }
-  .skill-card:hover::before { opacity: 1; }
+  .skill-card { display: flex; flex-direction: column; min-width: 0; min-height: 320px; padding: 30px; }
   .skill-wide { grid-column: span 2; }
   .skill-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; border: 1px solid var(--edge); background: #ffffff0d; color: #ffb48c; }
   .skill-card h3 { margin-top: 24px; font-size: 22px; font-weight: 560; letter-spacing: -.02em; }

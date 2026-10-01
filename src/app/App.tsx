@@ -9,6 +9,7 @@ import { GuideProgressProvider } from '../features/guide/GuideProgress';
 import { StarterDialog } from '../features/starter/StarterDialog';
 import { SiteHeader } from '../components/SiteHeader';
 import { PageStatus } from '../components/PageStatus';
+import { useArrivalFocus } from '../lib/arrivalFocus';
 import { scrollToTarget } from '../lib/smoothScroll';
 import { hasStoredSession } from '../lib/supabase';
 
@@ -73,6 +74,7 @@ function Layout() {
   const member = useMember();
   const openStarter = () => setStarterOpen(true);
   const title = pageTitle(location.pathname, member);
+  useArrivalFocus(location.pathname, location.hash);
 
   useEffect(() => {
     document.title = `agentica — ${title}`;
@@ -114,13 +116,23 @@ function Layout() {
   </>;
 }
 
+// One address per page: `/path/x/y/` becomes `/path/x/y`, so titles, sign-in returns and the
+// progress all see the address the catalog knows.
+function Root() {
+  const location = useLocation();
+  if (location.pathname.length > 1 && location.pathname.endsWith('/')) {
+    return <Navigate to={{ pathname: location.pathname.replace(/\/+$/, ''), search: location.search, hash: location.hash }} state={location.state} replace />;
+  }
+  return <Layout />;
+}
+
 function IndexRoute() {
   return useMember() ? <CabinetPage /> : <LandingPage />;
 }
 
 export default function App() {
   return <BrowserRouter><AuthProvider><GuideProgressProvider><Routes>
-    <Route element={<Layout />}>
+    <Route element={<Root />}>
       <Route index element={<IndexRoute />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="auth/callback" element={<AuthCallbackPage />} />

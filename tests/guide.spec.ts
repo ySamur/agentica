@@ -40,6 +40,7 @@ test('the route lists every stage and step, and its stage links move focus to th
   await expect(page.locator('.stage-card')).toHaveCount(8);
   await expect(page.locator('.step-row')).toHaveCount(35);
   await expect(page.getByRole('link', { name: '0.1 Ваш опыт и стек Не начат' })).toHaveAttribute('aria-current', 'step');
+  await expect(page.getByRole('navigation', { name: 'Этапы маршрута' }).getByRole('link', { name: /Точка отсчёта/ })).toHaveAttribute('aria-current', 'step');
   await expectNoOverflow(page);
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/path-${testInfo.project.name}.png`, fullPage: true });
@@ -90,6 +91,10 @@ test('unknown steps are not found, and a step under the wrong stage finds its ow
   await page.goto('/path/review/plan-first');
   await expect(page).toHaveURL(/\/path\/tasks\/plan-first$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('План до кода');
+  // A trailing slash is the same address.
+  await page.goto('/path/tasks/decomposition/?from=chat#task');
+  await expect(page).toHaveURL(/\/path\/tasks\/decomposition\?from=chat#task$/);
+  await expect(page).toHaveTitle('agentica — 3.3 Декомпозиция на проверяемые шаги');
 });
 
 test('a guest following a link to a step never reaches its text, then signs in and lands on it', async ({ page, context }) => {
@@ -100,7 +105,9 @@ test('a guest following a link to a step never reaches its text, then signs in a
   await page.goto('/');
   await expect(page.locator('main.landing-page')).toBeVisible();
   expect(auth.dataRequests).toBe(0);
-  await page.goto('/path/review/read-diff');
+  // A shared link with a trailing slash still returns to the step.
+  await page.goto('/path/review/read-diff/');
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath%2Freview%2Fread-diff$/);
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
   await expect(page).toHaveURL('http://localhost:4317/path/review/read-diff');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Чтение diff, написанного не вами');

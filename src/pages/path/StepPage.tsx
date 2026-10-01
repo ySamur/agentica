@@ -6,7 +6,6 @@ import { useAuth } from '../../features/auth/AuthProvider';
 import { findStep, steps } from '../../features/guide/catalog';
 import { useGuideProgress } from '../../features/guide/GuideProgress';
 import { isComplete, statusLabels, type StepStatus } from '../../features/guide/progress';
-import { useArrivalFocus } from '../../lib/arrivalFocus';
 import { getSupabase } from '../../lib/supabase';
 import { nbsp } from '../../lib/typography';
 
@@ -27,7 +26,6 @@ export function StepPage() {
   const { user, signOut } = useAuth();
   const userId = user?.id;
   const { progress, ready, error: progressError, reload, setStatus, open } = useGuideProgress();
-  const heading = useArrivalFocus<HTMLHeadingElement>();
   const [body, setBody] = useState<string | null>(null);
   const [bodyFailed, setBodyFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -89,7 +87,7 @@ export function StepPage() {
     } catch (cause) {
       // The rollback brings the previous buttons back; focus follows them.
       refocus.current = true;
-      setFailure(cause instanceof Error ? cause.message : 'Не удалось сохранить отметку.');
+      setFailure(cause instanceof Error ? cause.message : nbsp('Не удалось сохранить отметку.'));
     }
   }
 
@@ -104,7 +102,7 @@ export function StepPage() {
         <span className="step-code">{step.code}</span>
         {ready && <span className="step-state" data-status={status ?? 'todo'}>{statusLabels[status ?? 'todo']}</span>}
       </div>
-      <h1 id="step-title" ref={heading} tabIndex={-1}>{nbsp(step.title)}</h1>
+      <h1 id="step-title" tabIndex={-1}>{nbsp(step.title)}</h1>
       <p className="step-meta">{nbsp(`Шаг ${position} из ${stage.steps.length} · ${stage.promise}`)}</p>
     </div>
     <article className="step-window" aria-labelledby="step-title">

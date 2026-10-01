@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { getSupabase, type GuideProgressRow } from '../../lib/supabase';
+import { nbsp } from '../../lib/typography';
 import { isComplete, type Progress, type StepProgress, type StepStatus } from './progress';
 
 type GuideProgressValue = {
@@ -18,7 +19,7 @@ type GuideProgressValue = {
 type Loaded = { owner: string; progress: Progress; ready: boolean; error: string | null };
 
 const empty: Progress = new Map();
-const saveFailed = 'Не удалось сохранить отметку. Проверьте соединение и попробуйте ещё раз.';
+const saveFailed = nbsp('Не удалось сохранить отметку. Проверьте соединение и попробуйте ещё раз.');
 const GuideProgressContext = createContext<GuideProgressValue | null>(null);
 
 const toEntry = (row: Pick<GuideProgressRow, 'status' | 'updated_at'>): StepProgress => ({ status: row.status, updatedAt: row.updated_at });
@@ -69,7 +70,7 @@ export function GuideProgressProvider({ children }: { children: ReactNode }) {
         confirmed.current = rows;
         setLoaded({ owner: userId, progress: rows, ready: true, error: null });
       } catch {
-        if (!controller.signal.aborted) setLoaded({ owner: userId, progress: empty, ready: false, error: 'Не удалось загрузить прогресс. Проверьте соединение и попробуйте ещё раз.' });
+        if (!controller.signal.aborted) setLoaded({ owner: userId, progress: empty, ready: false, error: nbsp('Не удалось загрузить прогресс. Проверьте соединение и попробуйте ещё раз.') });
       }
     };
     void load();
