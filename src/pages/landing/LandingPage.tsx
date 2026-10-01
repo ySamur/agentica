@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type R
 import { Link, useOutletContext } from 'react-router';
 import type { PageContext } from '../../app/App';
 import { Brand, Icon, type IconName } from '../../components/Icon';
+import { stageCode, stages, type GuideStage } from '../../features/guide/catalog';
 import { PathScene } from '../../features/landing/PathScene';
 import { RoleShift } from '../../features/landing/RoleShift';
 import { SignupLink } from '../../features/landing/SignupLink';
@@ -62,13 +63,14 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
   },
 ];
 
-const chapters = ['Первый день с Claude Code', 'CLAUDE.md, который работает', 'Как ставить задачи агенту', 'Ревью кода, написанного агентом', 'Хуки, тесты и автоматические проверки', 'Команда агентов'].map(nbsp);
+// The book names each stage as the route does: «Этап 00»…«Этап 06», then the capstone's ★.
+const stageLabel = (stage: GuideStage) => /^\d+$/.test(stage.number) ? `Этап ${stageCode(stage)}` : stageCode(stage);
 
 const questions = [
   { title: 'Заменит ли ИИ разработчиков?', answer: 'Он меняет содержание работы. Набор кода всё больше делегируется агентам, а ценность смещается к постановке задач, архитектуре, ревью и ответственности за результат. Именно этим навыкам посвящён путеводитель.' },
   { title: 'Что такое Claude Code?', answer: 'Инструмент Anthropic для агентной разработки. Он работает в терминале, IDE, десктопном приложении и браузере: читает проект, редактирует файлы и выполняет команды — с вашего разрешения.' },
   { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оркестратор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
-  { title: 'Что будет в путеводителе и когда?', answer: 'Маршрут перехода по шагам, шаблоны запросов, настройка CLAUDE.md и автоматических проверок, разборы типичных ошибок. Он появится в разделе для участников — зарегистрированные пользователи получат доступ сразу после выхода.' },
+  { title: 'Что внутри путеводителя?', answer: 'Семь этапов перехода и выпускной проект — от первого запуска до команды агентов. Шаги можно отмечать выполненными, прогресс сохраняется на любом устройстве. Материалы шагов дополняются постепенно.' },
   { title: 'Регистрация платная?', answer: 'Нет. Вход через Google: отдельный пароль не нужен, мы получаем только профиль и email.' },
 ].map(question => ({ title: nbsp(question.title), answer: nbsp(question.answer) }));
 
@@ -105,7 +107,7 @@ export function LandingPage() {
           <SignupLink morph="hero">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
           <Link className="ghost-button" to="#why">Как меняется роль <Icon name="arrow" size={17} /></Link>
         </div>
-        <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google. Путеводитель по переходу готовится для участников.')}</p>
+        <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google, без пароля: только профиль и email.')}</p>
       </TypingFilm>
 
       <div className="ticker" aria-hidden="true"><div className="ticker-track">{[...ticker, ...ticker].map((item, index) => <span key={`${item}-${index}`}>{item}<i>✦</i></span>)}</div></div>
@@ -139,7 +141,8 @@ export function LandingPage() {
       <section className="path container" id="how" aria-labelledby="path-title">
         <div className="story-head" data-reveal="head">
           <span className="story-eyebrow"><i /> Путь перехода</span>
-          <h2 id="path-title">Шесть шагов{' '}<br />от клавиатуры <em className="accent">к{' '}оркестровке.</em></h2>
+          {/* Habits, not steps: members count 35 steps on their route. */}
+          <h2 id="path-title">Шесть привычек{' '}<br />от клавиатуры <em className="accent">к{' '}оркестровке.</em></h2>
           <p>{nbsp('Переход не случается за один день. Это последовательность привычек — каждая снимает с вас часть рутины.')}</p>
         </div>
         <PathScene />
@@ -148,8 +151,9 @@ export function LandingPage() {
       <section className="guide container" id="guide" aria-labelledby="guide-title">
         <div className="guide-copy" data-reveal="head">
           <span className="story-eyebrow"><i /> Только для участников</span>
-          <h2 id="guide-title">Путеводитель по{' '}переходу{' '}<br />уже готовится <em className="accent">внутри.</em></h2>
-          <p>{nbsp('Маршрут от первого запуска Claude Code до работы с командой агентов: практики, шаблоны запросов, разборы ошибок. Зарегистрируйтесь сейчас — путеводитель появится в вашем аккаунте сразу после выхода.')}</p>
+          <h2 id="guide-title">Путеводитель по{' '}переходу{' '}<br />ждёт <em className="accent">внутри.</em></h2>
+          {/* Same count as catalog.ts and the members' pages: stages 00–06 plus the capstone. */}
+          <p>{nbsp('Семь этапов и выпускной проект: от первого запуска Claude Code до команды агентов. Отмечайте пройденное — прогресс сохраняется в аккаунте. Материалы этапов дополняются, новые появляются у вас сразу.')}</p>
           <ul className="guide-perks">
             <li><Icon name="check" size={17} /> {nbsp('Вход через Google за пару кликов')}</li>
             <li><Icon name="check" size={17} /> Без отдельного пароля</li>
@@ -160,14 +164,13 @@ export function LandingPage() {
         <div className="guide-visual reveal">
           <div className="guide-volume">
             <div className="guide-book">
-              <div className="guide-book-top"><span><Icon name="layers" size={15} /> Путеводитель</span><span className="guide-soon">Скоро</span></div>
-              <h3>Планируемые главы</h3>
-              <ol className="guide-chapters">{chapters.map((chapter, index) => <li key={chapter}><span>Глава {index + 1}</span><strong>{chapter}</strong><Icon name="lock" size={16} /></li>)}</ol>
-              <p className="guide-book-note">{nbsp('Состав глав может измениться до выхода.')}</p>
+              <div className="guide-book-top"><span><Icon name="layers" size={15} /> Путеводитель</span></div>
+              <h3>Этапы</h3>
+              {/* Only the stage names from the public map; their steps open after sign-in. */}
+              <ol className="guide-stages">{stages.map(stage => <li key={stage.id}><span>{stageLabel(stage)}</span><strong>{nbsp(stage.title)}</strong><Icon name="lock" size={16} /></li>)}</ol>
             </div>
             {/* With motion the cover opens as the section scrolls in (motion/book.ts). */}
             <div className="guide-cover" aria-hidden="true">
-              <span className="guide-soon">Скоро</span>
               <strong>Путеводитель <em className="accent">по{' '}переходу</em></strong>
               <span className="guide-cover-foot"><b>agentica<i>.</i></b> для участников</span>
             </div>
@@ -191,7 +194,7 @@ export function LandingPage() {
         <div className="outro-card" data-reveal="head">
           <span className="story-eyebrow"><i /> Следующий шаг</span>
           <h2 id="outro-title">Перестаньте печатать.{' '}<br />Начните <em className="accent glow-text">управлять.</em></h2>
-          <p>{nbsp('Присоединяйтесь сейчас — и получите путеводитель по переходу, как только он выйдет.')}</p>
+          <p>{nbsp('Один вход через Google — и путеводитель с вашим прогрессом на любом устройстве.')}</p>
           <div className="outro-actions">
             <SignupLink morph="outro">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
             <button type="button" className="ghost-button" onClick={openStarter}>Готовые запросы для старта <Icon name="terminal" size={17} /></button>

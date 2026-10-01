@@ -38,7 +38,7 @@ export function TypingFilm({ children }: { children: ReactNode }) {
         <div className="film-copy container">
           <span className="film-eyebrow"><i /> Эпоха ИИ-агентов</span>
           {/* Lines are split into characters and scrambled on screen; readers get them whole. */}
-          <p className="visually-hidden">Годами разработчик писал код руками. Строка за строкой, символ за символом. Теперь код пишет агент.</p>
+          <p className="visually-hidden">Годами разработчик писал код руками. Строка за строкой. Символ за символом. Теперь код пишет агент.</p>
           <div className="film-lines" aria-hidden="true">
             {beats.map(beat => <p className="film-line" data-beat={beat.key} key={beat.key}>{beat.text}</p>)}
           </div>

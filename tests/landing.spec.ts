@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { stages } from '../src/features/guide/catalog';
 import { heroAt, phases } from '../src/features/landing/introPhases';
 import { mockAuth } from './helpers/auth';
 
@@ -366,6 +367,16 @@ test('every sign-up call to action has one label and leads to sign-in', async ({
   // The sign-in page is where they all lead, so its header has none.
   await page.goto('/login');
   await expect(page.locator('.site-header').getByRole('link', { name: 'Начать бесплатно' })).toHaveCount(0);
+});
+
+test('the landing speaks of what is inside today and lists the route\'s stages', async ({ page }) => {
+  await page.goto('/');
+  // Nothing «soon»: the guide's structure and progress already work for members.
+  await expect(page.getByText(/Скоро|готовится|после выхода|как только он выйдет/)).toHaveCount(0);
+  const rows = page.locator('#guide .guide-stages > li');
+  await expect(rows).toHaveCount(stages.length);
+  await expect(rows.first()).toContainText(stages[0]!.title);
+  await expect(rows.last()).toContainText(stages.at(-1)!.title);
 });
 
 test('the header marks the section being read', async ({ page }) => {
