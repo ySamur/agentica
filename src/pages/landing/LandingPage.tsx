@@ -157,7 +157,7 @@ export function LandingPage() {
           <ul className="guide-perks">
             <li><Icon name="check" size={17} /> {nbsp('Вход через Google за пару кликов')}</li>
             <li><Icon name="check" size={17} /> {nbsp('Или по email и паролю')}</li>
-            <li><Icon name="check" size={17} /> {nbsp('Только профиль и email')}</li>
+            <li><Icon name="check" size={17} /> {nbsp('Только имя и email')}</li>
           </ul>
           <SignupLink morph="guide">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
         </div>

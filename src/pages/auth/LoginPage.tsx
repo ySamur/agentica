@@ -167,6 +167,6 @@ export function LoginPage() {
       </p>
       <Link className="text-link" to="/">Вернуться на главную <Icon name="arrow" size={15} /></Link>
     </section>)}
-    <span className="account-page-note"><Icon name="shield" size={15} /> {nbsp('Только профиль и email. Без доступа к письмам.')}</span>
+    <span className="account-page-note"><Icon name="shield" size={15} /> {nbsp('Только имя и email. Без доступа к письмам.')}</span>
   </main>;
 }
