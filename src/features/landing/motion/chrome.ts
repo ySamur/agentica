@@ -8,10 +8,19 @@ import { sceneOffset } from './scene';
 export function headerStates(root: HTMLElement, film: HTMLElement) {
   const set = (state: string) => { if (root.dataset.header !== state) root.dataset.header = state; };
   let release = sceneOffset(film, 1);
-  ScrollTrigger.create({
+  // Without a scroll to react to (a reload mid-page, a rebuild, a resize) the header still matches
+  // where the page is: clear only over the scene.
+  const settle = (scroll: number) => {
+    if (scroll < release) set('clear');
+    else if (root.dataset.header === 'clear') set('glass');
+  };
+  const trigger = ScrollTrigger.create({
     start: 0,
     end: 'max',
-    onRefresh: () => { release = sceneOffset(film, 1); },
+    onRefresh: self => {
+      release = sceneOffset(film, 1);
+      settle(self.scroll());
+    },
     onUpdate: self => {
       if (self.scroll() < release) set('clear');
       else if (self.direction === 1 && self.getVelocity() > 60) set('hidden');
@@ -19,6 +28,7 @@ export function headerStates(root: HTMLElement, film: HTMLElement) {
       else if (root.dataset.header === 'clear') set('glass');
     },
   });
+  settle(trigger.scroll());
   return () => { root.dataset.header = 'clear'; };
 }
 

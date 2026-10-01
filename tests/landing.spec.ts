@@ -79,6 +79,14 @@ test('the header turns to glass the moment the opening scene lets go', async ({ 
   await expect(page.locator('main')).toHaveAttribute('data-header', 'glass');
 });
 
+test('a section opened by its link gets a solid header without waiting for a scroll', async ({ page }) => {
+  // The motion layer may start after the jump to the anchor: the header must still match where the page is.
+  await page.goto('/#questions');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  await expect(page.locator('#questions')).toBeInViewport();
+  await expect(page.locator('main')).not.toHaveAttribute('data-header', 'clear');
+});
+
 test('the terminal types as the scene scrolls and rewinds when scrolling back', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
