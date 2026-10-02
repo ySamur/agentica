@@ -12,7 +12,8 @@ Russian-language site for developers moving from hand-written code to Claude Cod
 | `npm run lint` | oxlint, 0 errors. |
 | `npm run build` | Typecheck, then Vite build. |
 | `npm test -- --project=desktop` | Playwright, desktop project only. |
-| `npm run test:security` | Grants and RLS; after any change in `supabase/migrations/`. |
+| `npm run test:security` | Grants and RLS; after any change in `supabase/migrations/` or `content/guide/`. |
+| `npm run guide:content -- <step-id>` | Writes the migration that publishes a lesson from `content/guide/`. |
 
 Before reporting a change as done, run the `verify` skill.
 
@@ -20,7 +21,8 @@ Before reporting a change as done, run the `verify` skill.
 
 - `src/app/App.tsx`: routes and `Layout` (header, page cross-fade through `<ViewTransition>`, arrival focus, anchor scrolling).
 - `src/features/<name>/`: feature code: `auth`, `guide` (Маршрут), `landing`, `starter` (prompt dialog). Pages in `src/pages/<name>/`, shared UI in `src/components/`, helpers in `src/lib/`.
-- `supabase/migrations/`: schema, grants, RLS. `tests/`: Playwright specs and helpers, the SQL security test.
+- `supabase/migrations/`: schema, grants, RLS, published lessons. `tests/`: Playwright specs and helpers, the SQL security test.
+- `content/guide/`: lesson sources with answer keys (never imported by `src/`); `scripts/`: their compiler and migration generator. Roadmap: `docs/GUIDE_PLAN.md`.
 - `docs/AUTH_SETUP.md`: the owner-run setup checklist and the migration list.
 - `.claude/rules/`: area rules (landing, auth, guide, supabase, tests, styles); each loads with the files it covers.
 
