@@ -81,26 +81,6 @@
   /* Simulated Claude Code session. */
   .session-scene { --px: 0; --py: 0; position: relative; min-width: 0; padding: 44px 14px 60px; perspective: 1600px; }
   .session-window { transform: rotateX(calc(4deg - var(--py) * 8deg)) rotateY(calc(-8deg + var(--px) * 12deg)); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
-  .session-bar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid #ffffff12; font-family: var(--mono); font-size: 11px; color: var(--dim); }
-  .session-path { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  .session-status { display: flex; align-items: center; gap: 7px; margin-left: auto; padding: 4px 11px; border-radius: 999px; background: #ffffff0e; color: var(--soft); white-space: nowrap; }
-  .session-status > i { width: 6px; height: 6px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 10px var(--coral); animation: pulse 1.4s ease-in-out infinite; }
-  .session-done .session-status > i { background: var(--mint); box-shadow: 0 0 10px var(--mint); animation: none; }
-  .session-log { list-style: none; margin: 0; min-height: 340px; padding: 18px 20px 6px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; color: #d8dbf1; }
-  .session-line { display: flex; gap: 12px; }
-  .session-mark { flex: 0 0 1ch; color: var(--dim); }
-  .line-command .session-mark, .line-prompt .session-mark { color: var(--coral); }
-  .line-prompt { margin-top: 8px; color: #fff; }
-  .line-meta { color: var(--dim); }
-  .line-info .session-mark, .line-done .session-mark { color: var(--violet); }
-  .line-edit .session-mark, .line-pass, .line-pass .session-mark { color: var(--mint); }
-  .line-edit em { margin-left: 12px; font-style: normal; color: var(--mint); }
-  .line-done { margin-top: 8px; color: #fff; font-weight: 500; }
-  /* The caret sits at the end of the line being written. */
-  .session-line.is-current .session-text::after { content: ''; display: inline-block; width: .6em; height: 1.1em; margin-left: 3px; vertical-align: -.2em; background: var(--coral); animation: blink 1.1s step-end infinite; }
-  .session-foot { display: flex; align-items: center; gap: 16px; padding: 12px 18px 18px; }
-  .session-progress { flex: 1; height: 3px; overflow: hidden; border-radius: 3px; background: #ffffff12; }
-  .session-progress > i { display: block; width: 100%; height: 100%; background: var(--glow); transform-origin: 0 50%; transition: scale .35s cubic-bezier(.2, .7, .2, 1); }
   .session-chip { position: absolute; display: flex; align-items: center; gap: 8px; padding: 11px 15px; border-radius: 14px; border: 1px solid #ffffff21; background: #151936e8; box-shadow: 0 20px 40px -16px #000; font-size: 13px; font-weight: 500; white-space: nowrap; pointer-events: none; opacity: 0; scale: .9; translate: 0 12px; transform: translate(calc(var(--px) * 28px), calc(var(--py) * 28px)); transition: opacity .5s, scale .5s, translate .5s, transform .5s cubic-bezier(.2, .7, .2, 1); }
   .session-chip.is-shown { opacity: 1; scale: 1; translate: 0 0; }
   .session-chip > svg { color: var(--mint); }

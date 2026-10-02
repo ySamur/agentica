@@ -23,7 +23,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "playwright test",
-    "test:security": "node --test tests/security.test.mjs"
+    "test:security": "node --test tests/security.test.mjs",
+    "guide:content": "node scripts/guide-content.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

@@ -77,9 +77,9 @@
   .glow-button:active { translate: 0; scale: .97; }
   .ghost-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 22px; border-radius: 999px; border: 1px solid var(--edge); background: #ffffff08; color: var(--text); font-size: 15px; font-weight: 500; transition: background .2s, border-color .2s; }
   .ghost-button:hover { background: #ffffff14; border-color: #ffffff38; }
-  /* The agent's window: the landing's session and a step's text. */
-  :is(.session-window, .step-window) { position: relative; overflow: hidden; border-radius: 18px; background: linear-gradient(160deg, #171b36f0, #0a0c19f5); border: 1px solid #ffffff1c; box-shadow: 0 50px 90px -40px #000, 0 0 90px -30px #a28fff70; }
-  :is(.session-window, .step-window)::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(140deg, #ffb48c90, transparent 32%, transparent 68%, #62e6d190); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
+  /* The agent's window: the landing's film and the route's lessons. */
+  .session-window { position: relative; overflow: hidden; border-radius: 18px; background: linear-gradient(160deg, #171b36f0, #0a0c19f5); border: 1px solid #ffffff1c; box-shadow: 0 50px 90px -40px #000, 0 0 90px -30px #a28fff70; }
+  .session-window::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(140deg, #ffb48c90, transparent 32%, transparent 68%, #62e6d190); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
   /* Glass cards whose glow follows the pointer (`spotlight()` sets --x/--y). */
   :is(.skill-card, .stage-card) { position: relative; isolation: isolate; overflow: hidden; border-radius: 24px; border: 1px solid var(--edge); background: linear-gradient(180deg, #ffffff0c, #ffffff03); transition: border-color .3s; }
   :is(.skill-card, .stage-card)::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0; background: radial-gradient(460px circle at var(--x, 50%) var(--y, 0%), #a28fff30, transparent 60%); transition: opacity .3s; }
@@ -91,6 +91,27 @@
   .session-dots > i { width: 10px; height: 10px; border-radius: 50%; background: #ff7b7b; }
   .session-dots > i:nth-child(2) { background: #ffc764; }
   .session-dots > i:nth-child(3) { background: #5fd68f; }
+  /* The agent's session inside the window: the landing's film and the route's lessons. */
+  .session-bar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid #ffffff12; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .session-path { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .session-status { display: flex; align-items: center; gap: 7px; margin-left: auto; padding: 4px 11px; border-radius: 999px; background: #ffffff0e; color: var(--soft); white-space: nowrap; }
+  .session-status > i { width: 6px; height: 6px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 10px var(--coral); animation: pulse 1.4s ease-in-out infinite; }
+  .session-done .session-status > i { background: var(--mint); box-shadow: 0 0 10px var(--mint); animation: none; }
+  .session-log { list-style: none; margin: 0; min-height: 340px; padding: 18px 20px 6px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; color: #d8dbf1; }
+  .session-line { display: flex; gap: 12px; }
+  .session-mark { flex: 0 0 1ch; color: var(--dim); }
+  .line-command .session-mark, .line-prompt .session-mark { color: var(--coral); }
+  .line-prompt { margin-top: 8px; color: #fff; }
+  .line-meta { color: var(--dim); }
+  .line-info .session-mark, .line-done .session-mark { color: var(--violet); }
+  .line-edit .session-mark, .line-pass, .line-pass .session-mark { color: var(--mint); }
+  .line-edit em { margin-left: 12px; font-style: normal; color: var(--mint); }
+  .line-done { margin-top: 8px; color: #fff; font-weight: 500; }
+  /* The caret sits at the end of the line being written. */
+  .session-line.is-current .session-text::after { content: ''; display: inline-block; width: .6em; height: 1.1em; margin-left: 3px; vertical-align: -.2em; background: var(--coral); animation: blink 1.1s step-end infinite; }
+  .session-foot { display: flex; align-items: center; gap: 16px; padding: 12px 18px 18px; }
+  .session-progress { flex: 1; height: 3px; overflow: hidden; border-radius: 3px; background: #ffffff12; }
+  .session-progress > i { display: block; width: 100%; height: 100%; background: var(--glow); transform-origin: 0 50%; transition: scale .35s cubic-bezier(.2, .7, .2, 1); }
 
   .site-footer { padding-top: 51px; }
   .footer-top { display: flex; align-items: center; gap: 28px; padding-bottom: 30px; }

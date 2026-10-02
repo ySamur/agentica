@@ -81,13 +81,110 @@
   .step-state:is([data-status="done"], [data-status="skipped"]) { border-color: #62e6d155; background: #62e6d112; color: var(--mint); }
   .step-heading h1 { font-size: clamp(42px, 4.4vw, 64px); }
   .step-meta { font-size: 15px; color: var(--dim); }
-  /* The step's text sits in a window like the landing's Claude Code session. */
-  .step-window-bar { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid #ffffff12; font-family: var(--mono); font-size: 11px; color: var(--dim); }
-  .step-window-path { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .step-body { display: grid; gap: 16px; min-height: 220px; align-content: start; padding: 30px 32px 36px; font-size: 17px; line-height: 1.75; color: #d8dbf1; }
-  .step-body > p { max-width: 68ch; text-wrap: pretty; }
-  .step-body > .ghost-button { justify-self: start; }
+  .step-outcome { max-width: 62ch; font-size: 19px; line-height: 1.6; color: var(--soft); text-wrap: pretty; }
+  .step-loading { display: grid; justify-items: start; gap: 16px; min-height: 200px; }
   .step-body-pending { color: var(--dim); }
+  .step-placeholder { display: grid; gap: 14px; padding: 30px 32px; border: 1px solid var(--edge); border-radius: 24px; background: #ffffff06; font-size: 17px; line-height: 1.75; color: #d8dbf1; }
+  .step-placeholder > p { max-width: 68ch; text-wrap: pretty; }
+
+  /* Lesson: a reading column, with the agent's session, comparisons and diagrams at full width. */
+  .lesson { display: grid; gap: 22px; font-size: 17px; line-height: 1.75; color: #d8dbf1; }
+  .lesson > p, .lesson-list { max-width: 68ch; text-wrap: pretty; }
+  .lesson > h2 { margin-top: 26px; font-size: 30px; line-height: 1.15; letter-spacing: -.02em; color: var(--text); }
+  :is(.lesson, .lesson-practice, .lesson-check, .step-outcome) code { padding: 1px 6px; border-radius: 6px; background: #ffffff12; font-family: var(--mono); font-size: .86em; color: var(--accent-ink); }
+  :is(.lesson, .lesson-practice, .lesson-check, .step-outcome) strong { font-weight: 600; color: var(--text); }
+  .lesson-list { display: grid; gap: 10px; margin: 0; padding-left: 22px; }
+  .lesson-list > li::marker { color: var(--coral); }
+  .lesson-callout { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; max-width: 76ch; padding: 20px 22px; border: 1px solid #a28fff40; border-radius: 18px; background: #a28fff0a; }
+  .lesson-callout > svg { margin-top: 4px; color: var(--violet); }
+  .lesson-callout[data-tone="trap"] { border-color: #ff947045; background: #ff94700a; }
+  .lesson-callout[data-tone="trap"] > svg { color: var(--coral); }
+  .lesson-callout strong { display: block; margin-bottom: 4px; }
+  .lesson-callout p { font-size: 16px; line-height: 1.7; }
+  .lesson-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-block: 6px; }
+  .compare-side { display: grid; align-content: start; gap: 14px; padding: 22px; border: 1px solid var(--edge); border-radius: 20px; background: #ffffff06; }
+  .compare-side[data-side="after"] { border-color: #62e6d140; background: linear-gradient(180deg, #62e6d10e, #ffffff03); }
+  .compare-label { font-family: var(--mono); font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); }
+  .compare-side[data-side="after"] .compare-label { color: var(--mint); }
+  .compare-prompt { padding: 14px 16px; border-radius: 12px; background: #07080fb3; font-family: var(--mono); font-size: 13px; line-height: 1.7; color: #fff; }
+  .compare-prompt > span { color: var(--coral); }
+  .compare-note { font-size: 15px; line-height: 1.65; color: var(--soft); }
+  .lesson-command { display: grid; gap: 10px; }
+  .command-line { display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; border: 1px solid #ffffff1c; border-radius: 14px; background: #0a0c19; font-family: var(--mono); font-size: 14px; }
+  .command-prompt { color: var(--coral); }
+  .command-line > code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; color: #fff; }
+  .command-copy { display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 10px; background: #ffffff0d; color: var(--soft); font-family: var(--mono); font-size: 12px; transition: background .2s, color .2s; }
+  .command-copy:hover { background: #ffffff1a; color: var(--text); }
+  .command-caption { font-size: 14px; line-height: 1.6; color: var(--dim); }
+  .lesson-session { margin: 6px 0; }
+  .lesson-session .session-log { min-height: 0; padding-bottom: 12px; }
+  .lesson-session .session-line.is-ahead { visibility: hidden; }
+  .session-control { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; padding: 5px 12px; border: 1px solid #ffffff1f; border-radius: 999px; background: #ffffff0a; color: var(--soft); font-family: var(--mono); font-size: 11px; transition: background .2s, color .2s; }
+  .session-control:hover { background: #ffffff17; color: var(--text); }
+  .lesson-diagram { display: grid; gap: 16px; margin: 6px 0; padding: 26px 24px 22px; border: 1px solid var(--edge); border-radius: 22px; background: #ffffff05; }
+  .lesson-diagram > figcaption { font-size: 14px; line-height: 1.6; text-align: center; color: var(--dim); }
+
+  /* Diagrams: drawn in order (`--i`) once on screen; without data-play (reduced motion) they rest drawn. */
+  .diagram { display: block; width: 100%; height: auto; overflow: visible; }
+  .diagram-node rect { fill: #11132a; stroke: #ffffff2e; stroke-width: 1.2; }
+  .diagram-node.is-focus rect { fill: #1e1631; stroke: #ffb48c; }
+  .diagram-node text { fill: var(--text); font-size: 15px; font-weight: 500; text-anchor: middle; dominant-baseline: middle; }
+  .diagram-arrow { fill: none; stroke: #ffffff59; stroke-width: 1.6; stroke-dasharray: 1; }
+  .diagram-tip-head path { fill: none; stroke: #ffffff80; stroke-width: 1.6; }
+  .diagram-tip-loop path { fill: none; stroke: var(--coral); stroke-width: 1.6; }
+  .diagram-loop { fill: none; stroke: var(--coral); stroke-width: 1.6; stroke-dasharray: .025 .02; animation: diagram-flow 1.8s linear infinite; }
+  .diagram-loop-label { fill: #ffb48c; font-family: var(--mono); font-size: 13px; text-anchor: middle; }
+  .diagram-gate circle { fill: var(--night); stroke: var(--mint); stroke-width: 1.6; }
+  .diagram-gate path { fill: none; stroke: var(--mint); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .diagram-gate text { fill: var(--mint); font-family: var(--mono); font-size: 12px; text-anchor: middle; }
+  .diagram-zone path { fill: none; stroke: #a28fff70; stroke-width: 1.2; }
+  .diagram-zone.is-work path { stroke: #62e6d170; }
+  .diagram-zone text { fill: var(--dim); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-anchor: middle; }
+  .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
+  .diagram[data-play="pending"] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone) { opacity: 0; }
+  .diagram[data-play="pending"] .diagram-node { translate: 0 10px; }
+  .diagram[data-play="pending"] .diagram-arrow { stroke-dashoffset: 1; }
+
+  /* Practice in the member's own project, then the check. */
+  .lesson-practice { display: grid; justify-items: start; gap: 14px; padding: 30px 32px; border: 1px solid var(--edge); border-radius: 24px; background: linear-gradient(180deg, #ffffff0a, #ffffff03); font-size: 17px; line-height: 1.75; color: #d8dbf1; }
+  :is(.lesson-practice, .lesson-check) h2 { font-size: 30px; line-height: 1.15; letter-spacing: -.02em; color: var(--text); }
+  .lesson-practice > p { max-width: 68ch; text-wrap: pretty; }
+  .practice-done { margin-top: 4px; font-weight: 600; color: var(--text); }
+  .lesson-practice .lesson-list { list-style: '✓  '; }
+  .lesson-practice .lesson-list > li::marker { color: var(--mint); }
+  .lesson-check { display: grid; justify-items: start; gap: 14px; scroll-margin-top: 24px; }
+  .check-lead { max-width: 64ch; font-size: 16px; line-height: 1.7; color: var(--soft); }
+  .check-form { display: grid; gap: 18px; width: 100%; }
+  .check-form > :is(.glow-button, .ghost-button), .check-form > .form-error { justify-self: start; }
+  .check-question { min-width: 0; margin: 0; padding: 24px; border: 1px solid var(--edge); border-radius: 22px; background: #ffffff05; transition: border-color .3s; }
+  .check-question[data-verdict="right"] { border-color: #62e6d155; }
+  .check-question[data-verdict="wrong"] { border-color: #ff947055; }
+  /* Floated, so the legend lays out inside the fieldset like any other line. */
+  .check-question > legend { float: left; display: flex; gap: 14px; width: 100%; padding: 0; font-size: 18px; font-weight: 500; line-height: 1.5; color: var(--text); }
+  .check-number { flex: none; padding-top: 4px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; color: var(--dim); }
+  .check-hint { clear: both; padding-top: 8px; font-family: var(--mono); font-size: 11.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--violet); }
+  .check-options { clear: both; display: grid; gap: 10px; padding-top: 16px; }
+  .check-option { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; padding: 14px 16px; border: 1px solid #ffffff14; border-radius: 14px; background: #ffffff04; transition: border-color .2s, background .2s; }
+  .check-option:hover { border-color: #ffffff30; background: #ffffff09; }
+  .check-option:has(input:checked) { border-color: #a28fff80; background: #a28fff12; }
+  .check-option:has(input:focus-visible) { outline: 3px solid #ffb48c; outline-offset: 3px; }
+  .check-option input { position: relative; z-index: 1; width: 18px; height: 18px; margin: 4px 0 0; accent-color: var(--violet); }
+  .check-option input:focus-visible { outline: none; }
+  .check-option label { font-size: 16px; line-height: 1.6; color: #d8dbf1; cursor: pointer; }
+  /* The whole card answers a click. */
+  .check-option label::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+  .check-question:disabled label { cursor: default; }
+  [data-verdict="right"] .check-option[data-chosen] { border-color: #62e6d170; background: #62e6d10f; }
+  [data-verdict="wrong"] .check-option[data-chosen] { border-color: #ff947070; background: #ff94700d; }
+  .check-why { grid-column: 2; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ffffff12; font-size: 14.5px; line-height: 1.65; color: var(--soft); }
+  .check-verdict { clear: both; display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; }
+  [data-verdict="right"] .check-verdict { color: var(--mint); }
+  [data-verdict="wrong"] .check-verdict { color: #ffb48c; }
+  .check-summary { max-width: 68ch; padding: 16px 18px; border-radius: 14px; background: #ff94700f; font-size: 15.5px; line-height: 1.65; color: var(--accent-ink); }
+  .check-summary[data-passed] { background: #62e6d112; color: var(--mint); }
+  .check-summary:focus { outline: none; }
+  .check-passed { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; color: var(--mint); }
+  @keyframes diagram-flow { to { stroke-dashoffset: -.045; } }
   .step-actions { display: grid; gap: 12px; }
   .step-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
   .step-note { min-height: 1.6em; font-size: 14px; line-height: 1.6; color: var(--mint); }

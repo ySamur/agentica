@@ -5,7 +5,12 @@ import { PageStatus } from '../../components/PageStatus';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { findStep, steps } from '../../features/guide/catalog';
 import { useGuideProgress } from '../../features/guide/GuideProgress';
+import { Check } from '../../features/guide/lesson/Check';
+import { LessonBody } from '../../features/guide/lesson/Lesson';
+import { Rich } from '../../features/guide/lesson/Rich';
+import type { Lesson } from '../../features/guide/lesson/types';
 import { isComplete, statusLabels, type StepStatus } from '../../features/guide/progress';
+import { scrollToTarget } from '../../lib/smoothScroll';
 import { getSupabase } from '../../lib/supabase';
 import { nbsp } from '../../lib/typography';
 
@@ -15,8 +20,17 @@ const notes: Record<StepStatus, string> = {
   in_progress: 'Шаг снова в работе.',
 };
 
-// One step of the route, at its own address. Its text is members-only and comes from `guide_steps`;
-// opening it records the resume point; the member marks it done or already known.
+// «Уже умею» on a step with a check: straight to the check.
+function toCheck() {
+  const heading = document.getElementById('check-title');
+  if (!heading) return;
+  scrollToTarget(heading, false);
+  heading.focus({ preventScroll: true });
+}
+
+// One step of the route, at its own address: a lesson, the practice and the check, all members-only
+// (`guide_steps`). Opening it records the resume point. A step with a check is passed by the check;
+// one without (or not written yet) the member marks done or already known.
 export function StepPage() {
   const params = useParams();
   const found = findStep(params.step);
@@ -26,16 +40,19 @@ export function StepPage() {
   const { user, signOut } = useAuth();
   const userId = user?.id;
   const { progress, ready, error: progressError, reload, setStatus, open } = useGuideProgress();
-  const [body, setBody] = useState<string | null>(null);
-  const [bodyFailed, setBodyFailed] = useState(false);
+  // `null` inside: the lesson is not written yet.
+  const [loaded, setLoaded] = useState<{ lesson: Lesson | null } | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [note, setNote] = useState('');
   const [failure, setFailure] = useState('');
   const actions = useRef<HTMLDivElement>(null);
-  // After the member changes the status, the buttons are replaced; focus moves to the new first one.
+  // After the status changes, the buttons are replaced; focus moves to the new first one.
   const refocus = useRef(false);
   const status = stepId ? progress.get(stepId)?.status : undefined;
   const finished = isComplete(status);
+  const lesson = loaded?.lesson ?? null;
+  const checked = Boolean(lesson?.check);
 
   useEffect(() => {
     if (ready && stepId) open(stepId);
@@ -49,13 +66,13 @@ export function StepPage() {
       try {
         const client = await pending;
         if (controller.signal.aborted) return;
-        const { data, error, status: code } = await client.from('guide_steps').select('body').eq('step_id', stepId).abortSignal(controller.signal).single().retry(false);
+        const { data, error, status: code } = await client.from('guide_steps').select('lesson').eq('step_id', stepId).abortSignal(controller.signal).single().retry(false);
         if (controller.signal.aborted) return;
         if (code === 401) { await signOut(); return; }
         if (error || !data) throw error;
-        setBody(data.body);
+        setLoaded({ lesson: data.lesson });
       } catch {
-        if (!controller.signal.aborted) setBodyFailed(true);
+        if (!controller.signal.aborted) setLoadFailed(true);
       }
     };
     void load();
@@ -65,7 +82,8 @@ export function StepPage() {
   useEffect(() => {
     if (!refocus.current) return;
     refocus.current = false;
-    actions.current?.querySelector<HTMLElement>('a, button')?.focus();
+    // A step with a check that is back in work has no buttons: its check takes focus.
+    (actions.current?.querySelector<HTMLElement>('a, button') ?? document.getElementById('check-title'))?.focus();
   }, [finished]);
 
   if (!found) return <PageStatus title="Страница не найдена" message={nbsp('Такого шага нет в маршруте. Откройте карту и выберите нужный.')} />;
@@ -103,29 +121,33 @@ export function StepPage() {
         {ready && <span className="step-state" data-status={status ?? 'todo'}>{statusLabels[status ?? 'todo']}</span>}
       </div>
       <h1 id="step-title" tabIndex={-1}>{nbsp(step.title)}</h1>
-      <p className="step-meta">{nbsp(`Шаг ${position} из ${stage.steps.length} · ${stage.promise}`)}</p>
+      <p className="step-meta">{nbsp(`Шаг ${position} из ${stage.steps.length} · ${stage.promise}${lesson ? ` · ≈${lesson.minutes} минут` : ''}`)}</p>
+      {lesson && <p className="step-outcome"><Rich text={lesson.outcome} /></p>}
+      {checked && !finished && <a className="text-link step-skip" href="#check" onClick={event => { event.preventDefault(); toCheck(); }}>
+        Уже умею — сразу к проверке <Icon name="arrow" size={15} />
+      </a>}
     </div>
-    <article className="step-window" aria-labelledby="step-title">
-      <div className="step-window-bar">
-        <span className="session-dots" aria-hidden="true"><i /><i /><i /></span>
-        <span className="step-window-path"><Icon name="terminal" size={13} /> ~/agentica/path/{stage.id}/{step.id}.md</span>
+    {loaded === null
+      ? <div className="step-loading" aria-busy={!loadFailed}>
+        {loadFailed
+          ? <><p className="form-error" role="alert">{nbsp('Не удалось загрузить текст шага. Проверьте соединение и попробуйте ещё раз.')}</p>
+            <button type="button" className="ghost-button" onClick={() => { setLoadFailed(false); setAttempt(attempt + 1); }}>Повторить загрузку <Icon name="refresh" size={16} /></button></>
+          : <p className="step-body-pending" role="status">Загружаем шаг…</p>}
       </div>
-      <div className="step-body" aria-busy={body === null && !bodyFailed}>
-        {body !== null
-          ? body.split(/\n{2,}/).map(paragraph => <p key={paragraph}>{nbsp(paragraph)}</p>)
-          : bodyFailed
-            ? <><p className="form-error" role="alert">{nbsp('Не удалось загрузить текст шага. Проверьте соединение и попробуйте ещё раз.')}</p>
-              <button type="button" className="ghost-button" onClick={() => { setBodyFailed(false); setAttempt(attempt + 1); }}>Повторить загрузку <Icon name="refresh" size={16} /></button></>
-            : <p className="step-body-pending" role="status">Загружаем шаг…</p>}
-      </div>
-    </article>
+      : lesson
+        ? <LessonBody lesson={lesson} />
+        : <div className="step-placeholder">
+          <p>{nbsp('Урок этого шага готовится: скоро здесь появятся объяснение, живой пример в терминале, задание для вашего проекта и проверка.')}</p>
+          <p>{nbsp('Жёсткого порядка нет. Если тема знакома, отметьте «Уже умею» — шаг засчитается.')}</p>
+        </div>}
+    {lesson?.check && <Check stepId={step.id} questions={lesson.check.questions} finished={finished} expectFinish={expected => { refocus.current = expected; }} />}
     <div className="step-actions">
-      {/* The one main action: finish the step, then move on. */}
+      {/* The one main action: finish the step, then move on. A check finishes its step itself. */}
       <div className="step-buttons" ref={actions}>
         {finished ? <>
           <Link className="glow-button" to={following?.path ?? '/path'}>{following ? <>Следующий шаг: <b className="button-code">{following.label}</b> {nbsp(following.title)}</> : 'Карта маршрута'} <Icon name="arrow" size={18} /></Link>
           <button type="button" className="ghost-button" onClick={() => void mark('in_progress')}>Вернуть в работу</button>
-        </> : <>
+        </> : loaded && !checked && <>
           <button type="button" className="glow-button" disabled={!ready} onClick={() => void mark('done')}>Выполнено <Icon name="check" size={18} /></button>
           <button type="button" className="ghost-button" disabled={!ready} onClick={() => void mark('skipped')}>Уже умею</button>
         </>}

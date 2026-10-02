@@ -1,10 +1,14 @@
 import type { BrowserContext, Request, Route } from '@playwright/test';
+import { lessons } from '../../content/guide/index.ts';
+import { compileLesson } from '../../scripts/guideContent.ts';
 
 const userId = '34ae3545-ae23-41b1-a2c1-8292e58ba0dc';
 const storageKey = 'sb-agentica-test-auth-token';
 
 export type ProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };
-const stepBody = 'Закрытый текст шага для участников.\n\nВторой абзац с заданием.';
+// The written lessons as the server holds them: what members read and the keys only it sees.
+// Other steps have no lesson yet (`null`).
+export const published = new Map(lessons.map(source => [source.stepId, compileLesson(source)]));
 
 // The server's clock: every write is a second later than the one before, as in «last opened».
 let clock = Date.now();
@@ -51,6 +55,7 @@ function createState() {
     loadFails: false,
     saveFails: false,
     bodyFails: false,
+    checkFails: false,
     dataExpired: false,
     seed(stepId: string, status: ProgressRow['status']) {
       progress.set(stepId, { user_id: userId, step_id: stepId, status, updated_at: stamp() });
@@ -109,6 +114,8 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     } else if (url.pathname === '/rest/v1/guide_progress' && method === 'POST') {
       if (state.saveFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
       const { step_id: stepId, status } = request.postDataJSON() as Pick<ProgressRow, 'step_id' | 'status'>;
+      // Like the RLS policy: a step with a check is passed only by the check.
+      if (status !== 'in_progress' && published.get(stepId)?.key) { await json(route, { code: '42501', message: 'new row violates row-level security policy' }, 403); return; }
       state.seed(stepId, status);
       await rows(route, request, [state.progress.get(stepId)]);
     } else if (url.pathname === '/rest/v1/rpc/open_guide_step') {
@@ -120,7 +127,27 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
       await json(route, [state.progress.get(step)]);
     } else if (url.pathname === '/rest/v1/guide_steps' && method === 'GET') {
       if (state.bodyFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
-      await rows(route, request, stepFilter(url) ? [{ body: stepBody }] : []);
+      const step = stepFilter(url);
+      await rows(route, request, step ? [{ lesson: published.get(step)?.lesson ?? null }] : []);
+    } else if (url.pathname === '/rest/v1/rpc/submit_guide_check') {
+      if (state.checkFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
+      const { step, answers } = request.postDataJSON() as { step: string; answers: Record<string, string[]> };
+      const key = published.get(step)?.key;
+      if (!key) { await json(route, { code: '22023', message: `Step ${step} has no check` }, 400); return; }
+      // Like the SQL function: explanations for the chosen options, for all of them once every answer is right.
+      const graded = Object.entries(key).map(([id, { correct, why }]) => {
+        const chosen = [...new Set(answers[id] ?? [])].toSorted();
+        return { id, why, chosen, right: chosen.join() === correct.toSorted().join() };
+      });
+      const passed = graded.every(question => question.right);
+      const questions = Object.fromEntries(graded.map(({ id, why, chosen, right }) => [id, {
+        correct: right,
+        why: passed ? why : Object.fromEntries(chosen.map(option => [option, why[option]])),
+      }]));
+      if (!passed) { await json(route, { passed, questions }); return; }
+      state.seed(step, 'done');
+      const row = state.progress.get(step)!;
+      await json(route, { passed, questions, progress: { status: row.status, updated_at: row.updated_at } });
     } else {
       await json(route, { message: `Unexpected fixture endpoint: ${method} ${url.pathname}` }, 501);
     }
