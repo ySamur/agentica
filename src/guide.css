@@ -202,6 +202,9 @@
   .diagram-node.is-event .diagram-node-note { fill: var(--soft); font-family: 'Golos Text Variable', Arial, sans-serif; font-size: 12px; }
   .diagram-node.is-event.is-warn rect { stroke: #ff947099; stroke-dasharray: none; }
   .diagram-node.is-event.is-warn text:not(.diagram-node-note) { fill: #ffb48c; }
+  .diagram-loop.is-still { animation: none; stroke-dasharray: none; }
+  .diagram-step .diagram-step-name { fill: var(--violet); font-family: var(--mono); font-size: 13px; }
+  .diagram-step .diagram-step-task { fill: var(--soft); font-size: 12.5px; }
   .diagram-end { fill: var(--dim); font-family: var(--mono); font-size: 12px; }
   .diagram-zone text { fill: var(--dim); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-anchor: middle; }
   .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame, .diagram-step, .diagram-cell) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
