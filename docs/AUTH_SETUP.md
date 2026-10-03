@@ -17,6 +17,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610030002_guide_content_install_…_checkpoints.sql`: stage 1 lessons.
    - `202610030003_guide_content_project_view_…_clean_context.sql`: stage 2 lessons.
    - `202610030004_guide_content_task_anatomy_decomposition_iterations.sql`: stage 3 lessons.
+   - `202610030005_guide_content_read_diff_…_delegation_limit.sql`: stage 4 lessons.
    The site name lives in `user_metadata.display_name`; no profiles table.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 
