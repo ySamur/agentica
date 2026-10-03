@@ -21,7 +21,7 @@ Format, workflow and security rules: `.claude/rules/guide.md`. Facts: verify eac
 
 ## Roadmap
 1. **Done (2026-10-02):** lesson engine, server-checked quiz, pilot 3.2 «План до кода».
-2. **Done (2026-10-03):** stage 6 «Оркестровка» (diagram `subagents`). Earlier: stage 5 «Автоматизация» (diagram `hook-events`). Earlier: stage 4 «Ревью» (a `diff` block with reviewer marks; diagram `delegation-grid`). Earlier: stage 3 «Постановка задач» complete (diagram `step-ladder`). Earlier: stage 2 «Контекст» (4 lessons, diagrams `context-window`, `memory-layers`; `compare` sides can show file content). Earlier: lesson map (below), `code` block, «Этап пройден» card, stage 1 «Первый контакт» (5 lessons, diagrams `permission-modes`, `checkpoints`).
+2. **Done (2026-10-03):** the capstone (3 lessons without checks; the whole route now has lessons). Earlier: stage 6 «Оркестровка» (diagram `subagents`). Earlier: stage 5 «Автоматизация» (diagram `hook-events`). Earlier: stage 4 «Ревью» (a `diff` block with reviewer marks; diagram `delegation-grid`). Earlier: stage 3 «Постановка задач» complete (diagram `step-ladder`). Earlier: stage 2 «Контекст» (4 lessons, diagrams `context-window`, `memory-layers`; `compare` sides can show file content). Earlier: lesson map (below), `code` block, «Этап пройден» card, stage 1 «Первый контакт» (5 lessons, diagrams `permission-modes`, `checkpoints`).
 3. **Stages 2–6**, one stage per iteration: 2 «Контекст», 3 (three remaining steps), 4 «Ревью» (+ a `diff` block), 5 «Автоматизация», 6 «Оркестровка»; then the capstone (no checks: practice and manual marks).
 
 ## Lesson map
@@ -67,10 +67,10 @@ One line per step: outcome · key facts (re-verify each against the docs when wr
 - `agent-sdk`: embeds agents in services · `claude -p`, `--output-format json|stream-json`, `--allowedTools`, `--bare`; SDK packages `@anthropic-ai/claude-agent-sdk`, `claude-agent-sdk` · headless vs SDK.
 - `economics`: chooses models and effort with costs in mind · `/model`, `opusplan`, context size, cost in JSON output; ⚠ `/cost`, effort commands · model choice by task.
 
-**★ Выпускной проект** (no checks)
+**★ Выпускной проект** (written, no checks: practice and manual marks)
 - `idea-to-pr`: one real task from idea to merged PR using the whole route.
-- `before-after`: a personal «Было / Стало» (reuse `RoleShift`).
-- `public-profile`: the public profile with verified progress (needs the feature first).
+- `before-after`: a personal «Было / Стало» measured on ★.1 against a similar older task (a `compare` block and a template; notes stay in the member's repo, no free-text input).
+- `public-profile`: shows the result in the member's own public places (PR, README, project rules). The site's public profile with verified progress is not built; never promise it in the lesson.
 4. **Библиотека `/library`**: prompts (moved from `StarterDialog`), CLAUDE.md templates, checklists; a step's material unlocks when it is passed. Progress in Профиль.
 5. **Capstone** (idea → PR, «Было / Стало» reusing `RoleShift`), public profile with verified progress; then landing copy («Маршрут уже внутри», FAQ, chapters = stage titles).
 

@@ -3,6 +3,7 @@ import { lesson as agentCi } from './agent-ci.ts';
 import { lesson as agentRoles } from './agent-roles.ts';
 import { lesson as agentSdk } from './agent-sdk.ts';
 import { lesson as agentMistakes } from './agent-mistakes.ts';
+import { lesson as beforeAfter } from './before-after.ts';
 import { lesson as checkpoints } from './checkpoints.ts';
 import { lesson as claudeMd } from './claude-md.ts';
 import { lesson as cleanContext } from './clean-context.ts';
@@ -15,12 +16,14 @@ import { lesson as exploreCode } from './explore-code.ts';
 import { lesson as firstEdit } from './first-edit.ts';
 import { lesson as gitFlow } from './git-flow.ts';
 import { lesson as hooks } from './hooks.ts';
+import { lesson as ideaToPr } from './idea-to-pr.ts';
 import { lesson as install } from './install.ts';
 import { lesson as iterations } from './iterations.ts';
 import { lesson as mcp } from './mcp.ts';
 import { lesson as permissions } from './permissions.ts';
 import { lesson as planFirst } from './plan-first.ts';
 import { lesson as projectView } from './project-view.ts';
+import { lesson as publicProfile } from './public-profile.ts';
 import { lesson as readDiff } from './read-diff.ts';
 import { lesson as securityDeps } from './security-deps.ts';
 import { lesson as subagents } from './subagents.ts';
@@ -36,4 +39,5 @@ export const lessons: LessonSource[] = [
   readDiff, agentMistakes, testsContract, securityDeps, delegationLimit,
   hooks, commandsSkills, mcp, gitFlow, agentCi,
   subagents, worktrees, agentRoles, agentSdk, economics,
+  ideaToPr, beforeAfter, publicProfile,
 ];
