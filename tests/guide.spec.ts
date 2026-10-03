@@ -401,3 +401,33 @@ for (const [stepId, { lesson, key }] of published) {
     expect(auth.progress.get(stepId)?.status).toBe('done');
   });
 }
+
+test('the profile shows the way along the route and leads to its stages and the library', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  for (const id of ['install', 'claude-md']) auth.seed(id, 'done');
+  auth.seed('before-after', 'skipped');
+  await page.goto('/profile');
+  const card = page.locator('.route-progress');
+  await expect(card.getByRole('heading', { name: 'Путь по маршруту' })).toBeVisible();
+  await expect(card.locator('.mono-count')).toHaveText('3 из 31 шагов');
+  await expect(card.getByRole('link', { name: 'Первый контакт 1 / 5 шагов пройдено', exact: true })).toHaveAttribute('href', '/path#stage-first-contact');
+  // Install opens three prompts, CLAUDE.md its template, «Было / Стало» its own: five of the library.
+  await expect(card.getByRole('link', { name: /^Библиотека: открыто 5 из \d+/ })).toHaveAttribute('href', '/library');
+  await expectNoOverflow(page);
+  await screenshot(page, `.local/screenshots/profile-route-${testInfo.project.name}.png`);
+  await card.getByRole('link', { name: /Контекст/ }).click();
+  await expect(page).toHaveURL(/\/path#stage-context$/);
+  await expect(page.getByRole('heading', { name: 'Этап 2. Контекст' })).toBeFocused();
+});
+
+test('a profile whose progress fails to load offers to try again', async ({ page, context }) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  auth.loadFails = true;
+  await page.goto('/profile');
+  const card = page.locator('.route-progress');
+  await expect(card.getByRole('alert')).toHaveText('Не удалось загрузить прогресс. Проверьте соединение и попробуйте ещё раз.');
+  auth.loadFails = false;
+  await card.getByRole('button', { name: 'Повторить загрузку' }).click();
+  await expect(card.locator('.mono-count')).toHaveText('0 из 31 шагов');
+  await expect(card.getByRole('alert')).toHaveCount(0);
+});

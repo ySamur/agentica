@@ -3,6 +3,7 @@ import { Icon } from '../../components/Icon';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { UserAvatar } from '../../features/auth/UserAvatar';
 import { nbsp } from '../../lib/typography';
+import { RouteProgress } from './RouteProgress';
 
 export function ProfilePage() {
   const { user, updateName } = useAuth();
@@ -29,9 +30,10 @@ export function ProfilePage() {
     <div className="page-heading">
       <span className="story-eyebrow"><i /> Ваш аккаунт</span>
       <h1 tabIndex={-1}>Профиль.</h1>
-      <p>{nbsp('Ваш опыт, цель и путь по маршруту.')}</p>
+      <p>{nbsp('Ваш путь по маршруту и данные аккаунта.')}</p>
     </div>
     <div className="profile-layout">
+      <RouteProgress />
       <section className="account-card profile-card" aria-labelledby="profile-name-title">
         <h2 id="profile-name-title">Как вас видят</h2>
         <div className="profile-identity"><UserAvatar user={user} large /><div><strong>{user.displayName}</strong><span>{nbsp('Имя и фото в agentica')}</span></div></div>
