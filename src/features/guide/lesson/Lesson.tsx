@@ -3,7 +3,9 @@ import { Icon } from '../../../components/Icon';
 import { nbsp } from '../../../lib/typography';
 import { CodeFile } from './CodeFile';
 import { CopyCommand } from './CopyCommand';
+import { DiffView } from './DiffView';
 import { Checkpoints } from './diagrams/Checkpoints';
+import { DelegationGrid } from './diagrams/DelegationGrid';
 import { ContextWindow } from './diagrams/ContextWindow';
 import { MemoryLayers } from './diagrams/MemoryLayers';
 import { PermissionModes } from './diagrams/PermissionModes';
@@ -13,7 +15,7 @@ import { Rich } from './Rich';
 import { SessionReplay } from './SessionReplay';
 import type { Block, DiagramName, Lesson } from './types';
 
-const diagrams: Record<DiagramName, ComponentType> = { 'plan-loop': PlanLoop, checkpoints: Checkpoints, 'permission-modes': PermissionModes, 'context-window': ContextWindow, 'memory-layers': MemoryLayers, 'step-ladder': StepLadder };
+const diagrams: Record<DiagramName, ComponentType> = { 'plan-loop': PlanLoop, checkpoints: Checkpoints, 'permission-modes': PermissionModes, 'context-window': ContextWindow, 'memory-layers': MemoryLayers, 'step-ladder': StepLadder, 'delegation-grid': DelegationGrid };
 
 function LessonBlock({ block }: { block: Block }) {
   switch (block.type) {
@@ -29,6 +31,7 @@ function LessonBlock({ block }: { block: Block }) {
     </div>;
     case 'command': return <CopyCommand code={block.code} caption={block.caption} />;
     case 'code': return <CodeFile file={block.file} code={block.code} caption={block.caption} />;
+    case 'diff': return <DiffView file={block.file} lines={block.lines} caption={block.caption} />;
     case 'session': return <SessionReplay title={block.title} summary={block.summary} lines={block.lines} />;
     case 'compare': return <div className="lesson-compare">
       {([['before', block.before], ['after', block.after]] as const).map(([side, { label, text, note, file }]) => <div className="compare-side" data-side={side} key={side}>

@@ -9,7 +9,10 @@ export type Inline = string;
 export type SessionLine = { kind: 'command' | 'meta' | 'prompt' | 'info' | 'edit' | 'pass' | 'done'; text: string; typed?: boolean; diff?: string };
 
 // Diagrams are components (`lesson/diagrams/`), picked by name.
-export type DiagramName = 'plan-loop' | 'checkpoints' | 'permission-modes' | 'context-window' | 'memory-layers' | 'step-ladder';
+// One line of a diff; `mark` is the reviewer's note on it.
+export type DiffLine = { kind: 'add' | 'del' | 'ctx' | 'hunk'; text: string; mark?: string };
+
+export type DiagramName = 'plan-loop' | 'checkpoints' | 'permission-modes' | 'context-window' | 'memory-layers' | 'step-ladder' | 'delegation-grid';
 
 // `file`: the text is file content, not a prompt (no `>`).
 export type CompareSide = { label: string; text: string; note: Inline; file?: boolean };
@@ -22,6 +25,7 @@ export type Block =
   | { type: 'command'; code: string; caption?: Inline }
   // A whole file or snippet, under its file name.
   | { type: 'code'; file: string; code: string; caption?: Inline }
+  | { type: 'diff'; file: string; lines: DiffLine[]; caption?: Inline }
   // `summary` is what screen readers get instead of the animation.
   | { type: 'session'; title: string; summary: string; lines: SessionLine[] }
   | { type: 'compare'; before: CompareSide; after: CompareSide }

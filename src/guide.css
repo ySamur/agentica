@@ -121,6 +121,19 @@
   .code-file { display: flex; align-items: center; gap: 8px; margin-right: auto; font-family: var(--mono); font-size: 12px; color: var(--soft); }
   .lesson-code pre { margin: 0; padding: 18px 20px; overflow-x: auto; border: 1px solid #ffffff1c; border-radius: 0 0 14px 14px; background: #0a0c19; font-family: var(--mono); font-size: 13.5px; line-height: 1.7; color: #e6e8f7; tab-size: 2; }
   .lesson-code pre code { padding: 0; border-radius: 0; background: none; font-size: inherit; color: inherit; }
+  .lesson-diff { display: grid; margin: 0; }
+  .lesson-diff > figcaption { margin-top: 10px; }
+  .diff-lines { margin: 0; padding: 12px 0; overflow-x: auto; list-style: none; border: 1px solid #ffffff1c; border-radius: 0 0 14px 14px; background: #0a0c19; font-family: var(--mono); font-size: 13px; line-height: 1.75; }
+  .diff-line { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: baseline; padding-right: 14px; }
+  .diff-line code { padding: 0; border-radius: 0; background: none; font-size: inherit; white-space: pre; color: #c9cce4; }
+  .diff-sign { text-align: center; color: var(--dim); }
+  .diff-line.is-add { background: #62e6d112; }
+  .diff-line.is-add :is(.diff-sign, code) { color: #9df0e2; }
+  .diff-line.is-del { background: #ff94700f; }
+  .diff-line.is-del :is(.diff-sign, code) { color: #ffb8a0; }
+  .diff-line.is-hunk code { color: var(--violet); }
+  .diff-line[data-marked] { box-shadow: inset 3px 0 0 var(--coral); }
+  .diff-mark { margin-left: 16px; padding: 1px 9px; border-radius: 999px; background: #ff947026; font-family: 'Golos Text Variable', Arial, sans-serif; font-size: 12px; color: #ffcfb8; white-space: nowrap; }
   .command-caption { font-size: 14px; line-height: 1.6; color: var(--dim); }
   .lesson-session { margin: 6px 0; }
   .lesson-session .session-log { min-height: 0; padding-bottom: 12px; }
@@ -179,10 +192,16 @@
   .diagram-step text { fill: var(--text); font-size: 13.5px; dominant-baseline: middle; }
   .diagram-step .diagram-step-check { fill: var(--mint); font-family: var(--mono); font-size: 12px; text-anchor: end; }
   .diagram[data-play="pending"] .diagram-step { translate: 12px 0; }
+  .diagram-cell rect { stroke-width: 1.2; }
+  .diagram-cell text { fill: var(--text); font-size: 14px; text-anchor: middle; }
+  .diagram-cell.tone-hand rect { fill: #ff947014; stroke: #ff947066; }
+  .diagram-cell.tone-plan rect { fill: #a28fff14; stroke: #a28fff66; }
+  .diagram-cell.tone-try rect { fill: #ffffff08; stroke: #ffffff2e; }
+  .diagram-cell.tone-give rect { fill: #62e6d114; stroke: #62e6d166; }
   .diagram-end { fill: var(--dim); font-family: var(--mono); font-size: 12px; }
   .diagram-zone text { fill: var(--dim); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-anchor: middle; }
-  .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame, .diagram-step) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
-  .diagram[data-play="pending"] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame, .diagram-step) { opacity: 0; }
+  .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame, .diagram-step, .diagram-cell) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
+  .diagram[data-play="pending"] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame, .diagram-step, .diagram-cell) { opacity: 0; }
   .diagram[data-play="pending"] .diagram-fill rect { scale: 0 1; }
   .diagram[data-play] .diagram-fill rect { transition: scale .7s calc(var(--i) * 150ms + 100ms) cubic-bezier(.2, .7, .2, 1); }
   .diagram[data-play="pending"] .diagram-layer { translate: 0 10px; }
