@@ -9,7 +9,7 @@ export type Inline = string;
 export type SessionLine = { kind: 'command' | 'meta' | 'prompt' | 'info' | 'edit' | 'pass' | 'done'; text: string; typed?: boolean; diff?: string };
 
 // Diagrams are components (`lesson/diagrams/`), picked by name.
-export type DiagramName = 'plan-loop';
+export type DiagramName = 'plan-loop' | 'checkpoints' | 'permission-modes';
 
 export type CompareSide = { label: string; text: string; note: Inline };
 
@@ -19,6 +19,8 @@ export type Block =
   | { type: 'list'; items: Inline[]; ordered?: boolean }
   | { type: 'callout'; tone: 'tip' | 'trap'; title: string; text: Inline }
   | { type: 'command'; code: string; caption?: Inline }
+  // A whole file or snippet, under its file name.
+  | { type: 'code'; file: string; code: string; caption?: Inline }
   // `summary` is what screen readers get instead of the animation.
   | { type: 'session'; title: string; summary: string; lines: SessionLine[] }
   | { type: 'compare'; before: CompareSide; after: CompareSide }

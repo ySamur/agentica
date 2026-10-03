@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
-import { prefersReducedMotion } from '../../../../lib/motion';
+import { useId, type CSSProperties } from 'react';
+import { useDrawOnView } from './useDrawOnView';
 
 const nodes = [
   { label: 'Задача', x: 18, width: 104 },
@@ -12,23 +12,10 @@ const arrows = [[122, 150], [300, 335], [435, 512], [608, 653]];
 const order = (index: number) => ({ '--i': index } as CSSProperties);
 
 // Plan before code as a loop: the plan goes back to research with your corrections until you approve
-// it; only then do files change. Draws itself once on screen; reduced motion shows it drawn.
+// it; only then do files change.
 export function PlanLoop() {
   const id = useId();
-  const figure = useRef<SVGSVGElement>(null);
-  const [play, setPlay] = useState<'pending' | 'on' | undefined>(() => prefersReducedMotion() ? undefined : 'pending');
-
-  useEffect(() => {
-    const element = figure.current;
-    if (play !== 'pending' || !element) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting) return;
-      observer.disconnect();
-      setPlay('on');
-    }, { threshold: 0.4 });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [play]);
+  const { figure, play } = useDrawOnView();
 
   // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a drawing in inline SVG, which <img> cannot hold.
   return <svg ref={figure} className="diagram" data-play={play} viewBox="0 0 800 236" role="img"

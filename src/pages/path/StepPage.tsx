@@ -3,7 +3,7 @@ import { Link, Navigate, useParams } from 'react-router';
 import { Icon } from '../../components/Icon';
 import { PageStatus } from '../../components/PageStatus';
 import { useAuth } from '../../features/auth/AuthProvider';
-import { findStep, steps } from '../../features/guide/catalog';
+import { findStep, stageCode, stages, steps } from '../../features/guide/catalog';
 import { useGuideProgress } from '../../features/guide/GuideProgress';
 import { Check } from '../../features/guide/lesson/Check';
 import { LessonBody } from '../../features/guide/lesson/Lesson';
@@ -53,6 +53,11 @@ export function StepPage() {
   const finished = isComplete(status);
   const lesson = loaded?.lesson ?? null;
   const checked = Boolean(lesson?.check);
+  const stageDone = Boolean(step && ready && step.stage.steps.every(item => isComplete(progress.get(item.id)?.status)));
+  // Only finishing the stage here earns the card, not visiting a stage passed before.
+  const [stageDoneOnArrival, setStageDoneOnArrival] = useState<boolean | null>(null);
+  if (ready && stageDoneOnArrival === null) setStageDoneOnArrival(stageDone);
+  const stageJustDone = stageDoneOnArrival === false && stageDone;
 
   useEffect(() => {
     if (ready && stepId) open(stepId);
@@ -93,6 +98,8 @@ export function StepPage() {
   const position = stage.steps.findIndex(item => item.id === step.id) + 1;
   const previous = steps[step.order - 1];
   const following = steps[step.order + 1];
+  const nextStage = stages[stages.indexOf(stage) + 1];
+  const nextStageStart = nextStage && findStep(nextStage.steps[0]?.id);
 
   async function mark(next: StepStatus) {
     if (!step) return;
@@ -143,9 +150,18 @@ export function StepPage() {
     {lesson?.check && <Check stepId={step.id} questions={lesson.check.questions} finished={finished} expectFinish={expected => { refocus.current = expected; }} />}
     <div className="step-actions">
       {/* The one main action: finish the step, then move on. A check finishes its step itself. */}
+      {stageJustDone && <div className="stage-complete" role="status">
+        <span className="stage-complete-code" aria-hidden="true">{stageCode(stage)}</span>
+        <div>
+          <strong>{stage.number === '★' ? 'Выпускной проект завершён' : `Этап ${stage.number} пройден`}</strong>
+          <p>{nbsp(`${stage.steps.length} из ${stage.steps.length} шагов этапа «${stage.title}». ${nextStage ? `Дальше — «${nextStage.title}»: ${nextStage.promise.toLowerCase()}.` : 'Маршрут пройден целиком.'}`)}</p>
+        </div>
+      </div>}
       <div className="step-buttons" ref={actions}>
         {finished ? <>
-          <Link className="glow-button" to={following?.path ?? '/path'}>{following ? <>Следующий шаг: <b className="button-code">{following.label}</b> {nbsp(following.title)}</> : 'Карта маршрута'} <Icon name="arrow" size={18} /></Link>
+          {stageJustDone
+            ? <Link className="glow-button" to={nextStageStart?.path ?? '/path'}>{nextStage ? <>Следующий этап: <b className="button-code">{stageCode(nextStage)}</b> {nbsp(nextStage.title)}</> : 'Карта маршрута'} <Icon name="arrow" size={18} /></Link>
+            : <Link className="glow-button" to={following?.path ?? '/path'}>{following ? <>Следующий шаг: <b className="button-code">{following.label}</b> {nbsp(following.title)}</> : 'Карта маршрута'} <Icon name="arrow" size={18} /></Link>}
           <button type="button" className="ghost-button" onClick={() => void mark('in_progress')}>Вернуть в работу</button>
         </> : loaded && !checked && <>
           <button type="button" className="glow-button" disabled={!ready} onClick={() => void mark('done')}>Выполнено <Icon name="check" size={18} /></button>

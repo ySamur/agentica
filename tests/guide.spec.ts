@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { stages, steps } from '../src/features/guide/catalog';
+import { findStep, stages, steps } from '../src/features/guide/catalog';
 import type { Block } from '../src/features/guide/lesson/types';
 import { mockAuth, published } from './helpers/auth';
 import { expectNoOverflow, screenshot, settle } from './helpers/page';
@@ -149,7 +149,7 @@ test('opening a step records it, and «Продолжить» returns there afte
   await device.close();
 });
 
-test('marking a step done moves focus to the next step and fills the stage', async ({ page, context }, testInfo) => {
+test('finishing the last step of a stage celebrates it and leads to the next stage', async ({ page, context }, testInfo) => {
   const auth = await mockAuth(context, { signedIn: true });
   for (const id of ['task-anatomy', 'iterations']) auth.seed(id, 'skipped');
   auth.seed('plan-first', 'done');
@@ -158,10 +158,16 @@ test('marking a step done moves focus to the next step and fills the stage', asy
   await page.getByRole('button', { name: 'Выполнено' }).click();
   await expect(page.locator('.step-state')).toHaveText('Выполнен');
   await expect(page.locator('.step-note')).toHaveText('Шаг выполнен.');
-  await expect(page.getByRole('link', { name: 'Следующий шаг: 3.4 Итерации и корректировка курса' })).toBeFocused();
+  await expect(page.locator('.stage-complete')).toContainText('Этап 3 пройден');
+  await expect(page.locator('.stage-complete')).toContainText('Дальше — «Ревью»');
+  await expect(page.getByRole('link', { name: 'Следующий этап: 04 Ревью' })).toBeFocused();
   await expect.poll(() => auth.progress.get('decomposition')?.status).toBe('done');
-  await settle(page);
-  await page.screenshot({ path: `.local/screenshots/step-done-${testInfo.project.name}.png`, fullPage: true });
+  await screenshot(page, `.local/screenshots/stage-complete-${testInfo.project.name}.png`);
+  // A stage passed before shows no card on a later visit.
+  await page.reload();
+  await expect(page.locator('.step-state')).toHaveText('Выполнен');
+  await expect(page.locator('.stage-complete')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Следующий шаг: 3.4 Итерации и корректировка курса' })).toBeVisible();
   await page.goto('/path');
   await expect(page.locator('#stage-tasks')).toHaveAttribute('data-complete', 'true');
   await expect(page.getByRole('link', { name: '3.3 Декомпозиция на проверяемые шаги Выполнен' })).toBeVisible();
@@ -376,3 +382,23 @@ test('«Уже умею» on a step with a check goes straight to it, and a fail
   await expect(page.locator('#check input:checked')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Проверить ответы' })).toBeVisible();
 });
+
+// Every published lesson, at rest (reduced motion): it renders block by block, fits the page,
+// and its right answers pass the step. New lessons are covered as they are written.
+for (const [stepId, { lesson, key }] of published) {
+  const step = findStep(stepId)!;
+  test(`lesson ${step.label} renders and its check passes the step`, async ({ page, context }, testInfo) => {
+    const auth = await mockAuth(context, { signedIn: true });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(step.path);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(step.title);
+    await expect(page.locator('.lesson > *')).toHaveCount(lesson.blocks.length);
+    await expectNoOverflow(page);
+    await screenshot(page, `.local/screenshots/lesson-${stepId}-${testInfo.project.name}.png`);
+    if (!key) return;
+    await answer(page, Object.fromEntries(Object.entries(key).map(([id, { correct }]) => [id, correct])));
+    await page.getByRole('button', { name: 'Проверить ответы' }).click();
+    await expect(page.locator('.step-state')).toHaveText('Выполнен');
+    expect(auth.progress.get(stepId)?.status).toBe('done');
+  });
+}

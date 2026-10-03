@@ -4,8 +4,8 @@ import { useCopy } from '../../../lib/useCopy';
 import { Rich } from './Rich';
 import type { Inline } from './types';
 
-// Where the clipboard is refused, the command is selected for Ctrl+C.
-function select(node: HTMLElement | null) {
+// Where the clipboard is refused, the text is selected for Ctrl+C.
+export function selectContents(node: HTMLElement | null) {
   const selection = window.getSelection();
   if (!node || !selection) return;
   const range = document.createRange();
@@ -21,7 +21,7 @@ export function CopyCommand({ code, caption }: { code: string; caption?: Inline 
     <div className="command-line">
       <span className="command-prompt" aria-hidden="true">$</span>
       <code ref={text}>{code}</code>
-      <button type="button" className="command-copy" onClick={() => void copy(code, () => select(text.current))}>
+      <button type="button" className="command-copy" onClick={() => void copy(code, () => selectContents(text.current))}>
         <Icon name={status === 'copied' ? 'check' : 'copy'} size={15} />{status === 'copied' ? 'Скопировано' : 'Скопировать'}
       </button>
     </div>

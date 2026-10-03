@@ -180,9 +180,10 @@ test('migrations enforce database privileges and RLS', async t => {
       ]) await assert.rejects(db.query(sql), denied);
     }));
 
+    // On a capstone step: it has no check, so RLS lets the constraints speak.
     await t.test('guide_progress: unknown steps and statuses are rejected', () => asRole('authenticated', member, async () => {
       await assert.rejects(db.query("insert into public.guide_progress (step_id, status) values ('no-such-step', 'done')"), error => error.code === '23503');
-      await assert.rejects(db.query("insert into public.guide_progress (step_id, status) values ('install', 'finished')"), error => error.code === '23514');
+      await assert.rejects(db.query("insert into public.guide_progress (step_id, status) values ('public-profile', 'finished')"), error => error.code === '23514');
     }));
 
     await t.test('guide_progress: no identity or an anonymous account can neither read nor write', async () => {
