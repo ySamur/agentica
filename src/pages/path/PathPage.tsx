@@ -29,7 +29,7 @@ export function PathPage() {
     <div className="page-heading path-heading">
       <span className="story-eyebrow"><i /> Маршрут</span>
       <h1 tabIndex={-1}>От клавиатуры <em className="accent">к{' '}оркестровке.</em></h1>
-      <p>{nbsp('Семь этапов и выпускной проект. Продолжайте с того места, где остановились.')}</p>
+      <p>{nbsp('Шесть этапов и выпускной проект. Продолжайте с того места, где остановились.')}</p>
       <div className="path-summary">
         <ResumeLink />
         <span className="path-total"><span>{nbsp(`${done} из ${steps.length} шагов пройдено`)}</span><i style={{ '--fill': done / steps.length } as CSSProperties} /></span>

@@ -25,7 +25,7 @@ export function CabinetPage() {
       <p className="cabinet-lead">{nbsp(!ready
         ? 'Маршрут от ручного кода к оркестровке агентов.'
         : started ? `Вы остановились на этапе «${next.stage.title}». Следующий шаг уже ждёт.`
-        : 'Семь этапов от ручного кода к оркестровке агентов и выпускной проект. Начнём с точки отсчёта.')}</p>
+        : 'Шесть этапов от ручного кода к оркестровке агентов и выпускной проект. Начнём с первого запуска.')}</p>
       <div className="cabinet-actions">
         <ResumeLink />
         <Link className="ghost-button" to="/path">Весь маршрут</Link>

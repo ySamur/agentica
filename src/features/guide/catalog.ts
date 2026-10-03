@@ -9,12 +9,6 @@ export type PlacedStep = GuideStep & { stage: GuideStage; order: number; label: 
 
 // Stages 1–6 keep the landing's six steps (`PathScene`) as their promise.
 export const stages: readonly GuideStage[] = [
-  { id: 'start', number: '0', title: 'Точка отсчёта', promise: 'Откуда вы стартуете', steps: [
-    { id: 'experience', title: 'Ваш опыт и стек' },
-    { id: 'where-now', title: 'Где вы сейчас' },
-    { id: 'goal', title: 'Цель перехода' },
-    { id: 'playground', title: 'Учебный полигон: свой проект или песочница' },
-  ] },
   { id: 'first-contact', number: '1', title: 'Первый контакт', promise: 'Начните с малого', steps: [
     { id: 'install', title: 'Установка и первый запуск' },
     { id: 'permissions', title: 'Разрешения и границы доступа' },

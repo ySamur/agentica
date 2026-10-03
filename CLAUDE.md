@@ -1,6 +1,6 @@
 # agentica
 
-Russian-language site for developers moving from hand-written code to Claude Code. Guests get the landing; members sign in (Google or email + password via Supabase Auth) and get Кабинет, Маршрут (8 stages, 35 steps, saved progress) and Профиль.
+Russian-language site for developers moving from hand-written code to Claude Code. Guests get the landing; members sign in (Google or email + password via Supabase Auth) and get Кабинет, Маршрут (6 stages and a capstone, 31 steps, saved progress) and Профиль.
 
 **Stack:** React 19 · TypeScript 7 · Vite 8 · React Router 8 (`react-router`) · Supabase JS · GSAP + Lenis (landing only) · Playwright · oxlint.
 
@@ -57,7 +57,7 @@ Before reporting a change as done, run the `verify` skill.
 ### Security
 - `.env.local` holds only the Supabase URL and Publishable key: never OAuth secrets or service-role keys. `.env*` files are deny-listed; never ask for their contents.
 - Enforce access with grants and RLS, not route guards alone. Never add production auth bypasses.
-- Supabase MCP (`.mcp.json`, untracked) stays `read_only=true`; write access only when the owner allows it for a migration, then back.
+- Supabase MCP (`.mcp.json`, untracked) has write access (owner's decision, 2026-10-03: a test project, no production). Apply migrations with `apply_migration`, one file at a time, in name order; never change data or schema outside a migration file.
 
 ### Environment
 - Windows. In PowerShell run `npm.cmd`, and never rewrite files with `Get-Content`/`Set-Content`: PowerShell 5.1 reads BOM-less UTF-8 as cp1251 and mangles the Russian text. Files are UTF-8 without BOM, LF; edit them with Edit/Write.

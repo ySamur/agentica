@@ -5,7 +5,7 @@ import { AccountMenu } from '../features/auth/AccountMenu';
 import { useGuideProgress } from '../features/guide/GuideProgress';
 import { resumeStep, resumeVerb } from '../features/guide/progress';
 
-// Members return to the step they left; before the first one, the route starts from 0.1.
+// Members return to the step they left; before the first one, the route starts from 1.1.
 // Until their progress arrives (or if it cannot), it opens the route itself.
 function ContinueLink() {
   const { progress, ready } = useGuideProgress();

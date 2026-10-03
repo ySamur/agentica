@@ -11,4 +11,4 @@ paths:
 - Grant only to `authenticated`, enable RLS on every table, and make policies reject anonymous sessions (`is_anonymous`).
 - After a change, run `npm run test:security`: it applies every migration to PGlite and checks grants and RLS as the browser roles. Extend it for new tables and functions.
 - Add each new migration to the list in `docs/AUTH_SETUP.md`.
-- Applying: the owner runs the SQL, or the agent through Supabase MCP once the owner allows write access (`read_only=false` in `.mcp.json`, then an MCP reconnect); return to `read_only=true` right after.
+- Applying: the agent runs each new file through Supabase MCP `apply_migration` (write access stays on: a test project), or the owner runs it in the SQL Editor. Then `get_advisors` (security, performance).

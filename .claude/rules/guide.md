@@ -11,7 +11,7 @@ paths:
 
 # Маршрут (the route)
 
-- `catalog.ts` is the public map: 8 stages, 35 steps. Step ids are the progress keys: stable, unique across stages, without a stage prefix. Never rename or reuse one; moving a step to another stage keeps its progress.
+- `catalog.ts` is the public map: stages 1–6 and the capstone ★, 31 steps (stage 0 was removed on 2026-10-03; its ids `experience`, `where-now`, `goal`, `playground` stay retired). Step ids are the progress keys: stable, unique across stages, without a stage prefix. Never rename or reuse one; moving a step to another stage keeps its progress.
 - `catalog.ts` has no imports: `tests/security.test.mjs` loads it in Node to match the seeded ids.
 - A step's lesson is `guide_steps.lesson` (jsonb, members-only, never in the bundle; `null` = not written yet: placeholder plus manual marks). Format: `src/features/guide/lesson/types.ts` — blocks (text, heading, list, callout, command, session, compare, diagram), practice, optional check. Inline marks only `code` and **strong**; never HTML. Diagrams are components named in `DiagramName`.
 - Lessons are written in `content/guide/<step-id>.ts` (`LessonSource`, with the answer key and the date the facts were checked against the Claude Code docs) and listed in `content/guide/index.ts`. Publish: `npm run guide:content -- <step-id>` writes a new migration; never edit a generated one. `npm run test:security` fails until the database matches the sources. Questions: 2–4, scenario-based, every option with a `why`.

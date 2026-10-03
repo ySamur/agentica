@@ -4,10 +4,10 @@ import type { Block } from '../src/features/guide/lesson/types';
 import { mockAuth, published } from './helpers/auth';
 import { expectNoOverflow, screenshot, settle } from './helpers/page';
 
-test('the catalog has eight stages and 35 steps with unique ids', () => {
-  expect(stages).toHaveLength(8);
-  expect(steps).toHaveLength(35);
-  expect(new Set(steps.map(step => step.id)).size).toBe(35);
+test('the catalog has seven stages and 31 steps with unique ids', () => {
+  expect(stages).toHaveLength(7);
+  expect(steps).toHaveLength(31);
+  expect(new Set(steps.map(step => step.id)).size).toBe(31);
   for (const step of steps) expect(step.id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
 });
 
@@ -20,14 +20,14 @@ test('members land in the cabinet and start the route from its first step', asyn
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Добро пожаловать, Тестовый.');
   const header = page.getByRole('navigation', { name: 'Главная навигация' });
   await expect(header.getByRole('link', { name: 'Кабинет' })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('link', { name: 'Начать маршрут: 0.1 Ваш опыт и стек' })).toHaveCount(2);
-  await expect(page.locator('.stage-meter > li')).toHaveCount(8);
+  await expect(page.getByRole('link', { name: 'Начать маршрут: 1.1 Установка и первый запуск' })).toHaveCount(2);
+  await expect(page.locator('.stage-meter > li')).toHaveCount(7);
   await expectNoOverflow(page);
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/cabinet-${testInfo.project.name}.png`, fullPage: true });
-  await page.locator('.cabinet').getByRole('link', { name: 'Начать маршрут: 0.1 Ваш опыт и стек' }).click();
-  await expect(page).toHaveURL(/\/path\/start\/experience$/);
-  await expect(page).toHaveTitle('agentica — 0.1 Ваш опыт и стек');
+  await page.locator('.cabinet').getByRole('link', { name: 'Начать маршрут: 1.1 Установка и первый запуск' }).click();
+  await expect(page).toHaveURL(/\/path\/first-contact\/install$/);
+  await expect(page).toHaveTitle('agentica — 1.1 Установка и первый запуск');
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
   await expect(header.getByRole('link', { name: 'Маршрут' })).toHaveAttribute('aria-current', 'page');
   expect(errors).toEqual([]);
@@ -38,10 +38,10 @@ test('the route lists every stage and step, and its stage links move focus to th
   await page.goto('/path');
   await expect(page).toHaveTitle('agentica — Маршрут');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('От клавиатуры к оркестровке.');
-  await expect(page.locator('.stage-card')).toHaveCount(8);
-  await expect(page.locator('.step-row')).toHaveCount(35);
-  await expect(page.getByRole('link', { name: '0.1 Ваш опыт и стек Не начат' })).toHaveAttribute('aria-current', 'step');
-  await expect(page.getByRole('navigation', { name: 'Этапы маршрута' }).getByRole('link', { name: /Точка отсчёта/ })).toHaveAttribute('aria-current', 'step');
+  await expect(page.locator('.stage-card')).toHaveCount(7);
+  await expect(page.locator('.step-row')).toHaveCount(31);
+  await expect(page.getByRole('link', { name: '1.1 Установка и первый запуск Не начат' })).toHaveAttribute('aria-current', 'step');
+  await expect(page.getByRole('navigation', { name: 'Этапы маршрута' }).getByRole('link', { name: /Первый контакт/ })).toHaveAttribute('aria-current', 'step');
   await expectNoOverflow(page);
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/path-${testInfo.project.name}.png`, fullPage: true });
@@ -77,7 +77,7 @@ test('a step links to its neighbours from the keyboard and keeps focus on its he
 
 test('the first and last steps lead back to the map', async ({ page, context }) => {
   await mockAuth(context, { signedIn: true });
-  await page.goto('/path/start/experience');
+  await page.goto('/path/first-contact/install');
   await expect(page.getByRole('link', { name: /Назад Карта маршрута/ })).toHaveAttribute('href', '/path');
   await page.goto('/path/capstone/public-profile');
   await expect(page).toHaveTitle('agentica — ★.3 Публичный профиль с результатом');
@@ -118,8 +118,8 @@ test('a guest following a link to a step never reaches its text, then signs in a
 test('the members header continues the route and the brand leads to the cabinet', async ({ page, context }) => {
   await mockAuth(context, { signedIn: true });
   await page.goto('/profile');
-  await page.getByRole('link', { name: 'Начать маршрут: 0.1 Ваш опыт и стек' }).click();
-  await expect(page).toHaveURL(/\/path\/start\/experience$/);
+  await page.getByRole('link', { name: 'Начать маршрут: 1.1 Установка и первый запуск' }).click();
+  await expect(page).toHaveURL(/\/path\/first-contact\/install$/);
   await page.getByRole('link', { name: 'agentica — на главную' }).click();
   await expect(page).toHaveURL('http://localhost:4317/');
   await expect(page).toHaveTitle('agentica — Кабинет');
@@ -167,7 +167,7 @@ test('marking a step done moves focus to the next step and fills the stage', asy
   await expect(page.getByRole('link', { name: '3.3 Декомпозиция на проверяемые шаги Выполнен' })).toBeVisible();
   await expect(page.getByRole('link', { name: '3.1 Анатомия задачи: цель, границы, критерий готовности Уже умею' })).toBeVisible();
   // Stage 3 is passed, so the route resumes at the first unfinished step.
-  await expect(page.locator('.path-summary').getByRole('link', { name: 'Продолжить: 0.1 Ваш опыт и стек' })).toBeVisible();
+  await expect(page.locator('.path-summary').getByRole('link', { name: 'Продолжить: 1.1 Установка и первый запуск' })).toBeVisible();
   await settle(page);
   await page.screenshot({ path: `.local/screenshots/path-progress-${testInfo.project.name}.png`, fullPage: true });
 });

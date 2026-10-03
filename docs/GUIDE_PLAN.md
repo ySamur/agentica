@@ -4,9 +4,10 @@ Goal: turn the members' route into a real guide from hand-written code to orches
 
 ## Owner decisions (2026-10-02)
 - The agent drafts lesson texts from the official Claude Code docs; the owner edits tone and adds examples.
-- A step with a check is passed by passing it; «Уже умею» jumps to the check. Steps without one (stage 0, capstone, unwritten) keep manual «Выполнено»/«Уже умею».
+- A step with a check is passed by passing it; «Уже умею» jumps to the check. Steps without one (capstone, unwritten) keep manual «Выполнено»/«Уже умею».
 - Answers are graded on the server; keys never reach the browser.
-- No free-text input anywhere: choices only. Onboarding answers go to `user_metadata`.
+- No free-text input anywhere: choices only.
+- 2026-10-03: stage 0 «Точка отсчёта» and the onboarding built on it are dropped; the route starts at stage 1. Supabase MCP keeps write access (test project).
 - Role wording: «Разработчик-оркестратор» / «Разработчик, который управляет агентами».
 - Work one visible iteration at a time: show desktop screenshots, wait for the owner's go-ahead.
 
@@ -20,12 +21,11 @@ Format, workflow and security rules: `.claude/rules/guide.md`. Facts: verify eac
 
 ## Roadmap
 1. **Done (2026-10-02):** lesson engine, server-checked quiz, pilot 3.2 «План до кода».
-2. **Stage 0 as onboarding** (`/welcome`, first sign-in lands here): choice cards (experience, stack, where you are with AI, goal, playground: own project or sandbox) saved in `user_metadata`; Кабинет shows the goal and suggests stages to pass by check. Profile gets the same fields.
-3. **Stage 1 «Первый контакт»**, all 5 steps, plus a «Этап пройден» screen.
-4. **Stages 2–6**, one stage per iteration.
-5. **Библиотека `/library`**: prompts (moved from `StarterDialog`), CLAUDE.md templates, checklists; a step's material unlocks when it is passed. Progress in Профиль.
-6. **Capstone** (idea → PR, «Было / Стало» reusing `RoleShift`), public profile with verified progress; then landing copy («Маршрут уже внутри», FAQ, chapters = stage titles).
+2. **Stage 1 «Первый контакт»**, all 5 steps, plus a «Этап пройден» screen.
+3. **Stages 2–6**, one stage per iteration.
+4. **Библиотека `/library`**: prompts (moved from `StarterDialog`), CLAUDE.md templates, checklists; a step's material unlocks when it is passed. Progress in Профиль.
+5. **Capstone** (idea → PR, «Было / Стало» reusing `RoleShift`), public profile with verified progress; then landing copy («Маршрут уже внутри», FAQ, chapters = stage titles).
 
 ## Per iteration
 - Lint, build, `npm test -- --project=desktop`, `npm run test:security`; desktop screenshots via `screenshot()` (`tests/helpers/page.ts`).
-- New migrations go into `docs/AUTH_SETUP.md`; apply through Supabase MCP only with the owner's write access, then back to `read_only=true`.
+- New migrations go into `docs/AUTH_SETUP.md`; apply them through Supabase MCP `apply_migration`, then `get_advisors`.
