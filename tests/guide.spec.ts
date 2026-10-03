@@ -100,19 +100,19 @@ test('unknown steps are not found, and a step under the wrong stage finds its ow
 
 test('a guest following a link to a step never reaches its text, then signs in and lands on it', async ({ page, context }) => {
   const auth = await mockAuth(context);
-  await page.goto('/path/review/read-diff');
-  await expect(page).toHaveURL(/\/login\?next=%2Fpath%2Freview%2Fread-diff$/);
-  await expect(page.getByRole('heading', { name: 'Чтение diff, написанного не вами' })).toHaveCount(0);
+  await page.goto('/path/capstone/idea-to-pr');
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath%2Fcapstone%2Fidea-to-pr$/);
+  await expect(page.getByRole('heading', { name: 'От идеи до PR силами агентов' })).toHaveCount(0);
   await page.goto('/');
   await expect(page.locator('main.landing-page')).toBeVisible();
   expect(auth.dataRequests).toBe(0);
   // A shared link with a trailing slash still returns to the step.
-  await page.goto('/path/review/read-diff/');
-  await expect(page).toHaveURL(/\/login\?next=%2Fpath%2Freview%2Fread-diff$/);
+  await page.goto('/path/capstone/idea-to-pr/');
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath%2Fcapstone%2Fidea-to-pr$/);
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
-  await expect(page).toHaveURL('http://localhost:4317/path/review/read-diff');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Чтение diff, написанного не вами');
-  await expect(page.locator('.step-placeholder')).toContainText('Урок этого шага готовится');
+  await expect(page).toHaveURL('http://localhost:4317/path/capstone/idea-to-pr');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('От идеи до PR силами агентов');
+  await expect(page.locator('.step-loading')).toHaveCount(0);
 });
 
 test('the members header continues the route and the brand leads to the cabinet', async ({ page, context }) => {
@@ -155,9 +155,9 @@ test('finishing the last step of a stage celebrates it and leads to the next sta
   auth.seed('plan-first', 'done');
   await page.goto('/path/tasks/decomposition');
   await expect(page.locator('.step-state')).toHaveText('В процессе');
-  await page.getByRole('button', { name: 'Выполнено' }).click();
+  await answer(page, Object.fromEntries(Object.entries(published.get('decomposition')!.key!).map(([id, { correct }]) => [id, correct])));
+  await page.getByRole('button', { name: 'Проверить ответы' }).click();
   await expect(page.locator('.step-state')).toHaveText('Выполнен');
-  await expect(page.locator('.step-note')).toHaveText('Шаг выполнен.');
   await expect(page.locator('.stage-complete')).toContainText('Этап 3 пройден');
   await expect(page.locator('.stage-complete')).toContainText('Дальше — «Ревью»');
   await expect(page.getByRole('link', { name: 'Следующий этап: 04 Ревью' })).toBeFocused();
@@ -180,38 +180,37 @@ test('finishing the last step of a stage celebrates it and leads to the next sta
 
 test('«Уже умею» counts as passed and «Вернуть в работу» reopens the step', async ({ page, context }) => {
   const auth = await mockAuth(context, { signedIn: true });
-  await page.goto('/path/review/read-diff');
+  await page.goto('/path/capstone/before-after');
   await expect(page.locator('.step-state')).toHaveText('В процессе');
   await page.getByRole('button', { name: 'Уже умею' }).click();
   await expect(page.locator('.step-state')).toHaveText('Уже умею');
-  await expect.poll(() => auth.progress.get('read-diff')?.status).toBe('skipped');
+  await expect.poll(() => auth.progress.get('before-after')?.status).toBe('skipped');
   await page.getByRole('button', { name: 'Вернуть в работу' }).click();
   await expect(page.locator('.step-state')).toHaveText('В процессе');
   await expect(page.getByRole('button', { name: 'Выполнено' })).toBeFocused();
-  await expect.poll(() => auth.progress.get('read-diff')?.status).toBe('in_progress');
+  await expect.poll(() => auth.progress.get('before-after')?.status).toBe('in_progress');
 });
 
 test('opening a finished step keeps it finished', async ({ page, context }, testInfo) => {
   const auth = await mockAuth(context, { signedIn: true });
-  auth.seed('hooks', 'done');
-  await page.goto('/path/automation/hooks');
+  auth.seed('idea-to-pr', 'done');
+  await page.goto('/path/capstone/idea-to-pr');
   await expect(page.locator('.step-state')).toHaveText('Выполнен');
-  await expect(page.getByRole('link', { name: /Следующий шаг: 5\.2/ })).toBeVisible();
-  await expect(page.locator('.step-placeholder')).toBeVisible();
-  expect(auth.progress.get('hooks')?.status).toBe('done');
+  await expect(page.getByRole('link', { name: /Следующий шаг: ★\.2/ })).toBeVisible();
+  expect(auth.progress.get('idea-to-pr')?.status).toBe('done');
   await screenshot(page, `.local/screenshots/step-placeholder-${testInfo.project.name}.png`);
 });
 
 test('a failed save rolls back with a clear message and focus returns to the buttons', async ({ page, context }) => {
   const auth = await mockAuth(context, { signedIn: true });
-  await page.goto('/path/tasks/decomposition');
+  await page.goto('/path/capstone/idea-to-pr');
   await expect(page.locator('.step-state')).toHaveText('В процессе');
   auth.saveFails = true;
   await page.getByRole('button', { name: 'Выполнено' }).click();
   await expect(page.getByRole('alert')).toHaveText('Не удалось сохранить отметку. Проверьте соединение и попробуйте ещё раз.');
   await expect(page.locator('.step-state')).toHaveText('В процессе');
   await expect(page.getByRole('button', { name: 'Выполнено' })).toBeFocused();
-  expect(auth.progress.get('decomposition')?.status).toBe('in_progress');
+  expect(auth.progress.get('idea-to-pr')?.status).toBe('in_progress');
   auth.saveFails = false;
   await page.getByRole('button', { name: 'Выполнено' }).click();
   await expect(page.locator('.step-state')).toHaveText('Выполнен');
@@ -222,14 +221,14 @@ test('progress and step texts that fail to load can be retried', async ({ page, 
   const auth = await mockAuth(context, { signedIn: true });
   auth.loadFails = true;
   auth.bodyFails = true;
-  await page.goto('/path/tasks/decomposition');
+  await page.goto('/path/capstone/idea-to-pr');
   await expect(page.getByRole('alert').filter({ hasText: 'Не удалось загрузить текст шага' })).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: 'Не удалось загрузить прогресс' })).toBeVisible();
   // Until the step arrives, nobody knows whether a check or the member marks it.
   await expect(page.getByRole('button', { name: 'Выполнено' })).toHaveCount(0);
   auth.bodyFails = false;
   await page.locator('.step-loading').getByRole('button', { name: 'Повторить загрузку' }).click();
-  await expect(page.locator('.step-placeholder')).toBeVisible();
+  await expect(page.locator('.step-loading')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Выполнено' })).toBeDisabled();
   auth.loadFails = false;
   await page.locator('.step-actions').getByRole('button', { name: 'Повторить загрузку' }).click();

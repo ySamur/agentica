@@ -8,11 +8,12 @@ import { ContextWindow } from './diagrams/ContextWindow';
 import { MemoryLayers } from './diagrams/MemoryLayers';
 import { PermissionModes } from './diagrams/PermissionModes';
 import { PlanLoop } from './diagrams/PlanLoop';
+import { StepLadder } from './diagrams/StepLadder';
 import { Rich } from './Rich';
 import { SessionReplay } from './SessionReplay';
 import type { Block, DiagramName, Lesson } from './types';
 
-const diagrams: Record<DiagramName, ComponentType> = { 'plan-loop': PlanLoop, checkpoints: Checkpoints, 'permission-modes': PermissionModes, 'context-window': ContextWindow, 'memory-layers': MemoryLayers };
+const diagrams: Record<DiagramName, ComponentType> = { 'plan-loop': PlanLoop, checkpoints: Checkpoints, 'permission-modes': PermissionModes, 'context-window': ContextWindow, 'memory-layers': MemoryLayers, 'step-ladder': StepLadder };
 
 function LessonBlock({ block }: { block: Block }) {
   switch (block.type) {

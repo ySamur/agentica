@@ -9,7 +9,7 @@ export type Inline = string;
 export type SessionLine = { kind: 'command' | 'meta' | 'prompt' | 'info' | 'edit' | 'pass' | 'done'; text: string; typed?: boolean; diff?: string };
 
 // Diagrams are components (`lesson/diagrams/`), picked by name.
-export type DiagramName = 'plan-loop' | 'checkpoints' | 'permission-modes' | 'context-window' | 'memory-layers';
+export type DiagramName = 'plan-loop' | 'checkpoints' | 'permission-modes' | 'context-window' | 'memory-layers' | 'step-ladder';
 
 // `file`: the text is file content, not a prompt (no `>`).
 export type CompareSide = { label: string; text: string; note: Inline; file?: boolean };

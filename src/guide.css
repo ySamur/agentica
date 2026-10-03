@@ -174,10 +174,15 @@
   .diagram-layer:last-child rect { stroke: var(--mint); }
   .diagram-layer-path { fill: var(--text); font-family: var(--mono); font-size: 13px; dominant-baseline: middle; }
   .diagram-layer-note { fill: var(--soft); font-size: 12.5px; text-anchor: end; dominant-baseline: middle; }
+  .diagram-node .diagram-node-sub { fill: var(--soft); font-size: 12.5px; font-weight: 400; }
+  .diagram-step rect { fill: #11132a; stroke: #ffffff2e; stroke-width: 1.2; }
+  .diagram-step text { fill: var(--text); font-size: 13.5px; dominant-baseline: middle; }
+  .diagram-step .diagram-step-check { fill: var(--mint); font-family: var(--mono); font-size: 12px; text-anchor: end; }
+  .diagram[data-play="pending"] .diagram-step { translate: 12px 0; }
   .diagram-end { fill: var(--dim); font-family: var(--mono); font-size: 12px; }
   .diagram-zone text { fill: var(--dim); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-anchor: middle; }
-  .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
-  .diagram[data-play="pending"] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame) { opacity: 0; }
+  .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame, .diagram-step) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
+  .diagram[data-play="pending"] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame, .diagram-step) { opacity: 0; }
   .diagram[data-play="pending"] .diagram-fill rect { scale: 0 1; }
   .diagram[data-play] .diagram-fill rect { transition: scale .7s calc(var(--i) * 150ms + 100ms) cubic-bezier(.2, .7, .2, 1); }
   .diagram[data-play="pending"] .diagram-layer { translate: 0 10px; }
