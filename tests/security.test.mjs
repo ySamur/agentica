@@ -144,18 +144,19 @@ test('migrations enforce database privileges and RLS', async t => {
     }));
 
     await t.test('guide_progress: opening never undoes a finished step and moves an unfinished one forward', async () => {
-      await asRole('authenticated', member, () => db.query("insert into public.guide_progress (step_id, status) values ('hooks', 'done'), ('mcp', 'skipped')"));
+      // Capstone steps: they have no check, so members mark them themselves.
+      await asRole('authenticated', member, () => db.query("insert into public.guide_progress (step_id, status) values ('idea-to-pr', 'done'), ('public-profile', 'skipped')"));
       // As the owner, with the clock trigger paused: age the rows, so a fresh write shows in updated_at.
       await db.query("alter table public.guide_progress disable trigger guide_progress_touch");
       await db.query("update public.guide_progress set updated_at = '2026-01-01T00:00:00Z'");
       await db.query("alter table public.guide_progress enable trigger guide_progress_touch");
       await asRole('authenticated', member, async () => {
-        assert.deepEqual(await rows("select * from public.open_guide_step('hooks')"), []);
-        assert.deepEqual(await rows("select * from public.open_guide_step('mcp')"), []);
+        assert.deepEqual(await rows("select * from public.open_guide_step('idea-to-pr')"), []);
+        assert.deepEqual(await rows("select * from public.open_guide_step('public-profile')"), []);
         const [reopened] = await rows("select status, updated_at > '2026-01-01T00:00:00Z' as moved from public.open_guide_step('plan-first')");
         assert.deepEqual(reopened, { status: 'in_progress', moved: true });
-        assert.deepEqual(await rows("select step_id, status, updated_at = '2026-01-01T00:00:00Z' as kept from public.guide_progress where step_id in ('hooks', 'mcp') order by step_id"),
-          [{ step_id: 'hooks', status: 'done', kept: true }, { step_id: 'mcp', status: 'skipped', kept: true }]);
+        assert.deepEqual(await rows("select step_id, status, updated_at = '2026-01-01T00:00:00Z' as kept from public.guide_progress where step_id in ('idea-to-pr', 'public-profile') order by step_id"),
+          [{ step_id: 'idea-to-pr', status: 'done', kept: true }, { step_id: 'public-profile', status: 'skipped', kept: true }]);
       });
     });
 
@@ -166,7 +167,7 @@ test('migrations enforce database privileges and RLS', async t => {
         assert.deepEqual(await rows("update public.guide_progress set status = 'done' returning step_id"), []);
         assert.deepEqual(await rows('delete from public.guide_progress returning step_id'), []);
         // Opening the same step starts the other member's own row.
-        assert.deepEqual(await rows("select user_id, status from public.open_guide_step('hooks')"), [{ user_id: otherId, status: 'in_progress' }]);
+        assert.deepEqual(await rows("select user_id, status from public.open_guide_step('idea-to-pr')"), [{ user_id: otherId, status: 'in_progress' }]);
       });
       assert.deepEqual(await rows(`select * from public.guide_progress where user_id = '${userId}' order by step_id`), before);
     });

@@ -12,7 +12,7 @@ export type SessionLine = { kind: 'command' | 'meta' | 'prompt' | 'info' | 'edit
 // One line of a diff; `mark` is the reviewer's note on it.
 export type DiffLine = { kind: 'add' | 'del' | 'ctx' | 'hunk'; text: string; mark?: string };
 
-export type DiagramName = 'plan-loop' | 'checkpoints' | 'permission-modes' | 'context-window' | 'memory-layers' | 'step-ladder' | 'delegation-grid';
+export type DiagramName = 'plan-loop' | 'checkpoints' | 'permission-modes' | 'context-window' | 'memory-layers' | 'step-ladder' | 'delegation-grid' | 'hook-events';
 
 // `file`: the text is file content, not a prompt (no `>`).
 export type CompareSide = { label: string; text: string; note: Inline; file?: boolean };
