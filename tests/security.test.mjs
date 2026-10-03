@@ -5,6 +5,8 @@ import { PGlite } from '@electric-sql/pglite';
 import { steps } from '../src/features/guide/catalog.ts';
 import { lessons } from '../content/guide/index.ts';
 import { compileLesson } from '../scripts/guideContent.ts';
+import { library } from '../content/library/index.ts';
+import { compileLibrary } from '../scripts/libraryContent.ts';
 
 const userId = '34ae3545-ae23-41b1-a2c1-8292e58ba0dc';
 const otherId = '9b2f7c1e-5d4a-4e8b-b6f3-0c1d2e3f4a5b';
@@ -16,6 +18,7 @@ const invalid = error => error.code === '22023';
 const planFirst = compileLesson(lessons.find(lesson => lesson.stepId === 'plan-first'));
 const rightAnswers = Object.fromEntries(Object.entries(planFirst.key).map(([id, { correct }]) => [id, correct]));
 const wrongAnswers = Object.fromEntries(Object.entries(planFirst.key).map(([id, { correct, why }]) => [id, [Object.keys(why).find(option => !correct.includes(option))]]));
+const materials = compileLibrary(library);
 const migrations = new URL('../supabase/migrations/', import.meta.url);
 
 test('migrations enforce database privileges and RLS', async t => {
@@ -68,8 +71,8 @@ test('migrations enforce database privileges and RLS', async t => {
       await db.exec(await readFile(new URL(file, migrations), 'utf8'));
     }
 
-    await t.test('the public schema holds only the route tables', async () =>
-      assert.deepEqual((await rows("select tablename from pg_tables where schemaname = 'public' order by tablename")).map(row => row.tablename), ['guide_progress', 'guide_steps']));
+    await t.test('the public schema holds only the route and library tables', async () =>
+      assert.deepEqual((await rows("select tablename from pg_tables where schemaname = 'public' order by tablename")).map(row => row.tablename), ['guide_progress', 'guide_steps', 'library_bodies', 'library_items']));
 
     await t.test('guide_progress rows are found by step for step removals', async () =>
       assert.deepEqual(await rows("select indexdef from pg_indexes where schemaname = 'public' and indexname = 'guide_progress_step_id_idx'"),
@@ -269,6 +272,59 @@ test('migrations enforce database privileges and RLS', async t => {
       for (const [role, usage] of [['anon', false], ['authenticated', true]]) {
         assert.deepEqual(await rows("select has_schema_privilege($1, 'private', 'USAGE') as usage, has_schema_privilege($1, 'private', 'CREATE') as create", [role]), [{ usage, create: false }]);
       }
+    });
+
+    await t.test('library: titles and bodies in the database match content/library', async () => {
+      assert.deepEqual(await rows('select id, step_id, position, kind, title, summary from public.library_items order by position'), materials.map(({ item }) => item));
+      assert.deepEqual(await rows('select bodies.item_id, bodies.file, bodies.body from public.library_bodies bodies join public.library_items items on items.id = bodies.item_id order by items.position'), materials.map(({ body }) => body));
+    });
+
+    await t.test('library: guests, no identity and anonymous accounts read nothing', async () => {
+      await asRole('anon', {}, async () => {
+        for (const table of ['library_items', 'library_bodies']) await assert.rejects(db.query(`select * from public.${table}`), denied);
+      });
+      for (const claims of [{}, { sub: userId, is_anonymous: true }]) await asRole('authenticated', claims, async () => {
+        assert.deepEqual(await rows('select * from public.library_items'), []);
+        assert.deepEqual(await rows('select * from public.library_bodies'), []);
+      });
+    });
+
+    await t.test('library: members read every title, but only the bodies of the steps they passed', async () => {
+      const passed = (await rows(`select step_id from public.guide_progress where user_id = '${userId}' and status in ('done', 'skipped')`)).map(row => row.step_id);
+      const opened = materials.filter(({ item }) => passed.includes(item.step_id)).map(({ item }) => item.id);
+      assert.ok(opened.length > 0 && opened.length < materials.length);
+      await asRole('authenticated', member, async () => {
+        assert.equal((await rows('select id from public.library_items')).length, materials.length);
+        assert.deepEqual((await rows('select item_id from public.library_bodies')).map(row => row.item_id).toSorted(), opened.toSorted());
+      });
+    });
+
+    // Capstone steps: no check, so the other member marks them directly.
+    await t.test("library: another member's progress opens nothing; their own done or «Уже умею» does", () => asRole('authenticated', other, async () => {
+      assert.deepEqual(await rows('select item_id from public.library_bodies'), []);
+      await db.query("update public.guide_progress set status = 'done' where step_id = 'idea-to-pr'");
+      await db.query("insert into public.guide_progress (step_id, status) values ('before-after', 'skipped')");
+      assert.deepEqual((await rows('select item_id from public.library_bodies order by item_id')).map(row => row.item_id), ['before-after-template', 'capstone-notes']);
+      await db.query("delete from public.guide_progress where step_id in ('idea-to-pr', 'before-after')");
+      assert.deepEqual(await rows('select item_id from public.library_bodies'), []);
+    }));
+
+    await t.test('library: browser roles cannot write and hold only authenticated SELECT', async () => {
+      for (const role of ['anon', 'authenticated']) await asRole(role, member, async () => {
+        for (const sql of [
+          "insert into public.library_items values ('injected', 'install', 0, 'prompt', 't', 's')",
+          "update public.library_items set title = 'changed'",
+          'delete from public.library_items',
+          "insert into public.library_bodies values ('prompt-feature', null, 'injected')",
+          "update public.library_bodies set body = 'changed'",
+          'delete from public.library_bodies',
+          'truncate public.library_bodies',
+        ]) await assert.rejects(db.query(sql), denied);
+      });
+      for (const table of ['public.library_items', 'public.library_bodies']) assert.deepEqual(await tablePrivileges('anon', table), []);
+      assert.deepEqual(await tablePrivileges('authenticated', 'public.library_items'),
+        ['table SELECT', 'id SELECT', 'step_id SELECT', 'position SELECT', 'kind SELECT', 'title SELECT', 'summary SELECT']);
+      assert.deepEqual(await tablePrivileges('authenticated', 'public.library_bodies'), ['table SELECT', 'item_id SELECT', 'file SELECT', 'body SELECT']);
     });
 
     await t.test('guide_progress: deleting an account deletes its progress', async () => {

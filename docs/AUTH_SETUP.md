@@ -21,6 +21,8 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610030006_guide_content_hooks_…_agent_ci.sql`: stage 5 lessons.
    - `202610030007_guide_content_subagents_…_economics.sql`: stage 6 lessons.
    - `202610030008_guide_content_idea_to_pr_before_after_public_profile.sql`: capstone lessons (no checks).
+   - `202610030009_library.sql`: the library: `library_items` (titles, every member) and `library_bodies` (opens with a passed step), select-only.
+   - `202610030010_library_content.sql`: the library's materials (`npm run library:content`).
    The site name lives in `user_metadata.display_name`; no profiles table.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 

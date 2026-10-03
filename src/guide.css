@@ -269,6 +269,27 @@
   .pager-link > strong { font-size: 16px; font-weight: 500; line-height: 1.4; text-wrap: balance; }
   .pager-previous svg { rotate: 180deg; }
   .pager-next { grid-column: 2; justify-items: end; text-align: right; }
+
+  /* Library: the route's stage cards, with materials instead of steps. */
+  .library-stage { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
+  .library-list { display: grid; align-content: start; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .library-item { border: 1px solid var(--edge); border-radius: 18px; background: #07080f99; }
+  .library-item[data-locked] { display: grid; justify-items: start; gap: 14px; padding: 18px 20px; border-style: dashed; background: transparent; }
+  .library-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 18px; }
+  .library-item[data-locked] .library-head { opacity: .72; }
+  summary.library-head { padding: 18px 20px; border-radius: 17px; cursor: pointer; list-style: none; transition: background .2s; }
+  summary.library-head::-webkit-details-marker { display: none; }
+  summary.library-head:hover { background: #ffffff08; }
+  summary.library-head:focus-visible { outline-offset: -2px; }
+  .library-kind { display: inline-flex; align-items: center; gap: 6px; grid-column: 1; font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: #ffb48c; }
+  .library-item[data-locked] .library-kind { color: var(--dim); }
+  .library-title { grid-column: 1; font-size: 17px; font-weight: 500; line-height: 1.35; letter-spacing: -.01em; color: var(--text); }
+  .library-summary { grid-column: 1; font-size: 14.5px; line-height: 1.6; color: var(--soft); }
+  .library-from { display: inline-flex; grid-column: 2; grid-row: 1 / span 3; align-self: center; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+  .library-from svg { transition: rotate .25s; }
+  details[open] .library-from svg { rotate: 180deg; }
+  .library-item details > .lesson-code { margin: 0 14px 14px; }
+  .library-step { font-size: 14px; }
 }
 
 @layer responsive {

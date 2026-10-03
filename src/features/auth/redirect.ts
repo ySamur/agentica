@@ -2,7 +2,7 @@ import { stepAtPath } from '../guide/catalog';
 
 // Pages a sign-in may return to; old addresses redirect to their new homes. Any step of the route
 // counts too, so a guest following a link to a step lands on it after signing in.
-const allowedDestinations = ['/', '/path', '/profile', '/content', '/settings/profile'];
+const allowedDestinations = ['/', '/path', '/library', '/profile', '/content', '/settings/profile'];
 const storageKey = 'agentica.auth.next';
 // A confirmation letter's link usually opens in a new tab, where sessionStorage is empty. Its
 // destination waits in localStorage until a member arrives, a sign-out, or the link's lifetime.

@@ -71,7 +71,7 @@ One line per step: outcome · key facts (re-verify each against the docs when wr
 - `idea-to-pr`: one real task from idea to merged PR using the whole route.
 - `before-after`: a personal «Было / Стало» measured on ★.1 against a similar older task (a `compare` block and a template; notes stay in the member's repo, no free-text input).
 - `public-profile`: shows the result in the member's own public places (PR, README, project rules). The site's public profile with verified progress is not built; never promise it in the lesson.
-4. **Библиотека `/library`**: prompts (moved from `StarterDialog`), CLAUDE.md templates, checklists; a step's material unlocks when it is passed. Progress in Профиль.
+4. **Библиотека `/library`** (done 2026-10-03: 22 materials, bodies locked by RLS until the step is passed; rules in `.claude/rules/library.md`; starter prompts shared with the landing through `src/features/starter/prompts.ts`). Next: progress in Профиль.
 5. **Capstone** (idea → PR, «Было / Стало» reusing `RoleShift`), public profile with verified progress; then landing copy («Маршрут уже внутри», FAQ, chapters = stage titles).
 
 ## Per iteration

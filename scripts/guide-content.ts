@@ -1,8 +1,9 @@
 // npm run guide:content -- <step-id> …
 // Writes a migration that publishes these lessons and their answer keys (content/guide/<step-id>.ts).
-import { readdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { lessons } from '../content/guide/index.ts';
 import { compileLesson, contentMigration } from './guideContent.ts';
+import { migrationsFolder, nextMigrationName } from './migrationName.ts';
 
 const ids = process.argv.slice(2);
 if (!ids.length) {
@@ -15,10 +16,6 @@ const compiled = ids.map(id => {
   return compileLesson(source);
 });
 
-// Named by today's date and the next free number for it, so it applies after every earlier one.
-const folder = new URL('../supabase/migrations/', import.meta.url);
-const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
-const taken = (await readdir(folder)).filter(name => name.startsWith(today)).map(name => Number(name.slice(8, 12)));
-const name = `${today}${String(Math.max(0, ...taken) + 1).padStart(4, '0')}_guide_content_${ids.join('_').replaceAll('-', '_')}.sql`;
-await writeFile(new URL(name, folder), contentMigration(compiled));
+const name = await nextMigrationName(`guide_content_${ids.join('_').replaceAll('-', '_')}`);
+await writeFile(new URL(name, migrationsFolder), contentMigration(compiled));
 console.log(`supabase/migrations/${name}`);

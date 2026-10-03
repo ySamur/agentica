@@ -1,6 +1,8 @@
 import type { BrowserContext, Request, Route } from '@playwright/test';
 import { lessons } from '../../content/guide/index.ts';
 import { compileLesson } from '../../scripts/guideContent.ts';
+import { library } from '../../content/library/index.ts';
+import { compileLibrary } from '../../scripts/libraryContent.ts';
 
 const userId = '34ae3545-ae23-41b1-a2c1-8292e58ba0dc';
 const storageKey = 'sb-agentica-test-auth-token';
@@ -9,6 +11,8 @@ export type ProgressRow = { user_id: string; step_id: string; status: 'in_progre
 // The written lessons as the server holds them: what members read and the keys only it sees.
 // Other steps have no lesson yet (`null`).
 export const published = new Map(lessons.map(source => [source.stepId, compileLesson(source)]));
+// The library as published: every title, and bodies the server hands out per passed step.
+export const materials = compileLibrary(library);
 
 // The server's clock: every write is a second later than the one before, as in «last opened».
 let clock = Date.now();
@@ -56,6 +60,7 @@ function createState() {
     saveFails: false,
     bodyFails: false,
     checkFails: false,
+    libraryFails: false,
     dataExpired: false,
     seed(stepId: string, status: ProgressRow['status']) {
       progress.set(stepId, { user_id: userId, step_id: stepId, status, updated_at: stamp() });
@@ -129,6 +134,14 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
       if (state.bodyFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
       const step = stepFilter(url);
       await rows(route, request, step ? [{ lesson: published.get(step)?.lesson ?? null }] : []);
+    } else if (url.pathname === '/rest/v1/library_items' && method === 'GET') {
+      if (state.libraryFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
+      await json(route, materials.map(({ item }) => item));
+    } else if (url.pathname === '/rest/v1/library_bodies' && method === 'GET') {
+      if (state.libraryFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
+      // Like the RLS policy: a body opens once its step is done or marked «Уже умею».
+      const passed = (stepId: string) => ['done', 'skipped'].includes(state.progress.get(stepId)?.status ?? '');
+      await json(route, materials.filter(({ item }) => passed(item.step_id)).map(({ body }) => body));
     } else if (url.pathname === '/rest/v1/rpc/submit_guide_check') {
       if (state.checkFails) { await json(route, { message: 'Database unavailable' }, 503); return; }
       const { step, answers } = request.postDataJSON() as { step: string; answers: Record<string, string[]> };

@@ -29,6 +29,7 @@ export function SiteHeader({ member, onStart }: { member: boolean; onStart: () =
           {member ? <>
             <NavLink to="/" end onClick={closeMenu}>Кабинет</NavLink>
             <NavLink to="/path" onClick={closeMenu}>Маршрут</NavLink>
+            <NavLink to="/library" onClick={closeMenu}>Библиотека</NavLink>
           </> : <>
             <Link to="/#why" onClick={closeMenu}>Почему агенты</Link>
             <Link to="/#how" onClick={closeMenu}>Как это работает</Link>

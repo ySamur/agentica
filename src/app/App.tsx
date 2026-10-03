@@ -22,12 +22,14 @@ const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage').the
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(module => ({ default: module.ProfilePage })));
 const PathPage = lazy(() => import('../pages/path/PathPage').then(module => ({ default: module.PathPage })));
 const StepPage = lazy(() => import('../pages/path/StepPage').then(module => ({ default: module.StepPage })));
+const LibraryPage = lazy(() => import('../pages/library/LibraryPage').then(module => ({ default: module.LibraryPage })));
 
 const titles: Record<string, string> = {
   '/login': 'Вход',
   '/auth/callback': 'Завершение входа',
   '/profile': 'Профиль',
   '/path': 'Маршрут',
+  '/library': 'Библиотека',
 };
 
 // `/` is the members' cabinet or the guest landing. Until the SDK restores the session,
@@ -144,6 +146,7 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="path" element={<PathPage />} />
         <Route path="path/:stage/:step" element={<StepPage />} />
+        <Route path="library" element={<LibraryPage />} />
       </Route>
       <Route path="*" element={<PageStatus title="Страница не найдена" message="Возможно, адрес изменился. Вернёмся к вашим идеям?" />} />
     </Route>

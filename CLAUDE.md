@@ -1,6 +1,6 @@
 # agentica
 
-Russian-language site for developers moving from hand-written code to Claude Code. Guests get the landing; members sign in (Google or email + password via Supabase Auth) and get Кабинет, Маршрут (6 stages and a capstone, 31 steps, saved progress) and Профиль.
+Russian-language site for developers moving from hand-written code to Claude Code. Guests get the landing; members sign in (Google or email + password via Supabase Auth) and get Кабинет, Маршрут (6 stages and a capstone, 31 steps, saved progress), Библиотека (materials that open with passed steps) and Профиль.
 
 **Stack:** React 19 · TypeScript 7 · Vite 8 · React Router 8 (`react-router`) · Supabase JS · GSAP + Lenis (landing only) · Playwright · oxlint.
 
@@ -12,24 +12,25 @@ Russian-language site for developers moving from hand-written code to Claude Cod
 | `npm run lint` | oxlint, 0 errors. |
 | `npm run build` | Typecheck, then Vite build. |
 | `npm test -- --project=desktop` | Playwright, desktop project only. |
-| `npm run test:security` | Grants and RLS; after any change in `supabase/migrations/` or `content/guide/`. |
+| `npm run test:security` | Grants and RLS; after any change in `supabase/migrations/`, `content/guide/` or `content/library/`. |
 | `npm run guide:content -- <step-id>` | Writes the migration that publishes a lesson from `content/guide/`. |
+| `npm run library:content` | Writes the migration that syncs the library with `content/library/`. |
 
 Before reporting a change as done, run the `verify` skill.
 
 ## Where things live
 
 - `src/app/App.tsx`: routes and `Layout` (header, page cross-fade through `<ViewTransition>`, arrival focus, anchor scrolling).
-- `src/features/<name>/`: feature code: `auth`, `guide` (Маршрут), `landing`, `starter` (prompt dialog). Pages in `src/pages/<name>/`, shared UI in `src/components/`, helpers in `src/lib/`.
+- `src/features/<name>/`: feature code: `auth`, `guide` (Маршрут), `library` (Библиотека), `landing`, `starter` (prompt dialog). Pages in `src/pages/<name>/`, shared UI in `src/components/`, helpers in `src/lib/`.
 - `supabase/migrations/`: schema, grants, RLS, published lessons. `tests/`: Playwright specs and helpers, the SQL security test.
-- `content/guide/`: lesson sources with answer keys (never imported by `src/`); `scripts/`: their compiler and migration generator. Roadmap: `docs/GUIDE_PLAN.md`.
+- `content/guide/`: lesson sources with answer keys; `content/library/`: library materials (neither imported by `src/`); `scripts/`: their compilers and migration generators. Roadmap: `docs/GUIDE_PLAN.md`.
 - `docs/AUTH_SETUP.md`: the owner-run setup checklist and the migration list.
 - `.claude/rules/`: area rules (landing, auth, guide, supabase, tests, styles); each loads with the files it covers.
 
 ## Routes
 
-- `/`: the landing for guests, `CabinetPage` for members. While the SDK restores the session, a stored one counts as a member (`hasStoredSession()`), so members never see the landing flash. Members' header: Кабинет, Маршрут and «Продолжить».
-- `/path`, `/path/:stage/:step` and `/profile` sit behind `RequireAuth`; guests go to `/login?next=…`. Also `/login` and `/auth/callback`.
+- `/`: the landing for guests, `CabinetPage` for members. While the SDK restores the session, a stored one counts as a member (`hasStoredSession()`), so members never see the landing flash. Members' header: Кабинет, Маршрут, Библиотека and «Продолжить».
+- `/path`, `/path/:stage/:step`, `/library` and `/profile` sit behind `RequireAuth`; guests go to `/login?next=…`. Also `/login` and `/auth/callback`.
 - Redirects: `/content` → `/path`; `/settings` and `/settings/profile` → `/profile`; trailing slashes are stripped.
 - Only the landing ships in the main chunk; every other page is `React.lazy`.
 - A new page needs a tab title in `titles` (`App.tsx`; otherwise it reads «Страница не найдена»), an `h1` with `tabIndex={-1}` and, for members, an entry in `allowedDestinations` (`src/features/auth/redirect.ts`; otherwise sign-in returns to `/`).
@@ -38,7 +39,7 @@ Before reporting a change as done, run the `verify` skill.
 
 ### Scope
 - Desktop only for now: no responsive layouts (no mobile or tablet breakpoints), no mobile tests, no mobile viewport checks. Leave existing mobile code as is unless asked.
-- "Landing" means the guest page only; the members' pages are Кабинет, Маршрут, Шаг, Профиль.
+- "Landing" means the guest page only; the members' pages are Кабинет, Маршрут, Шаг, Библиотека, Профиль.
 - Out of scope: hosting, other sign-in methods, avatar upload, account deletion. Next stage: password reset, email change.
 
 ### UI
