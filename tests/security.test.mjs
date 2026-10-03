@@ -135,11 +135,12 @@ test('migrations enforce database privileges and RLS', async t => {
       await asRole('authenticated', other, async () => assert.deepEqual(await rows('select * from public.guide_progress'), []));
     });
 
+    // On a capstone step, which has no check: members mark it themselves.
     await t.test('guide_progress: members save statuses the way the API upserts them', () => asRole('authenticated', member, async () => {
       const upsert = "insert into public.guide_progress (step_id, status) values ($1, $2) on conflict (user_id, step_id) do update set step_id = excluded.step_id, status = excluded.status returning step_id, status";
-      assert.deepEqual(await rows(upsert, ['claude-md', 'skipped']), [{ step_id: 'claude-md', status: 'skipped' }]);
-      assert.deepEqual(await rows(upsert, ['claude-md', 'done']), [{ step_id: 'claude-md', status: 'done' }]);
-      assert.deepEqual(await rows("delete from public.guide_progress where step_id = 'claude-md' returning step_id"), [{ step_id: 'claude-md' }]);
+      assert.deepEqual(await rows(upsert, ['before-after', 'skipped']), [{ step_id: 'before-after', status: 'skipped' }]);
+      assert.deepEqual(await rows(upsert, ['before-after', 'done']), [{ step_id: 'before-after', status: 'done' }]);
+      assert.deepEqual(await rows("delete from public.guide_progress where step_id = 'before-after' returning step_id"), [{ step_id: 'before-after' }]);
     }));
 
     await t.test('guide_progress: opening never undoes a finished step and moves an unfinished one forward', async () => {

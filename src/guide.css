@@ -106,7 +106,7 @@
   .compare-side[data-side="after"] { border-color: #62e6d140; background: linear-gradient(180deg, #62e6d10e, #ffffff03); }
   .compare-label { font-family: var(--mono); font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); }
   .compare-side[data-side="after"] .compare-label { color: var(--mint); }
-  .compare-prompt { padding: 14px 16px; border-radius: 12px; background: #07080fb3; font-family: var(--mono); font-size: 13px; line-height: 1.7; color: #fff; }
+  .compare-prompt { white-space: pre-line; padding: 14px 16px; border-radius: 12px; background: #07080fb3; font-family: var(--mono); font-size: 13px; line-height: 1.7; color: #fff; }
   .compare-prompt > span { color: var(--coral); }
   .compare-note { font-size: 15px; line-height: 1.65; color: var(--soft); }
   .lesson-command { display: grid; gap: 10px; }
@@ -158,10 +158,29 @@
   .diagram-stop-name { fill: var(--text); font-family: var(--mono); font-size: 13px; text-anchor: middle; }
   .diagram-stop.is-warn .diagram-stop-name { fill: #ffb48c; }
   .diagram-stop-note { fill: var(--soft); font-size: 12px; text-anchor: middle; }
+  .diagram-caption-left { fill: var(--dim); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; }
+  .diagram-frame { fill: #ffffff05; stroke: #ffffff26; stroke-width: 1.2; }
+  .diagram-fill rect { transform-box: fill-box; transform-origin: left center; stroke: var(--night); stroke-width: 2; }
+  .diagram-fill text { fill: var(--soft); font-size: 12px; text-anchor: middle; }
+  .diagram-fill text.is-inside { fill: var(--text); dominant-baseline: middle; }
+  .diagram-fill.tone-base rect { fill: #3a3f63; }
+  .diagram-fill.tone-memory rect { fill: #2f8f84; }
+  .diagram-fill.tone-files rect { fill: #5b4bb0; }
+  .diagram-fill.tone-talk rect { fill: #7d4f9e; }
+  .diagram-fill.tone-output rect { fill: #a35a48; }
+  .diagram-limit path { stroke: var(--coral); stroke-width: 1.6; stroke-dasharray: 4 4; }
+  .diagram-limit text { fill: #ffb48c; font-family: var(--mono); font-size: 12px; text-anchor: middle; }
+  .diagram-layer rect { fill: #11132a; stroke: #a28fff55; stroke-width: 1.2; }
+  .diagram-layer:last-child rect { stroke: var(--mint); }
+  .diagram-layer-path { fill: var(--text); font-family: var(--mono); font-size: 13px; dominant-baseline: middle; }
+  .diagram-layer-note { fill: var(--soft); font-size: 12.5px; text-anchor: end; dominant-baseline: middle; }
   .diagram-end { fill: var(--dim); font-family: var(--mono); font-size: 12px; }
   .diagram-zone text { fill: var(--dim); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-anchor: middle; }
-  .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
-  .diagram[data-play="pending"] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop) { opacity: 0; }
+  .diagram[data-play] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame) { transition: opacity .5s calc(var(--i) * 150ms), translate .6s calc(var(--i) * 150ms) cubic-bezier(.2, .7, .2, 1), stroke-dashoffset .6s calc(var(--i) * 150ms + 100ms); }
+  .diagram[data-play="pending"] :is(.diagram-node, .diagram-arrow, .diagram-loop, .diagram-loop-label, .diagram-gate, .diagram-zone, .diagram-point, .diagram-warn-note, .diagram-end, .diagram-stop, .diagram-fill, .diagram-limit, .diagram-layer, .diagram-caption-left, .diagram-frame) { opacity: 0; }
+  .diagram[data-play="pending"] .diagram-fill rect { scale: 0 1; }
+  .diagram[data-play] .diagram-fill rect { transition: scale .7s calc(var(--i) * 150ms + 100ms) cubic-bezier(.2, .7, .2, 1); }
+  .diagram[data-play="pending"] .diagram-layer { translate: 0 10px; }
   .diagram[data-play="pending"] .diagram-node { translate: 0 10px; }
   .diagram[data-play="pending"] .diagram-arrow { stroke-dashoffset: 1; }
 
