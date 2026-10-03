@@ -21,7 +21,7 @@ Format, workflow and security rules: `.claude/rules/guide.md`. Facts: verify eac
 
 ## Roadmap
 1. **Done (2026-10-02):** lesson engine, server-checked quiz, pilot 3.2 «План до кода».
-2. **Done (2026-10-03):** stage 2 «Контекст» (4 lessons, diagrams `context-window`, `memory-layers`; `compare` sides can show file content). Earlier: lesson map (below), `code` block, «Этап пройден» card, stage 1 «Первый контакт» (5 lessons, diagrams `permission-modes`, `checkpoints`).
+2. **Done (2026-10-03):** stage 3 «Постановка задач» complete (diagram `step-ladder`). Earlier: stage 2 «Контекст» (4 lessons, diagrams `context-window`, `memory-layers`; `compare` sides can show file content). Earlier: lesson map (below), `code` block, «Этап пройден» card, stage 1 «Первый контакт» (5 lessons, diagrams `permission-modes`, `checkpoints`).
 3. **Stages 2–6**, one stage per iteration: 2 «Контекст», 3 (three remaining steps), 4 «Ревью» (+ a `diff` block), 5 «Автоматизация», 6 «Оркестровка»; then the capstone (no checks: practice and manual marks).
 
 ## Lesson map

@@ -16,6 +16,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610030001_drop_stage_zero.sql`: removes stage 0 «Точка отсчёта» (4 steps) and its progress.
    - `202610030002_guide_content_install_…_checkpoints.sql`: stage 1 lessons.
    - `202610030003_guide_content_project_view_…_clean_context.sql`: stage 2 lessons.
+   - `202610030004_guide_content_task_anatomy_decomposition_iterations.sql`: stage 3 lessons.
    The site name lives in `user_metadata.display_name`; no profiles table.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 
