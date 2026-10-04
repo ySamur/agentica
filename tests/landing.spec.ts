@@ -1,16 +1,35 @@
 import { test, expect, type Page } from '@playwright/test';
-import { chapters, phases } from '../src/features/landing/introPhases';
-import { mockAuth } from './helpers/auth';
+import { stages } from '../src/features/guide/catalog';
+import { frameCount, heroAt, phases, sceneLength } from '../src/features/landing/introPhases';
+import { holdSupabaseSdk, mockAuth } from './helpers/auth';
+
+// The page offset of a point of the opening scene's scroll progress, as sceneOffset in motion/scene.ts.
+const sceneTop = (page: Page, progress: number) => page.evaluate(value => {
+  const film = document.querySelector<HTMLElement>('.film')!;
+  return film.offsetTop + (film.offsetHeight - innerHeight) * value;
+}, progress);
+
+const jumpTo = (page: Page, top: number) => page.evaluate(value => window.scrollTo({ top: value, behavior: 'instant' }), top);
 
 // Jumps to a point of the opening scene's scroll progress (see introPhases.ts).
-async function scrollScene(page: Page, progress: number) {
-  await page.evaluate(value => {
-    const film = document.querySelector<HTMLElement>('.film')!;
-    window.scrollTo({ top: film.offsetTop + (film.offsetHeight - innerHeight) * value, behavior: 'instant' });
-  }, progress);
+const scrollScene = async (page: Page, progress: number) => jumpTo(page, await sceneTop(page, progress));
+
+const heroLink = (page: Page) => page.locator('.film-hero').getByRole('link', { name: 'Начать бесплатно' });
+
+// The film frames the page asks for: the set and the index (f_001 is 0) of each request.
+function watchFrames(page: Page) {
+  const frames: { set: string; index: number }[] = [];
+  page.on('request', request => {
+    const match = /\/frames\/typing\/([\w-]+)\/f_(\d+)\.webp$/.exec(request.url());
+    if (match) frames.push({ set: match[1]!, index: Number(match[2]) - 1 });
+  });
+  return frames;
 }
 
-const heroLink = (page: Page) => page.locator('.film-hero').getByRole('link', { name: 'Получить доступ' });
+const allFrames = [...Array(frameCount).keys()];
+// Each frame once (the dev rebuild asks again); with `inOrder` equal to the expected list, nothing else was asked for.
+const distinct = (frames: { index: number }[]) => new Set(frames.map(frame => frame.index));
+const inOrder = (frames: { index: number }[]) => allFrames.filter(index => distinct(frames).has(index));
 
 test('landing loads without runtime errors or horizontal overflow', async ({ page }) => {
   const errors: string[] = [];
@@ -23,24 +42,111 @@ test('landing loads without runtime errors or horizontal overflow', async ({ pag
   expect(errors).toEqual([]);
 });
 
-test('the opening scene moves through its chapters into the hero', async ({ page }, testInfo) => {
+test('the opening scene tells its story line by line and resolves into the hero', async ({ page }, testInfo) => {
   const set = testInfo.project.name === 'mobile' ? 'mobile' : 'desktop';
-  const sets = new Set<string>();
-  page.on('request', request => {
-    const match = /\/frames\/typing\/([\w-]+)\/f_\d+\.webp$/.exec(request.url());
-    if (match) sets.add(match[1]);
-  });
+  const frames = watchFrames(page);
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
   await expect(page.locator('.film-canvas')).toHaveClass(/is-ready/);
-  for (const chapter of chapters) {
-    await scrollScene(page, (chapter.from + chapter.to) / 2);
-    await expect(page.locator('.film')).toHaveAttribute('data-chapter', chapter.key);
+  // The scene is as long as its timing assumes.
+  expect(await page.locator('.film').evaluate((film: HTMLElement) => film.offsetHeight / innerHeight)).toBeCloseTo(sceneLength / 100, 1);
+  // Each line has the stage to itself in its own stretch of the scroll.
+  const story = [
+    ['hands', phases.handsOut / 2],
+    ['lines', (phases.linesIn[1] + phases.linesOut) / 2],
+    ['agent', (phases.agentIn + phases.agentOut) / 2],
+  ] as const;
+  for (const [key, progress] of story) {
+    await scrollScene(page, progress);
+    for (const [line] of story) await expect(page.locator(`.film-line[data-beat="${line}"]`)).toHaveCSS('opacity', line === key ? '1' : '0');
   }
+  await scrollScene(page, heroAt);
   await expect(heroLink(page)).toBeInViewport();
   await expect(heroLink(page)).toHaveCSS('opacity', '1');
   // One frame set per screen: the portrait crop on phones, the 1280px set on this desktop.
-  expect([...sets]).toEqual([set]);
+  expect([...new Set(frames.map(frame => frame.set))]).toEqual([set]);
+});
+
+// Before any scroll: the poster, every 16th frame and the last, where the scene rests.
+const coarse = allFrames.filter(index => index % 16 === 0 || index === frameCount - 1);
+
+test('the film fetches a coarse pass first and the rest once the reader scrolls', async ({ page }) => {
+  const frames = watchFrames(page);
+  await page.goto('/');
+  await expect(page.locator('.film-canvas')).toHaveClass(/is-ready/);
+  // The idle timer starts only once the coarse pass is in, so it cannot overtake this check.
+  await expect.poll(() => distinct(frames).size).toBe(coarse.length);
+  expect(inOrder(frames)).toEqual(coarse);
+  await scrollScene(page, 0.05);
+  await expect.poll(() => distinct(frames).size).toBe(frameCount);
+});
+
+test('a tab in the background keeps the rest of the film until it is shown', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Loading logic only.');
+  await page.addInitScript(() => {
+    let hidden = true;
+    Object.defineProperty(document, 'visibilityState', { get: () => hidden ? 'hidden' : 'visible' });
+    Object.assign(window, { showTab: () => { hidden = false; document.dispatchEvent(new Event('visibilitychange')); } });
+  });
+  const frames = watchFrames(page);
+  await page.goto('/');
+  await expect.poll(() => distinct(frames).size).toBe(coarse.length);
+  // Well past the idle delay: still only the coarse pass.
+  await page.waitForTimeout(3500);
+  expect(inOrder(frames)).toEqual(coarse);
+  await page.evaluate(() => (window as unknown as { showTab: () => void }).showTab());
+  await expect.poll(() => distinct(frames).size, { timeout: 10_000 }).toBe(frameCount);
+});
+
+const lean = [
+  ['a slow connection', () => Object.defineProperty(navigator, 'connection', { value: { effectiveType: '3g' } })],
+  ['a device with little memory', () => Object.defineProperty(navigator, 'deviceMemory', { value: 2 })],
+] as const;
+
+for (const [device, emulate] of lean) {
+  test(`on ${device} the film arrives without a scroll and skips every other frame`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'mobile' && device !== 'a slow connection', 'Loading logic only.');
+    await page.addInitScript(emulate);
+    const frames = watchFrames(page);
+    await page.goto('/');
+    // A visitor who stays on the first screen gets the film after a moment; blending bridges the gaps.
+    const even = allFrames.filter(index => index % 2 === 0);
+    await expect.poll(() => distinct(frames).size, { timeout: 10_000 }).toBe(even.length);
+    expect(inOrder(frames)).toEqual(even);
+  });
+}
+
+test('once the hero has settled, scrolling on moves the page at once', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  await scrollScene(page, heroAt);
+  // The hero's last part has arrived before the scene lets go.
+  await expect(page.locator('.film-hero-copy > *').last()).toHaveCSS('opacity', '1');
+  const title = page.locator('.film-hero h1');
+  const before = (await title.boundingBox())!.y;
+  await page.evaluate(() => window.scrollBy({ top: innerHeight * 0.2, behavior: 'instant' }));
+  await expect.poll(async () => before - (await title.boundingBox())!.y).toBeGreaterThan(40);
+});
+
+test('the header turns to glass the moment the opening scene lets go', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  const release = await sceneTop(page, 1);
+  await jumpTo(page, release - 40);
+  await expect(page.locator('main')).toHaveAttribute('data-header', 'clear');
+  // Past it the hero moves up under the header, which must not stay see-through.
+  await jumpTo(page, release + 60);
+  await expect(page.locator('main')).not.toHaveAttribute('data-header', 'clear');
+  await jumpTo(page, release + 30);
+  await expect(page.locator('main')).toHaveAttribute('data-header', 'glass');
+});
+
+test('a section opened by its link gets a solid header without waiting for a scroll', async ({ page }) => {
+  // The motion layer may start after the jump to the anchor: the header must still match where the page is.
+  await page.goto('/#questions');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  await expect(page.locator('#questions')).toBeInViewport();
+  await expect(page.locator('main')).not.toHaveAttribute('data-header', 'clear');
 });
 
 test('the terminal types as the scene scrolls and rewinds when scrolling back', async ({ page }) => {
@@ -74,8 +180,7 @@ test('keyboard focus on the hero before it arrives brings the stage there', asyn
 });
 
 test('reduced motion shows the finished session and every section in place', async ({ page }, testInfo) => {
-  const frames: string[] = [];
-  page.on('request', request => { if (request.url().includes('/frames/typing/')) frames.push(request.url()); });
+  const frames = watchFrames(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   // The motion layer is never downloaded: no smooth scrolling, no scene; the parts simply stack.
@@ -90,11 +195,21 @@ test('reduced motion shows the finished session and every section in place', asy
   await expect(session.locator('.session-status')).toHaveText('готово к ревью');
   await expect(session.locator('.session-log')).toContainText('Готово. Проверьте diff перед коммитом.');
   expect(await page.locator('.reveal').evaluateAll(elements => elements.every(element => getComputedStyle(element).opacity === '1'))).toBe(true);
+  // The still is the film's poster, and nothing darkens it without motion.
+  expect(await page.locator('.film-shade').evaluate(shade => getComputedStyle(shade, '::after').opacity)).toBe('0');
   // Only the poster still is fetched: no scroll film without motion.
-  expect(frames.filter(url => !url.endsWith('/f_001.webp'))).toEqual([]);
+  expect(frames.filter(frame => frame.index !== 0)).toEqual([]);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `.local/screenshots/${testInfo.project.name}-viewport.png` });
   await page.screenshot({ path: `.local/screenshots/${testInfo.project.name}.png`, fullPage: true });
+});
+
+test('the poster shows while the motion layer is still on its way', async ({ page, context }) => {
+  // Never answered: the page stays in its first, pending state.
+  await context.route(/LandingMotion/, () => {});
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'pending');
+  expect(await page.locator('.film-shade').evaluate(shade => getComputedStyle(shade, '::after').opacity)).toBe('0');
 });
 
 test('the motion layer starts, with smooth scrolling for wheel and trackpad only', async ({ page }, testInfo) => {
@@ -125,7 +240,7 @@ test('section links glide below the header, also when followed a second time', a
   await expect(page.locator('html')).toHaveClass(/\blenis\b/);
   const offset = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop));
   const gap = () => page.locator('#how').evaluate((element, expected) => Math.abs(element.getBoundingClientRect().top - expected), offset);
-  const link = page.getByRole('navigation').getByRole('link', { name: 'Как это работает' });
+  const link = page.getByRole('navigation').getByRole('link', { name: 'Путь' });
   await link.click();
   await expect.poll(gap, { timeout: 8000 }).toBeLessThan(4);
   // Back to the top once the glide has settled (a jump during it would be overridden), at the worst
@@ -156,7 +271,7 @@ test('an open dialog keeps the page still under the wheel', async ({ page }, tes
   test.skip(testInfo.project.name === 'mobile', 'Wheel scrolling is a desktop gesture.');
   await page.goto('/');
   await expect(page.locator('html')).toHaveClass(/\blenis\b/);
-  await page.locator('.header-cta').click();
+  await page.locator('.outro').getByRole('button', { name: 'Готовые запросы для старта' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   const before = await page.evaluate(() => scrollY);
   await page.mouse.move(720, 150);
@@ -201,10 +316,30 @@ test('reduced motion keeps the role comparison still and clear of the new column
   })).toBe(true);
 });
 
+test('a guest sees «Войти» at once, while the auth SDK is still loading', async ({ page, context }) => {
+  const release = await holdSupabaseSdk(context);
+  await page.goto('/');
+  await expect(page.locator('.site-header').getByRole('link', { name: 'Войти', exact: true })).toBeVisible();
+  await expect(page.getByText('Загрузка…')).toHaveCount(0);
+  release();
+});
+
+test('while a sign-in completes, the header waits with the member and offers no sign-up', async ({ page, context }) => {
+  await mockAuth(context);
+  const release = await holdSupabaseSdk(context);
+  await page.goto('/auth/callback?code=test-code');
+  const header = page.locator('.site-header');
+  await expect(header.getByText('Загрузка…')).toBeVisible();
+  // One answer for the whole header: the account menu and the rest agree a member is arriving.
+  await expect(header.getByRole('link', { name: 'Начать бесплатно' })).toHaveCount(0);
+  await expect(header.getByRole('link', { name: 'Роль' })).toHaveCount(0);
+  release();
+});
+
 test('sign-up calls to action lead through Google sign-in to the route', async ({ page, context }) => {
   await mockAuth(context);
   await page.goto('/');
-  await page.locator('#guide').getByRole('link', { name: 'Зарегистрироваться' }).click();
+  await page.locator('#guide').getByRole('link', { name: 'Начать бесплатно' }).click();
   await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
   // The address changes first and the login page follows its chunk and page transition; going back
   // before it shows would only cancel the navigation, leaving the landing scrolled down at #guide.
@@ -234,7 +369,7 @@ test('a call to action grows into the login card, while section links move witho
   await page.getByRole('navigation').getByRole('link', { name: 'Вопросы' }).click();
   await expect(page).toHaveURL(/#questions$/);
   expect(await transitions()).toBe(0);
-  await page.locator('#guide').getByRole('link', { name: 'Зарегистрироваться' }).click();
+  await page.locator('#guide').getByRole('link', { name: 'Начать бесплатно' }).click();
   await expect(page.locator('.login-card')).toBeVisible();
   expect(await transitions()).toBeGreaterThan(0);
 });
@@ -276,10 +411,100 @@ test('navigation reaches its destination and mobile menu closes', async ({ page 
     await page.getByRole('button', { name: 'Открыть меню' }).click();
     await expect(page.getByRole('navigation')).toBeVisible();
   }
-  await page.getByRole('navigation').getByRole('link', { name: 'Почему агенты' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Роль' }).click();
   await expect(page).toHaveURL(/#why$/);
   if (testInfo.project.name === 'mobile') {
     await expect(page.getByRole('navigation')).not.toBeVisible();
     await expect(page.getByRole('button', { name: 'Открыть меню' })).toHaveAttribute('aria-expanded', 'false');
   }
+});
+
+test('every sign-up call to action has one label and leads to sign-in', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await expect(page.getByText(/Начать с агентами|Получить доступ|Зарегистрироваться/)).toHaveCount(0);
+  const signUps = page.getByRole('link', { name: 'Начать бесплатно' });
+  // Header, hero, guide and outro; on a phone the header's one waits in the menu.
+  if (testInfo.project.name === 'mobile') {
+    await expect(signUps).toHaveCount(3);
+    await page.getByRole('button', { name: 'Открыть меню' }).click();
+  }
+  await expect(signUps).toHaveCount(4);
+  for (const link of await signUps.all()) await expect(link).toHaveAttribute('href', '/login?next=%2Fpath');
+  // The ready prompts stay as the outro's secondary action; «Вопросы» is a plain link without a dropdown's chevron.
+  await expect(page.locator('.outro').getByRole('button', { name: 'Готовые запросы для старта' })).toBeVisible();
+  await expect(page.getByRole('navigation').getByRole('link', { name: 'Вопросы' }).locator('svg')).toHaveCount(0);
+  // The sign-in page is where they all lead, so its header has none.
+  await page.goto('/login');
+  await expect(page.locator('.site-header').getByRole('link', { name: 'Начать бесплатно' })).toHaveCount(0);
+});
+
+test('the landing speaks of what is inside today and lists the route\'s stages', async ({ page }) => {
+  await page.goto('/');
+  // Nothing «soon»: the guide's structure and progress already work for members.
+  await expect(page.getByText(/Скоро|готовится|после выхода|как только он выйдет/)).toHaveCount(0);
+  const rows = page.locator('#guide .guide-stages > li');
+  await expect(rows).toHaveCount(stages.length);
+  // Named as the route's own headings do: «Этап 0», the capstone with its ★.
+  await expect(rows.first()).toContainText(`Этап ${stages[0]!.number}${stages[0]!.title}`);
+  await expect(rows.last()).toContainText(`★${stages.at(-1)!.title}`);
+});
+
+test('the header marks the section being read', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  const link = (id: string) => page.locator(`.main-nav a[href="/#${id}"]`);
+  await page.evaluate(() => document.getElementById('questions')!.scrollIntoView({ behavior: 'instant' }));
+  await expect(link('questions')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('.main-nav a[aria-current]')).toHaveCount(1);
+  await page.evaluate(() => document.getElementById('skills')!.scrollIntoView({ behavior: 'instant' }));
+  await expect(link('skills')).toHaveAttribute('aria-current', 'true');
+  await expect(link('questions')).not.toHaveAttribute('aria-current');
+});
+
+const meta = (page: Page, property: string) => page.locator(`meta[property="${property}"]`);
+
+test.describe('link previews and site files', () => {
+  test.skip(({ isMobile }) => isMobile, 'document head and static files only');
+
+  test('a shared link shows the title, the image and the site\'s address', async ({ page, request }) => {
+    // This test server knows its origin (VITE_SITE_URL in playwright.config.ts).
+    await page.goto('/');
+    await expect(meta(page, 'og:title')).toHaveAttribute('content', 'Код пишет Claude. Решения — ваши.');
+    await expect(meta(page, 'og:url')).toHaveAttribute('content', 'https://agentica.test/');
+    await expect(meta(page, 'og:image')).toHaveAttribute('content', 'https://agentica.test/og.jpg');
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+    const site = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent() ?? '{}') as Record<string, string>;
+    expect(site).toMatchObject({ '@type': 'WebSite', name: 'agentica', url: 'https://agentica.test/' });
+    const image = await request.get('/og.jpg');
+    expect(image.ok()).toBe(true);
+    expect(image.headers()['content-type']).toBe('image/jpeg');
+  });
+
+  test('without the site\'s origin the page leaves out the tags that need it', async ({ page }) => {
+    await page.goto('http://localhost:4318/');
+    await expect(meta(page, 'og:title')).toHaveCount(1);
+    await expect(meta(page, 'og:image')).toHaveCount(0);
+    await expect(meta(page, 'og:url')).toHaveCount(0);
+    await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0);
+  });
+
+  test('the manifest\'s icons exist and crawlers stay out of the members\' pages', async ({ request }) => {
+    const manifest = await (await request.get('/site.webmanifest')).json() as { start_url: string; icons: { src: string }[] };
+    expect(manifest.start_url).toBe('/');
+    for (const icon of manifest.icons) expect((await request.get(icon.src)).ok(), icon.src).toBe(true);
+    const robots = await (await request.get('/robots.txt')).text();
+    for (const path of ['/path', '/profile', '/login', '/auth/']) expect(robots).toContain(`Disallow: ${path}\n`);
+  });
+});
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('the page says that it needs JavaScript', async ({ page }) => {
+    await page.goto('/');
+    // Text locators skip <noscript>, hence the selector.
+    const notice = page.locator('noscript > p');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText('Для работы agentica нужен JavaScript.');
+  });
 });

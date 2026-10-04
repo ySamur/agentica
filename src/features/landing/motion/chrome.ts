@@ -1,22 +1,51 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { sceneOffset } from './scene';
 
-// The header stays clear over the film, turns to glass below it, and steps aside while the reader
-// scrolls down (it returns on the way up). CSS reads `main[data-header]`.
+// The header stays clear while the opening scene holds the stage, turns to glass the moment it lets
+// go (the hero then moves up under it), and steps aside while the reader scrolls down (it returns on
+// the way up). CSS reads `main[data-header]`.
 export function headerStates(root: HTMLElement, film: HTMLElement) {
   const set = (state: string) => { if (root.dataset.header !== state) root.dataset.header = state; };
-  ScrollTrigger.create({
+  let release = sceneOffset(film, 1);
+  // Without a scroll to react to (a reload mid-page, a rebuild, a resize) the header still matches
+  // where the page is: clear only over the scene.
+  const settle = (scroll: number) => {
+    if (scroll < release) set('clear');
+    else if (root.dataset.header === 'clear') set('glass');
+  };
+  const trigger = ScrollTrigger.create({
     start: 0,
     end: 'max',
+    onRefresh: self => {
+      release = sceneOffset(film, 1);
+      settle(self.scroll());
+    },
     onUpdate: self => {
-      const filmEnd = film.offsetTop + film.offsetHeight - 120;
-      if (window.scrollY < filmEnd) set('clear');
+      if (self.scroll() < release) set('clear');
       else if (self.direction === 1 && self.getVelocity() > 60) set('hidden');
       else if (self.direction === -1) set('glass');
       else if (root.dataset.header === 'clear') set('glass');
     },
   });
+  settle(trigger.scroll());
   return () => { root.dataset.header = 'clear'; };
+}
+
+// The header's section links mark the section being read, while it crosses the upper part of the screen.
+export function navSpy() {
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.main-nav a[href^="/#"]')];
+  links.forEach(link => {
+    const section = document.getElementById(link.hash.slice(1));
+    if (!section) return;
+    ScrollTrigger.create({
+      trigger: section,
+      start: 'top 40%',
+      end: 'bottom 40%',
+      onToggle: self => { if (self.isActive) link.setAttribute('aria-current', 'true'); else link.removeAttribute('aria-current'); },
+    });
+  });
+  return () => links.forEach(link => link.removeAttribute('aria-current'));
 }
 
 // Call-to-action pills lean toward a mouse pointer and spring back when it leaves.

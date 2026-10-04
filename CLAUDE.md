@@ -29,7 +29,7 @@ Before reporting a change as done, run the `verify` skill.
 
 ## Routes
 
-- `/`: the landing for guests, `CabinetPage` for members. While the SDK restores the session, a stored one counts as a member (`hasStoredSession()`), so members never see the landing flash. Members' header: Кабинет, Маршрут, Библиотека and «Продолжить».
+- `/`: the landing for guests, `CabinetPage` for members. While the SDK restores the session, a stored one or an OAuth code counts as a member (`useSessionPending()`, for the header too), so members never see the landing flash. Members' header: Кабинет, Маршрут, Библиотека and «Продолжить».
 - `/path`, `/path/:stage/:step`, `/library` and `/profile` sit behind `RequireAuth`; guests go to `/login?next=…`. Also `/login` and `/auth/callback`.
 - Redirects: `/content` → `/path`; `/settings` and `/settings/profile` → `/profile`; trailing slashes are stripped.
 - Only the landing ships in the main chunk; every other page is `React.lazy`.
@@ -56,7 +56,7 @@ Before reporting a change as done, run the `verify` skill.
 - A PostToolUse hook type-checks after every `.ts`/`.tsx` edit; fix what it reports before moving on.
 
 ### Security
-- `.env.local` holds only the Supabase URL and Publishable key: never OAuth secrets or service-role keys. `.env*` files are deny-listed; never ask for their contents.
+- `.env.local` holds only the Supabase URL and Publishable key (plus the optional public `VITE_SITE_URL`): never OAuth secrets or service-role keys. `.env*` files are deny-listed; never ask for their contents.
 - Enforce access with grants and RLS, not route guards alone. Never add production auth bypasses.
 - Supabase MCP (`.mcp.json`, untracked) has write access (owner's decision, 2026-10-03: a test project, no production). Apply migrations with `apply_migration`, one file at a time, in name order; never change data or schema outside a migration file.
 
@@ -65,5 +65,5 @@ Before reporting a change as done, run the `verify` skill.
 - Playwright owns ports 4317/4318. Stop the servers you start; never kill unrelated processes.
 
 ### Git
-- Focused commits with imperative conventional subjects (`feat: …`, `fix: …`).
+- Focused commits with imperative conventional subjects (`feat: …`, `fix: …`). Keep `dist/`, `test-results/` and `.local/` out of them.
 - PRs: problem, behavior, validation commands, desktop screenshots for visual changes.

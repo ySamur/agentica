@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockAuth } from './helpers/auth';
+import { holdSupabaseSdk, mockAuth, supabaseSdk } from './helpers/auth';
 import { expectNoOverflow, settle } from './helpers/page';
 
 test('guest cannot see protected pages and return destinations are allowlisted', async ({ page, context }) => {
@@ -67,9 +67,7 @@ test('guests get the landing and members get the cabinet', async ({ page, contex
 
 test('a stored session shows the cabinet, not the landing, while the auth SDK loads', async ({ page, context }) => {
   await mockAuth(context, { signedIn: true });
-  let release!: () => void;
-  const released = new Promise<void>(resolve => { release = resolve; });
-  await context.route(/@supabase[_/]supabase-js/, async route => { await released; await route.continue(); });
+  const release = await holdSupabaseSdk(context);
   await page.goto('/', { waitUntil: 'commit' });
   await expect(page.getByText('Загрузка…')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('С возвращением');
@@ -399,8 +397,7 @@ test('landing stays usable when the lazily loaded auth SDK fails to download', a
   await mockAuth(context, { signedIn: true });
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  // Matches the SDK module in both pre-bundled (@supabase_supabase-js) and raw (@supabase/supabase-js) form.
-  await context.route(/@supabase[_/]supabase-js/, route => route.abort());
+  await context.route(supabaseSdk, route => route.abort());
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Код пишет Claude.');
   await expect(page.getByText('Не удалось восстановить сессию')).toBeVisible();

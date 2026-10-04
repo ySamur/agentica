@@ -18,7 +18,7 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium', channel: 'chrome' } },
   ],
   webServer: [
-    server(4317, 'e2e', { VITE_SUPABASE_URL: 'https://agentica-test.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_browser_test_only' }),
+    server(4317, 'e2e', { VITE_SUPABASE_URL: 'https://agentica-test.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_browser_test_only', VITE_SITE_URL: 'https://agentica.test' }),
     server(4318, 'e2e-unconfigured', { VITE_SUPABASE_URL: '', VITE_SUPABASE_PUBLISHABLE_KEY: '' }),
   ],
 });

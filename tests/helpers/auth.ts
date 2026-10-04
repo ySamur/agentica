@@ -70,6 +70,17 @@ function createState() {
 
 export type FixtureState = ReturnType<typeof createState>;
 
+// The lazily loaded Supabase SDK module, pre-bundled (@supabase_supabase-js) or raw (@supabase/supabase-js).
+export const supabaseSdk = /@supabase[_/]supabase-js/;
+
+// Holds the SDK module back, as on a slow first visit, until the returned function is called.
+export async function holdSupabaseSdk(context: BrowserContext) {
+  let release!: () => void;
+  const released = new Promise<void>(resolve => { release = resolve; });
+  await context.route(supabaseSdk, async route => { await released; await route.continue(); });
+  return release;
+}
+
 async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }

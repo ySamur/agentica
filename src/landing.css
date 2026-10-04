@@ -16,11 +16,12 @@
   .split-line-mask { padding: 0 .14em .16em; margin: 0 -.14em -.16em; }
   .story-head { display: grid; justify-items: start; gap: 20px; max-width: 1100px; margin-bottom: 60px; }
   .story-head > p { max-width: 620px; font-size: 17px; line-height: 1.75; color: var(--soft); }
-  .shift, .skills, .path, .guide, .ask { padding-block: 130px; }
+  .shift, .skills, .path, .guide, .ask { padding-block: clamp(88px, 9vw, 112px); }
 
   /* Opening scene: the film's story, the agent's terminal and the hero share one sticky stage
      (TypingFilm, motion/film.ts). With `data-motion="off"` the same parts simply stack. */
-  .film { position: relative; height: 460svh; }
+  /* The length comes from introPhases.ts (`sceneLength`, set by TypingFilm): the scene's timing is tuned to it. */
+  .film { position: relative; height: calc(var(--scene-length) * 1svh); }
   .site-header + .landing-page > .film { margin-top: -88px; }
   .film-sticky { position: sticky; top: 0; height: 100svh; overflow: hidden; }
   .film-scene { position: absolute; inset: 0; }
@@ -32,8 +33,9 @@
   .film-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0; translate: calc(var(--mx, 0) * -16px) calc(var(--my, 0) * -10px); transition: opacity .4s, translate .6s cubic-bezier(.2, .7, .2, 1); will-change: transform; }
   .film-canvas.is-ready { opacity: 1; }
   .film-shade { position: absolute; inset: 0; background: linear-gradient(90deg, #07080fe0, #07080f99 36%, transparent 72%), linear-gradient(180deg, #07080fb3, transparent 26%); }
-  /* Darkens as the terminal and then the hero take the stage (`--dim` is scrubbed on the section). */
-  .film-shade::after { content: ''; position: absolute; inset: 0; background: var(--night); opacity: var(--dim, 0); }
+  /* Darkens as the terminal and then the hero take the stage (`--shade` is scrubbed on the section).
+     Its own name: the colour token `--dim` would resolve here and cover the poster until motion loads. */
+  .film-shade::after { content: ''; position: absolute; inset: 0; background: var(--night); opacity: var(--shade, 0); }
   .film-copy { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding-top: 88px; }
   .film-eyebrow { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 30px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--soft); text-shadow: 0 2px 14px #000, 0 0 4px #000; }
   .film-eyebrow > i { width: 22px; height: 2px; border-radius: 2px; background: var(--glow); }
@@ -45,12 +47,6 @@
      the hero's links take no pointer until it arrives. */
   .landing-page:not([data-motion="off"]) :is(.film-line:not([data-beat="hands"]), .film-hero-copy > *, .film-hero > .session-scene) { opacity: 0; }
   .landing-page:not([data-motion="off"]) .film:not(.is-hero) .film-hero-copy { pointer-events: none; }
-  .film-chapters { position: absolute; bottom: 30px; left: 50%; translate: -50% 0; display: flex; gap: 4px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--edge); border-radius: 999px; background: #07080fcc; font-family: var(--mono); font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); }
-  .film-chapters > li { display: grid; gap: 6px; min-width: 76px; padding: 7px 12px 6px; border-radius: 999px; transition: color .3s, background .3s; }
-  .film-chapters i { position: relative; height: 2px; overflow: hidden; border-radius: 2px; background: #ffffff1a; }
-  /* Each chapter's bar fills across its own slice of the scene. */
-  .film-chapters i::after { content: ''; position: absolute; inset: 0; background: var(--glow); transform-origin: 0 50%; scale: clamp(0, (var(--film, 0) - var(--from)) / (var(--to) - var(--from)), 1) 1; }
-  .film:is([data-chapter="hands"]) li[data-chapter="hands"], .film:is([data-chapter="lines"]) li[data-chapter="lines"], .film:is([data-chapter="agent"]) li[data-chapter="agent"], .film:is([data-chapter="you"]) li[data-chapter="you"] { color: var(--text); background: #ffffff0d; }
   .film-skip { position: absolute; left: max(48px, calc((100% - 1216px) / 2)); bottom: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--edge); border-radius: 999px; background: #07080fb3; color: var(--soft); font-size: 13px; transition: color .2s, border-color .2s; }
   .film-skip:hover { color: var(--text); border-color: #ffffff38; }
   .film.is-hero .film-skip { pointer-events: none; }
@@ -68,7 +64,7 @@
   .landing-page[data-motion="off"] .film-lines { display: flex; flex-direction: column; gap: 22px; }
   .landing-page[data-motion="off"] .film-hero { position: relative; min-height: min(calc(100svh - 88px), 920px); padding-block: 64px 96px; }
   .landing-page[data-motion="off"] .film-hero::before { content: ''; position: absolute; inset: -88px -40vw 0; z-index: -1; pointer-events: none; background-image: linear-gradient(#ffffff0b 1px, transparent 1px), linear-gradient(90deg, #ffffff0b 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(ellipse 55% 65% at 50% 38%, #000, transparent 78%); }
-  .landing-page[data-motion="off"] :is(.film-canvas, .film-chapters, .film-skip, .film-cue) { display: none; }
+  .landing-page[data-motion="off"] :is(.film-canvas, .film-skip, .film-cue) { display: none; }
 
   /* Hero. */
   .intro-badge { display: inline-flex; align-items: center; gap: 10px; padding: 8px 15px 8px 11px; border: 1px solid var(--edge); border-radius: 999px; background: #ffffff09; font-family: var(--mono); font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--soft); }
@@ -145,7 +141,7 @@
   .prompt-chips > span:nth-child(3) { color: #a4f1e4; border-color: #62e6d155; background: #62e6d114; }
   .prompt-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid #ffffff0f; font-family: var(--mono); font-size: 11px; color: var(--dim); }
   .prompt-foot > b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--glow); color: #150d22; }
-  .visual-file, .visual-diff { border-radius: 14px; border: 1px solid #ffffff14; background: #0a0c18; font-family: var(--mono); font-size: 12px; }
+  .visual-file, .visual-diff, .visual-pipeline { border-radius: 14px; border: 1px solid #ffffff14; background: #0a0c18; font-family: var(--mono); font-size: 12px; }
   .visual-file { display: grid; gap: 8px; padding: 15px 16px; }
   .visual-file > span { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; color: #ffb48c; }
   .visual-file > p { overflow: hidden; white-space: nowrap; color: var(--soft); }
@@ -159,12 +155,20 @@
   .diff-del { color: #ffa0ad; background: #ff5c7a16; }
   .diff-add { color: #a3f2cd; background: #3ddc9716; }
   .visual-diff > span { display: inline-flex; margin: 12px 16px 0; padding: 8px 13px; border-radius: 12px 12px 12px 3px; background: #a28fff2b; color: #ddd6ff; font-family: 'Golos Text Variable', Arial, sans-serif; font-size: 13px; }
-  .visual-pipeline { display: flex; align-items: center; gap: 10px; }
-  .visual-pipeline > span { padding: 9px 13px; border: 1px solid #ffffff1f; border-radius: 11px; background: #ffffff08; font-family: var(--mono); font-size: 12px; color: var(--soft); }
-  .visual-pipeline > i { position: relative; flex: 1; height: 2px; overflow: hidden; background: #ffffff1a; }
+  /* The agent's edit through the hook's checks: a track that fills stage by stage, and a log with times. */
+  .visual-pipeline { display: grid; gap: 14px; padding: 16px; }
+  .pipeline-hook { color: var(--dim); }
+  .pipeline-hook::before { content: '● '; color: #ffb48c; }
+  .pipeline-track { display: flex; align-items: center; gap: 10px; }
+  .pipeline-track > span { padding: 9px 13px; border: 1px solid #ffffff1f; border-radius: 11px; background: #ffffff08; color: var(--soft); }
+  .pipeline-track > i { position: relative; flex: 1; height: 2px; overflow: hidden; background: #ffffff1a; }
   /* `--fill` (0–1) is how far a stage has handed over to the next; full unless the motion layer plays it. */
-  .visual-pipeline > i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #62e6d140, var(--mint)); transform-origin: 0 50%; scale: var(--fill, 1) 1; }
-  .visual-pipeline > b { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--mint); color: var(--night); box-shadow: 0 0 26px #62e6d18c; }
+  .pipeline-track > i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #62e6d140, var(--mint)); transform-origin: 0 50%; scale: var(--fill, 1) 1; }
+  .pipeline-track > b { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--mint); color: var(--night); box-shadow: 0 0 26px #62e6d18c; }
+  .pipeline-log { display: grid; gap: 7px; margin: 0; padding: 12px 0 0; border-top: 1px solid #ffffff0f; list-style: none; color: var(--soft); }
+  .pipeline-log > li { display: flex; gap: 10px; white-space: nowrap; }
+  .pipeline-log span { color: var(--mint); }
+  .pipeline-log em { margin-left: auto; font-style: normal; color: var(--dim); }
   .diff-reply { margin-top: 10px; }
   /* A small git graph: three branches, a commit each, merged back into main. */
   .visual-branches { display: block; width: 100%; height: auto; overflow: visible; }
@@ -195,7 +199,8 @@
   /* Only the pinned path (wide screens with motion) shows its counter, terminal and rail. */
   .path-counter, .path-panel, .path-rail { display: none; }
   @media (min-width: 901px) {
-    .landing-page:not([data-motion="off"]) .path-scene { height: calc(6 * 62svh); }
+    /* About 300px of scroll per step on a 900px screen: enough to read one, never long enough to stall. */
+    .landing-page:not([data-motion="off"]) .path-scene { height: calc(6 * 48svh); }
     .landing-page:not([data-motion="off"]) .path-sticky { position: sticky; top: 88px; display: grid; grid-template: "counter panel" auto "step panel" 1fr "rail rail" auto / minmax(0, 1fr) minmax(0, 1.1fr); column-gap: 64px; height: calc(100svh - 88px); padding-block: 28px 36px; }
     .landing-page:not([data-motion="off"]) .path-counter { grid-area: counter; display: flex; align-items: flex-end; gap: 14px; }
     .path-digits { display: block; height: 1em; overflow: hidden; font-size: clamp(96px, 10vw, 156px); font-weight: 600; line-height: 1; letter-spacing: -.06em; }
@@ -246,7 +251,6 @@
   .guide-book { position: relative; isolation: isolate; overflow: hidden; padding: 32px; border-radius: 26px; background: linear-gradient(160deg, #1b1e3c, #0c0e1f); box-shadow: 0 60px 100px -50px #000, 0 0 140px -50px #ff72b090, 8px 8px 0 -2px #151833, 15px 15px 0 -4px #0f1127; }
   .guide-cover { position: absolute; inset: 0; z-index: 2; display: none; flex-direction: column; justify-content: space-between; padding: 34px; border-radius: 26px; border: 1px solid #ffffff21; background: radial-gradient(120% 90% at 0% 0%, #3b2a86, transparent 60%), radial-gradient(90% 80% at 100% 100%, #7a2452, transparent 60%), #120f25; box-shadow: 0 40px 80px -40px #000; transform-origin: 0 50%; backface-visibility: hidden; }
   .landing-page:not([data-motion="off"]) .guide-cover { display: flex; }
-  .guide-cover > .guide-soon { align-self: flex-end; }
   .guide-cover > strong { font-size: clamp(36px, 3.4vw, 50px); font-weight: 560; line-height: 1.04; letter-spacing: -.03em; }
   .guide-cover-foot { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--soft); }
   .guide-cover-foot > b { font-size: 17px; font-weight: 600; letter-spacing: -.03em; color: var(--text); }
@@ -257,16 +261,14 @@
   .guide-book:hover::after { translate: 330% 0; transition: translate 1.2s cubic-bezier(.2, .7, .2, 1); }
   .guide-book-top { display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--soft); }
   .guide-book-top > span:first-child { display: flex; align-items: center; gap: 8px; }
-  .guide-soon { padding: 5px 11px; border-radius: 999px; background: var(--glow); color: #150d22; font-weight: 600; }
   .guide-book h3 { margin-top: 24px; font-size: 22px; font-weight: 560; letter-spacing: -.02em; }
-  .guide-chapters { display: grid; gap: 10px; margin: 20px 0 0; padding: 0; list-style: none; }
-  .guide-chapters li { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid #ffffff10; background: #ffffff08; }
-  .guide-chapters span { font-family: var(--mono); font-size: 11px; color: var(--dim); white-space: nowrap; }
-  .guide-chapters strong { font-size: 15px; font-weight: 500; }
-  .guide-chapters li:nth-child(n+3) strong { filter: blur(2.5px); }
-  .guide-chapters li:nth-child(n+5) strong { filter: blur(4px); }
-  .guide-chapters svg { color: #ffb48c; }
-  .guide-book-note { margin-top: 18px; font-size: 12px; color: var(--dim); }
+  .guide-stages { display: grid; gap: 10px; margin: 20px 0 0; padding: 0; list-style: none; }
+  .guide-stages li { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid #ffffff10; background: #ffffff08; }
+  .guide-stages span { font-family: var(--mono); font-size: 11px; color: var(--dim); white-space: nowrap; }
+  .guide-stages strong { font-size: 15px; font-weight: 500; }
+  .guide-stages li:nth-child(n+3) strong { filter: blur(2.5px); }
+  .guide-stages li:nth-child(n+5) strong { filter: blur(4px); }
+  .guide-stages svg { color: #ffb48c; }
 
   /* Questions. */
   .ask { display: grid; grid-template-columns: 1fr 1.4fr; align-items: start; gap: 72px; }
@@ -332,7 +334,7 @@
     .landing-page[data-motion="off"] .film-copy { justify-content: center; }
     .landing-page[data-motion="off"] .film-hero { min-height: 0; padding-block: 56px 64px; }
     .session-scene { width: 100%; max-width: 640px; margin-inline: auto; }
-    .shift, .skills, .path, .guide, .ask { padding-block: 100px; }
+    .shift, .skills, .path, .guide, .ask { padding-block: 84px; }
     .shift-layer { padding: 36px 30px; }
     .path-list::before, .path-list::after { left: 23px; }
     .path-step, .path-step:nth-child(even) { justify-self: stretch; width: auto; margin-left: 70px; }
@@ -343,12 +345,10 @@
   }
   @media (max-width: 700px) {
     .site-header + .landing-page > .film { margin-top: -70px; }
-    .film-copy { padding-block: 70px 118px; }
+    .film-copy { padding-block: 70px 72px; }
     .film-shade { background: linear-gradient(180deg, #07080fb3, transparent 22%, transparent 42%, #07080fd9 80%); }
     .film-line { font-size: clamp(34px, 10.4vw, 52px); }
     .film-eyebrow { margin-bottom: 20px; font-size: 11px; }
-    .film-chapters { bottom: 24px; font-size: 10px; letter-spacing: 1px; }
-    .film-chapters > li { min-width: 0; padding-inline: 10px; }
     .film-skip { top: 82px; right: 16px; bottom: auto; left: auto; padding: 8px 13px; font-size: 12px; }
     .film-cue { display: none; }
     .landing-page:not([data-motion="off"]) .film-hero { padding-block: 124px 22px; }
@@ -374,7 +374,7 @@
     .session-chip-tests { right: 4px; bottom: 0; }
     .ticker { padding-block: 18px; }
     .ticker-track > span { gap: 22px; padding-right: 22px; font-size: 17px; }
-    .shift, .skills, .path, .guide, .ask { padding-block: 76px; }
+    .shift, .skills, .path, .guide, .ask { padding-block: 64px; }
     .story-head { margin-bottom: 40px; }
     .shift-stage { min-height: 0; border-radius: 20px; }
     /* The bottom padding keeps a lane for the knob, clear of both columns' text. */
@@ -395,10 +395,10 @@
     .path-step, .path-step:nth-child(even) { margin-left: 52px; padding: 22px 20px; }
     .path-number, .path-step:nth-child(even) .path-number { top: 22px; left: -33px; width: 38px; height: 38px; font-size: 12px; }
     .guide-book { padding: 24px 18px; }
-    .guide-chapters li { grid-template-columns: 1fr auto; gap: 4px 10px; }
-    .guide-chapters span { grid-area: 1 / 1; }
-    .guide-chapters strong { grid-area: 2 / 1; }
-    .guide-chapters svg { grid-area: 1 / 2 / 3 / 3; }
+    .guide-stages li { grid-template-columns: 1fr auto; gap: 4px 10px; }
+    .guide-stages span { grid-area: 1 / 1; }
+    .guide-stages strong { grid-area: 2 / 1; }
+    .guide-stages svg { grid-area: 1 / 2 / 3 / 3; }
     .ask-item summary { padding: 20px; font-size: 16px; }
     .ask-item p { padding: 0 20px 22px; }
     .outro { padding-bottom: 90px; }

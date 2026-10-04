@@ -34,13 +34,23 @@ const stories: Record<string, (visual: Element, timeline: gsap.core.Timeline) =>
       .to(note, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'back.out(1.7)' }, '+=0.1')
       .to(reply, { clipPath: 'inset(0 0% 0 0)', duration: 0.7, ease: 'steps(24)' }, '+=0.35');
   },
+  // The hook fires on the edit, each check hands over to the next and logs its time, then the check mark pops.
   'visual-pipeline': (visual, timeline) => {
-    const links = visual.querySelectorAll('i');
-    const check = visual.querySelectorAll('b');
+    const hook = visual.querySelectorAll('.pipeline-hook');
+    const links = [...visual.querySelectorAll('.pipeline-track i')];
+    const logs = [...visual.querySelectorAll('.pipeline-log li')];
+    const check = visual.querySelectorAll('.pipeline-track b');
+    gsap.set(hook, { opacity: 0, x: -8 });
     gsap.set(links, { '--fill': 0 });
+    gsap.set(logs, { opacity: 0, y: 6 });
     gsap.set(check, { scale: 0 });
-    timeline.to(links, { '--fill': 1, stagger: 0.45, duration: 0.45, ease: 'power1.inOut' })
-      .to(check, { scale: 1, duration: 0.7, ease: 'back.out(2.2)' }, '-=0.1');
+    timeline.to(hook, { opacity: 1, x: 0, duration: 0.4, ease: 'power3.out' });
+    links.forEach((link, index) => {
+      timeline.to(link, { '--fill': 1, duration: 0.45, ease: 'power1.inOut' });
+      const log = logs[index];
+      if (log) timeline.to(log, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' }, '-=0.15');
+    });
+    timeline.to(check, { scale: 1, duration: 0.7, ease: 'back.out(2.2)' }, '-=0.1');
   },
   // Branches draw themselves off main, gather a commit each and merge back.
   'visual-branches': (visual, timeline) => {

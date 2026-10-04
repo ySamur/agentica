@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /path
+Disallow: /profile
+Disallow: /login
+Disallow: /auth/

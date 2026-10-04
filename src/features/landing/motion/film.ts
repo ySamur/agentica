@@ -2,7 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import { scrollToY } from '../../../lib/smoothScroll';
-import { chapters, frameCount, heroAt, phases, type ChapterKey } from '../introPhases';
+import { frameCount, heroAt, phases } from '../introPhases';
 import { frameSequence } from './frames';
 import { rise, sceneOffset, sceneRange } from './scene';
 import { buildSession } from './session';
@@ -19,20 +19,20 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
   const title = hero?.querySelector<HTMLElement>('h1');
   const heroRest = hero ? [...hero.children].filter(child => child !== title) : [];
 
-  // Frames follow a snapped proxy, so the scrub smooths them like everything else.
+  // The footage follows the scroll to a fraction of a frame; the sequence blends the two nearest ones.
   const sequence = canvas ? frameSequence(canvas) : null;
-  const frame = { index: 0 };
+  const frame = { position: 0 };
   // A refresh moves the proxy without its update, hence the second hook.
-  gsap.to(frame, { index: frameCount - 1, ease: 'none', snap: 'index', scrollTrigger: { ...sceneRange(film, ...phases.frames, scrub), onRefresh: () => sequence?.show(frame.index) }, onUpdate: () => sequence?.show(frame.index) });
+  gsap.to(frame, { position: frameCount - 1, ease: 'none', scrollTrigger: { ...sceneRange(film, ...phases.frames, scrub), onRefresh: () => sequence?.show(frame.position) }, onUpdate: () => sequence?.show(frame.position) });
   sequence?.show(0);
 
   // "Строка за строкой. Символ за символом." arrives character by character. Scrubbed staggers only
   // render their first target's start, so every start state below is set explicitly first.
-  const characters = lines ? SplitText.create(lines, { type: 'words,chars', aria: 'none' }).chars : [];
+  // Keeping white space as written keeps the copy's non-breaking spaces (nbsp) binding their words.
+  const characters = lines ? SplitText.create(lines, { type: 'words,chars', aria: 'none', reduceWhiteSpace: false }).chars : [];
   gsap.set(characters, { opacity: 0 });
   gsap.set(heroRest, { opacity: 0, y: rise(22) });
 
-  let chapter: ChapterKey = 'hands';
   // Reverting replays updates; once the cleanup below has run, the section keeps its static state.
   let active = true;
   const master = gsap.timeline({
@@ -40,18 +40,14 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     scrollTrigger: {
       ...sceneRange(film, 0, 1, scrub),
       onUpdate: self => {
-        if (!active) return;
-        film.style.setProperty('--film', self.progress.toFixed(4));
-        const next = chapters.find(item => self.progress < item.to)?.key ?? 'you';
-        if (next !== chapter) film.dataset.chapter = chapter = next;
-        film.classList.toggle('is-hero', self.progress >= phases.heroLive);
+        if (active) film.classList.toggle('is-hero', self.progress >= phases.heroLive);
       },
     },
   });
   master.to({}, { duration: 1 }, 0);
   if (canvas) master.fromTo(canvas, { scale: 1.02 }, { scale: 1.08, duration: phases.frames[1] }, 0);
-  master.fromTo(film, { '--dim': 0 }, { '--dim': 0.5, duration: 0.12 }, phases.agentIn)
-    .to(film, { '--dim': 0.76, duration: 0.08 }, phases.heroIn[0])
+  master.fromTo(film, { '--shade': 0 }, { '--shade': 0.5, duration: 0.12 }, phases.agentIn)
+    .to(film, { '--shade': 0.76, duration: 0.08 }, phases.heroIn[0])
     .to(find('.film-cue'), { opacity: 0, duration: 0.03 }, 0)
     .to(hands, { yPercent: -35, opacity: 0, duration: 0.05 }, phases.handsOut)
     .set(lines, { opacity: 1 }, phases.linesIn[0])
@@ -60,10 +56,8 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     .fromTo(agent, { opacity: 0, yPercent: 25 }, { opacity: 1, yPercent: 0, duration: 0.03 }, phases.agentIn)
     .to([agent, find('.film-eyebrow')], { yPercent: -35, opacity: 0, duration: 0.04 }, phases.agentOut)
     .fromTo(find('.session-scene'), { opacity: 0, y: 70, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.08 }, phases.terminalIn)
-    .to(heroRest, { opacity: 1, y: 0, duration: 0.05, stagger: 0.012 }, phases.heroIn[0] + 0.03)
-    .to(find('.film-skip'), { opacity: 0, duration: 0.03 }, phases.heroIn[0])
-    // A phone needs the chapters' place for the hero, so they leave as it arrives.
-    .to(find('.film-chapters'), { opacity: 0, duration: 0.04 }, wide ? phases.hudOut : phases.heroIn[0]);
+    .to(heroRest, { opacity: 1, y: 0, duration: 0.05, stagger: 0.012 }, phases.heroRest)
+    .to(find('.film-skip'), { opacity: 0, duration: 0.03 }, phases.heroIn[0]);
   // On a phone the terminal takes the eyebrow's place and later yields the stage to the hero;
   // on wide screens it stays beside it.
   if (!wide) master.to(find('.film-eyebrow'), { opacity: 0, duration: 0.03 }, phases.terminalIn)
@@ -81,7 +75,7 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     });
   }
 
-  // "Теперь код пишет агент." decodes itself as the agent's chapter begins.
+  // "Теперь код пишет агент." decodes itself as the agent takes over.
   const agentLines = agent ? [...agent.querySelectorAll('span')].map(span => [span, span.textContent ?? ''] as const) : [];
   ScrollTrigger.create({
     ...sceneRange(film, phases.agentIn, 1, false),
@@ -107,7 +101,6 @@ export function buildFilm(film: HTMLElement, { scrub, wide, fine, signal }: { sc
     stopSession();
     agentLines.forEach(([span, text]) => { span.textContent = text; });
     film.classList.remove('is-hero');
-    film.dataset.chapter = 'hands';
-    ['--film', '--dim', '--mx', '--my'].forEach(property => film.style.removeProperty(property));
+    ['--shade', '--mx', '--my'].forEach(property => film.style.removeProperty(property));
   };
 }

@@ -3,10 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07080f" />
     <meta name="description" content="Разработчик, который управляет агентами. Как Claude Code меняет работу программиста, какие навыки нужны теперь и путеводитель по переходу для участников." />
     <title>agentica — Код пишет Claude. Решения — ваши.</title>
+    <!-- Link previews; the image and the address come from vite.config.ts when VITE_SITE_URL is set. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="agentica" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:title" content="Код пишет Claude. Решения — ваши." />
+    <meta property="og:description" content="Как Claude Code меняет работу программиста, какие навыки нужны теперь и путеводитель по переходу для участников." />
+    <meta name="twitter:card" content="summary_large_image" />
     <style>
       /* Every page is dark; no white flash before the app mounts. */
       html { background: #07080f; color-scheme: dark; }
@@ -29,6 +38,7 @@
     </script>
   </head>
   <body>
+    <noscript><p style="max-width: 32em; margin: 30vh auto 0; padding: 0 24px; font: 18px/1.5 Arial, sans-serif; color: #eef0fb; text-align: center;">Для работы agentica нужен JavaScript. Включите его в настройках браузера и обновите страницу.</p></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

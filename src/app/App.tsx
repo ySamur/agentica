@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState, ViewTransition } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { LandingPage } from '../pages/landing/LandingPage';
-import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
+import { AuthProvider, useAuth, useSessionPending } from '../features/auth/AuthProvider';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { clearDestination, clearLetterDestination } from '../features/auth/redirect';
 import { stepAtPath } from '../features/guide/catalog';
@@ -11,7 +11,6 @@ import { SiteHeader } from '../components/SiteHeader';
 import { PageStatus } from '../components/PageStatus';
 import { useArrivalFocus } from '../lib/arrivalFocus';
 import { scrollToTarget } from '../lib/smoothScroll';
-import { hasStoredSession } from '../lib/supabase';
 
 export type PageContext = { openStarter: () => void };
 
@@ -35,8 +34,9 @@ const titles: Record<string, string> = {
 // `/` is the members' cabinet or the guest landing. Until the SDK restores the session,
 // a stored one predicts it, so members never see the landing flash.
 function useMember() {
-  const { user, loading } = useAuth();
-  return Boolean(user) || (loading && hasStoredSession());
+  const { user } = useAuth();
+  const pending = useSessionPending();
+  return Boolean(user) || pending;
 }
 
 function pageTitle(pathname: string, member: boolean) {
@@ -104,7 +104,7 @@ function Layout() {
     {/* Work pages share one calm backdrop; the landing draws its own. It stays out of the header's `+` selectors. */}
     <div className="aurora aurora-calm" aria-hidden="true"><i /><i /><i /><i /></div>
     {/* Remounting per route resets the mobile and account menus after any navigation. */}
-    <SiteHeader key={location.pathname} member={member} onStart={openStarter} />
+    <SiteHeader key={location.pathname} member={member} />
     {error && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error}</p>}
     {/* Router updates run as transitions, so each new page cross-fades in; a hash change on the same
         page is an update and stays still. Suspense sits outside, so a lazy page keeps the old one on

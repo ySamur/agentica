@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type R
 import { Link, useOutletContext } from 'react-router';
 import type { PageContext } from '../../app/App';
 import { Brand, Icon, type IconName } from '../../components/Icon';
+import { stages, type GuideStage } from '../../features/guide/catalog';
 import { PathScene } from '../../features/landing/PathScene';
 import { RoleShift } from '../../features/landing/RoleShift';
 import { SignupLink } from '../../features/landing/SignupLink';
@@ -39,7 +40,12 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
   {
     title: 'Автоматические проверки', icon: 'command', wide: true,
     text: nbsp('Хуки, линтер и тесты проверяют каждую правку агента раньше, чем вы откроете diff.'),
-    visual: <div className="visual-pipeline"><span>lint</span><i /><span>build</span><i /><span>test</span><i /><b><Icon name="check" size={14} /></b></div>,
+    // The hook fires on the agent's edit; each check hands over to the next and logs its time.
+    visual: <div className="visual-pipeline">
+      <p className="pipeline-hook">{nbsp('PostToolUse · src/cart/promo.ts')}</p>
+      <div className="pipeline-track"><span>lint</span><i /><span>build</span><i /><span>test</span><i /><b><Icon name="check" size={14} /></b></div>
+      <ul className="pipeline-log">{([['lint', '1,2 с'], ['build', '3,4 с'], ['23 теста', '5,1 с']] as const).map(([check, time]) => <li key={check}><span>✓</span>{nbsp(check)}<em>{nbsp(time)}</em></li>)}</ul>
+    </div>,
   },
   {
     title: 'Параллельные агенты', icon: 'branch',
@@ -57,13 +63,14 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
   },
 ];
 
-const chapters = ['Первый день с Claude Code', 'CLAUDE.md, который работает', 'Как ставить задачи агенту', 'Ревью кода, написанного агентом', 'Хуки, тесты и автоматические проверки', 'Команда агентов'].map(nbsp);
+// The book names each stage as the route's headings do: «Этап 0»…«Этап 6», then the capstone's ★.
+const stageLabel = (stage: GuideStage) => stage.number === '★' ? stage.number : nbsp(`Этап ${stage.number}`);
 
 const questions = [
   { title: 'Заменит ли ИИ разработчиков?', answer: 'Он меняет содержание работы. Набор кода всё больше делегируется агентам, а ценность смещается к постановке задач, архитектуре, ревью и ответственности за результат. Именно этим навыкам посвящён путеводитель.' },
   { title: 'Что такое Claude Code?', answer: 'Инструмент Anthropic для агентной разработки. Он работает в терминале, IDE, десктопном приложении и браузере: читает проект, редактирует файлы и выполняет команды — с вашего разрешения.' },
   { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оркестратор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
-  { title: 'Что будет в путеводителе и когда?', answer: 'Маршрут перехода по шагам, шаблоны запросов, настройка CLAUDE.md и автоматических проверок, разборы типичных ошибок. Он появится в разделе для участников — зарегистрированные пользователи получат доступ сразу после выхода.' },
+  { title: 'Что внутри путеводителя?', answer: 'Семь этапов перехода и выпускной проект — от первого запуска до команды агентов. Шаги можно отмечать выполненными, прогресс сохраняется на любом устройстве. Материалы шагов дополняются постепенно.' },
   { title: 'Регистрация платная?', answer: 'Нет. Войдите через Google или по email и паролю: мы храним только имя, email и ваш прогресс.' },
 ].map(question => ({ title: nbsp(question.title), answer: nbsp(question.answer) }));
 
@@ -97,10 +104,10 @@ export function LandingPage() {
         <h1 className="intro-title" id="intro-title">Код пишет Claude.{' '}<br />Решения{' '}— <em className="accent glow-text">ваши.</em></h1>
         <p className="intro-lead">{nbsp('Время, когда ценность разработчика измерялась набранными строками, уходит. Вы ставите задачу — Claude Code изучает проект, правит файлы и запускает тесты. За вами архитектура, ревью и последнее слово.')}</p>
         <div className="intro-actions">
-          <SignupLink morph="hero">Получить доступ <Icon name="arrowUp" size={18} /></SignupLink>
+          <SignupLink morph="hero">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
           <Link className="ghost-button" to="#why">Как меняется роль <Icon name="arrow" size={17} /></Link>
         </div>
-        <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google или по email. Путеводитель по переходу готовится для участников.')}</p>
+        <p className="intro-note"><Icon name="shield" size={15} /> {nbsp('Вход через Google или по email. Храним только имя, email и прогресс.')}</p>
       </TypingFilm>
 
       <div className="ticker" aria-hidden="true"><div className="ticker-track">{[...ticker, ...ticker].map((item, index) => <span key={`${item}-${index}`}>{item}<i>✦</i></span>)}</div></div>
@@ -114,7 +121,7 @@ export function LandingPage() {
         <RoleShift />
       </section>
 
-      <section className="skills container" aria-labelledby="skills-title">
+      <section className="skills container" id="skills" aria-labelledby="skills-title">
         <div className="story-head" data-reveal="head">
           <span className="story-eyebrow"><i /> Навыки оркестратора</span>
           <h2 id="skills-title">Агент печатает.{' '}<br />Вы{' '}— <em className="accent">думаете.</em></h2>
@@ -134,7 +141,8 @@ export function LandingPage() {
       <section className="path container" id="how" aria-labelledby="path-title">
         <div className="story-head" data-reveal="head">
           <span className="story-eyebrow"><i /> Путь перехода</span>
-          <h2 id="path-title">Шесть шагов{' '}<br />от клавиатуры <em className="accent">к{' '}оркестровке.</em></h2>
+          {/* Habits, not steps: members count 35 steps on their route. */}
+          <h2 id="path-title">Шесть привычек{' '}<br />от клавиатуры <em className="accent">к{' '}оркестровке.</em></h2>
           <p>{nbsp('Переход не случается за один день. Это последовательность привычек — каждая снимает с вас часть рутины.')}</p>
         </div>
         <PathScene />
@@ -143,26 +151,26 @@ export function LandingPage() {
       <section className="guide container" id="guide" aria-labelledby="guide-title">
         <div className="guide-copy" data-reveal="head">
           <span className="story-eyebrow"><i /> Только для участников</span>
-          <h2 id="guide-title">Путеводитель по{' '}переходу{' '}<br />уже готовится <em className="accent">внутри.</em></h2>
-          <p>{nbsp('Маршрут от первого запуска Claude Code до работы с командой агентов: практики, шаблоны запросов, разборы ошибок. Зарегистрируйтесь сейчас — путеводитель появится в вашем аккаунте сразу после выхода.')}</p>
+          <h2 id="guide-title">Путеводитель по{' '}переходу{' '}<br />ждёт <em className="accent">внутри.</em></h2>
+          {/* Same count as catalog.ts and the members' pages: stages 00–06 plus the capstone. */}
+          <p>{nbsp('Семь этапов и выпускной проект: от первого запуска Claude Code до команды агентов. Отмечайте пройденное — прогресс сохраняется в аккаунте. Материалы этапов дополняются, новые появляются у вас сразу.')}</p>
           <ul className="guide-perks">
             <li><Icon name="check" size={17} /> {nbsp('Вход через Google за пару кликов')}</li>
             <li><Icon name="check" size={17} /> {nbsp('Или по email и паролю')}</li>
-            <li><Icon name="check" size={17} /> {nbsp('Только профиль и email')}</li>
+            <li><Icon name="check" size={17} /> {nbsp('Только имя и email')}</li>
           </ul>
-          <SignupLink morph="guide">Зарегистрироваться <Icon name="arrowUp" size={18} /></SignupLink>
+          <SignupLink morph="guide">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
         </div>
         <div className="guide-visual reveal">
           <div className="guide-volume">
             <div className="guide-book">
-              <div className="guide-book-top"><span><Icon name="layers" size={15} /> Путеводитель</span><span className="guide-soon">Скоро</span></div>
-              <h3>Планируемые главы</h3>
-              <ol className="guide-chapters">{chapters.map((chapter, index) => <li key={chapter}><span>Глава {index + 1}</span><strong>{chapter}</strong><Icon name="lock" size={16} /></li>)}</ol>
-              <p className="guide-book-note">{nbsp('Состав глав может измениться до выхода.')}</p>
+              <div className="guide-book-top"><span><Icon name="layers" size={15} /> Путеводитель</span></div>
+              <h3>Этапы</h3>
+              {/* Only the stage names from the public map; their steps open after sign-in. */}
+              <ol className="guide-stages">{stages.map(stage => <li key={stage.id}><span>{stageLabel(stage)}</span><strong>{nbsp(stage.title)}</strong><Icon name="lock" size={16} /></li>)}</ol>
             </div>
             {/* With motion the cover opens as the section scrolls in (motion/book.ts). */}
             <div className="guide-cover" aria-hidden="true">
-              <span className="guide-soon">Скоро</span>
               <strong>Путеводитель <em className="accent">по{' '}переходу</em></strong>
               <span className="guide-cover-foot"><b>agentica<i>.</i></b> для участников</span>
             </div>
@@ -186,9 +194,9 @@ export function LandingPage() {
         <div className="outro-card" data-reveal="head">
           <span className="story-eyebrow"><i /> Следующий шаг</span>
           <h2 id="outro-title">Перестаньте печатать.{' '}<br />Начните <em className="accent glow-text">управлять.</em></h2>
-          <p>{nbsp('Присоединяйтесь сейчас — и получите путеводитель по переходу, как только он выйдет.')}</p>
+          <p>{nbsp('Войдите через Google или по email — и путеводитель с вашим прогрессом будет на любом устройстве.')}</p>
           <div className="outro-actions">
-            <SignupLink morph="outro">Получить доступ <Icon name="arrowUp" size={18} /></SignupLink>
+            <SignupLink morph="outro">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
             <button type="button" className="ghost-button" onClick={openStarter}>Готовые запросы для старта <Icon name="terminal" size={17} /></button>
           </div>
         </div>
