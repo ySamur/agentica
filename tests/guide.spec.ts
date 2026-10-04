@@ -80,7 +80,7 @@ test('the first and last steps lead back to the map', async ({ page, context }) 
   await page.goto('/path/first-contact/install');
   await expect(page.getByRole('link', { name: /Назад Карта маршрута/ })).toHaveAttribute('href', '/path');
   await page.goto('/path/capstone/public-profile');
-  await expect(page).toHaveTitle('agentica — ★.3 Публичный профиль с результатом');
+  await expect(page).toHaveTitle('agentica — ★.3 Ваша система работы с агентами');
   await expect(page.getByRole('link', { name: /Готово Карта маршрута/ })).toHaveAttribute('href', '/path');
 });
 

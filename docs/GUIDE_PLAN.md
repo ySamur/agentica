@@ -8,6 +8,7 @@ Goal: turn the members' route into a real guide from hand-written code to orches
 - Answers are graded on the server; keys never reach the browser.
 - No free-text input anywhere: choices only.
 - 2026-10-03: stage 0 «Точка отсчёта» and the onboarding built on it are dropped; the route starts at stage 1. Supabase MCP keeps write access (test project).
+- 2026-10-04: no public profile and no sharing of progress, now or later. Step ★.3 (id `public-profile`) became «Ваша система работы с агентами»: the result is collected in the member's project; showing it is the member's own call.
 - Role wording: «Разработчик-оркестратор» / «Разработчик, который управляет агентами».
 - Work one visible iteration at a time: show desktop screenshots, wait for the owner's go-ahead.
 
@@ -22,7 +23,7 @@ Format, workflow and security rules: `.claude/rules/guide.md`. Facts: verify eac
 ## Roadmap
 1. **Done (2026-10-02):** lesson engine, server-checked quiz, pilot 3.2 «План до кода».
 2. **Done (2026-10-03):** the capstone (3 lessons without checks; the whole route now has lessons). Earlier: stage 6 «Оркестровка» (diagram `subagents`). Earlier: stage 5 «Автоматизация» (diagram `hook-events`). Earlier: stage 4 «Ревью» (a `diff` block with reviewer marks; diagram `delegation-grid`). Earlier: stage 3 «Постановка задач» complete (diagram `step-ladder`). Earlier: stage 2 «Контекст» (4 lessons, diagrams `context-window`, `memory-layers`; `compare` sides can show file content). Earlier: lesson map (below), `code` block, «Этап пройден» card, stage 1 «Первый контакт» (5 lessons, diagrams `permission-modes`, `checkpoints`).
-3. **Stages 2–6**, one stage per iteration: 2 «Контекст», 3 (three remaining steps), 4 «Ревью» (+ a `diff` block), 5 «Автоматизация», 6 «Оркестровка»; then the capstone (no checks: practice and manual marks).
+3. **Done (2026-10-03):** stages 2–6, one stage per iteration: 2 «Контекст», 3 (three remaining steps), 4 «Ревью» (+ a `diff` block), 5 «Автоматизация», 6 «Оркестровка»; then the capstone (no checks: practice and manual marks).
 
 ## Lesson map
 One line per step: outcome · key facts (re-verify each against the docs when writing; ⚠ = unconfirmed in the 2026-10-03 research) · check themes · links. Stages build on each other: refer back instead of repeating.
@@ -70,9 +71,9 @@ One line per step: outcome · key facts (re-verify each against the docs when wr
 **★ Выпускной проект** (written, no checks: practice and manual marks)
 - `idea-to-pr`: one real task from idea to merged PR using the whole route.
 - `before-after`: a personal «Было / Стало» measured on ★.1 against a similar older task (a `compare` block and a template; notes stay in the member's repo, no free-text input).
-- `public-profile`: shows the result in the member's own public places (PR, README, project rules). The site's public profile with verified progress is not built; never promise it in the lesson.
+- `public-profile` («Ваша система работы с агентами»): collects the cycle, the ★.1 PR, the ★.2 comparison and the project's agent setup in `docs/agents.md` for the member and their team. No publishing, no site profile (owner, 2026-10-04).
 4. **Библиотека `/library`** (done 2026-10-03: 22 materials, bodies locked by RLS until the step is passed; rules in `.claude/rules/library.md`; starter prompts shared with the landing through `src/features/starter/prompts.ts`). Progress in Профиль done 2026-10-03 (`RouteProgress`: passed steps per stage linking to `/path#stage-…`, opened library materials counted from `library_items` and the progress).
-5. **Capstone** (idea → PR, «Было / Стало» reusing `RoleShift`), public profile with verified progress; then landing copy («Маршрут уже внутри», FAQ, chapters = stage titles).
+5. **Done (2026-10-04):** landing copy: «Весь маршрут уже внутри» with the real counts (tested against `catalog.ts`), FAQ on what is inside and on «Уже умею», meta descriptions; `landing-core` merged into `members-area`. The capstone's «Было / Стало» uses a `compare` block instead of `RoleShift`; the public profile is dropped (owner decisions above). The guide plan is complete.
 
 ## Per iteration
 - Lint, build, `npm test -- --project=desktop`, `npm run test:security`; desktop screenshots via `screenshot()` (`tests/helpers/page.ts`).

@@ -52,7 +52,7 @@ export const stages: readonly GuideStage[] = [
   { id: 'capstone', number: '★', title: 'Выпускной проект', promise: 'Всё вместе, на реальной задаче', steps: [
     { id: 'idea-to-pr', title: 'От идеи до PR силами агентов' },
     { id: 'before-after', title: 'Ваше личное «Было / Стало»' },
-    { id: 'public-profile', title: 'Публичный профиль с результатом' },
+    { id: 'public-profile', title: 'Ваша система работы с агентами' },
   ] },
 ];
 
