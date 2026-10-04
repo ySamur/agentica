@@ -287,6 +287,7 @@ test('a lesson teaches with its blocks: the session plays and pauses, the comman
   await mockAuth(context, { signedIn: true });
   await page.goto('/path/tasks/plan-first');
   await expect(page.locator('.step-meta')).toContainText(`≈${planFirst.lesson.minutes} минут`);
+  await expect(page.locator('.step-verified')).toHaveText(`Проверено на Claude Code ${planFirst.lesson.verified!.claudeCode}, октябрь 2026`);
   for (const name of ['Режим планирования', 'Что читать в плане', 'Практика у себя', 'Проверка']) {
     await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
   }
@@ -413,6 +414,9 @@ for (const [stepId, { lesson, key }] of published) {
     await page.goto(step.path);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(step.title);
     await expect(page.locator('.lesson > *')).toHaveCount(lesson.blocks.length);
+    // The release and month the facts were checked against, once a lesson records them.
+    if (lesson.verified) await expect(page.locator('.step-verified')).toContainText(lesson.verified.claudeCode);
+    else await expect(page.locator('.step-verified')).toHaveCount(0);
     await expectNoOverflow(page);
     await screenshot(page, `.local/screenshots/lesson-${stepId}-${testInfo.project.name}.png`);
     if (!key) return;

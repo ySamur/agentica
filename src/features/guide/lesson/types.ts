@@ -35,6 +35,8 @@ export type Question = { id: string; prompt: Inline; multiple?: boolean; options
 
 export type Lesson = {
   minutes: number;
+  // When the facts were last checked against the Claude Code docs, and for which release.
+  verified?: { date: string; claudeCode: string };
   // What the member can do after the step.
   outcome: Inline;
   blocks: Block[];

@@ -20,6 +20,13 @@ const notes: Record<StepStatus, string> = {
   in_progress: 'Шаг снова в работе.',
 };
 
+// «октябрь 2026» for the date a lesson's facts were checked (YYYY-MM-DD).
+const monthName = new Intl.DateTimeFormat('ru-RU', { month: 'long', timeZone: 'UTC' });
+function checkedIn(date: string) {
+  const day = new Date(`${date}T00:00:00Z`);
+  return `${monthName.format(day)} ${day.getUTCFullYear()}`;
+}
+
 // «Уже умею» on a step with a check: straight to the check.
 function toCheck() {
   const heading = document.getElementById('check-title');
@@ -129,6 +136,7 @@ export function StepPage() {
       </div>
       <h1 id="step-title" tabIndex={-1}>{nbsp(step.title)}</h1>
       <p className="step-meta">{nbsp(`Шаг ${position} из ${stage.steps.length} · ${stage.promise}${lesson ? ` · ≈${lesson.minutes} минут` : ''}`)}</p>
+      {lesson?.verified && <p className="step-verified">{nbsp(`Проверено на Claude Code ${lesson.verified.claudeCode}, ${checkedIn(lesson.verified.date)}`)}</p>}
       {lesson && <p className="step-outcome"><Rich text={lesson.outcome} /></p>}
       {checked && !finished && <a className="text-link step-skip" href="#check" onClick={event => { event.preventDefault(); toCheck(); }}>
         Уже умею — сразу к проверке <Icon name="arrow" size={15} />
