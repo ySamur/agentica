@@ -1,7 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { findStep, stages, steps } from '../src/features/guide/catalog';
-import type { Block } from '../src/features/guide/lesson/types';
-import { mockAuth, published } from './helpers/auth';
+import { shuffled } from '../src/features/guide/lesson/shuffle';
+import type { Block, Question } from '../src/features/guide/lesson/types';
+import { mockAuth, published, userId } from './helpers/auth';
 import { expectNoOverflow, screenshot, settle } from './helpers/page';
 
 test('the catalog has seven stages and 31 steps with unique ids', () => {
@@ -9,6 +10,18 @@ test('the catalog has seven stages and 31 steps with unique ids', () => {
   expect(steps).toHaveLength(31);
   expect(new Set(steps.map(step => step.id)).size).toBe(31);
   for (const step of steps) expect(step.id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+});
+
+test('each member gets check options in an order of their own, so the right answer has no fixed place', () => {
+  const letters = ['a', 'b', 'c', 'd'];
+  expect(shuffled(letters, 'seed')).toEqual(shuffled(letters, 'seed'));
+  expect(shuffled(letters, 'seed').toSorted()).toEqual(letters);
+  // Sources tend to list the right answer first; members see it there about a third of the time.
+  const firstIsRight = [...published.values()].flatMap(({ stepId, lesson, key }) => (lesson.check?.questions ?? [])
+    .filter(question => !question.multiple)
+    .map(question => key![question.id].correct.includes(shuffled(question.options, `${userId}:${stepId}:${question.id}`)[0].id)));
+  expect(firstIsRight.length).toBeGreaterThan(50);
+  expect(firstIsRight.filter(Boolean).length).toBeLessThan(firstIsRight.length * 0.4);
 });
 
 test('members land in the cabinet and start the route from its first step', async ({ page, context }, testInfo) => {
@@ -253,6 +266,10 @@ const key = planFirst.key!;
 const rightAnswers = Object.fromEntries(Object.entries(key).map(([id, { correct }]) => [id, correct]));
 const wrongOption = (id: string) => Object.keys(key[id].why).find(option => !key[id].correct.includes(option))!;
 const option = (page: Page, question: string, choice: string) => page.locator(`input[name="${question}"][value="${choice}"]`);
+// A question's options in the order the page shows them, and the order this member should get.
+const inputs = (page: Page, question: string) => page.locator(`input[name="${question}"]`);
+const shownOrder = (page: Page, question: string) => inputs(page, question).evaluateAll(items => items.map(item => item.getAttribute('value')));
+const memberOrder = (question: Question) => shuffled(question.options, `${userId}:plan-first:${question.id}`).map(item => item.id);
 
 async function answer(page: Page, answers: Record<string, string[]>) {
   for (const [question, chosen] of Object.entries(answers)) {
@@ -316,10 +333,13 @@ test('the check explains only the chosen answers, and passing it finishes the st
   await page.goto('/path/tasks/plan-first');
   await expect(page.locator('.step-state')).toHaveText('В процессе');
   const [first, second, third] = questions;
+  // The member's own order, not the source's.
+  for (const question of questions) await expect.poll(() => shownOrder(page, question.id)).toEqual(memberOrder(question));
+  expect(questions.some(question => memberOrder(question).join() !== question.options.map(item => item.id).join())).toBe(true);
   const submit = page.getByRole('button', { name: 'Проверить ответы' });
   await submit.click();
   await expect(page.getByRole('alert')).toContainText('Ответьте на вопрос 1');
-  await expect(option(page, first.id, first.options[0].id)).toBeFocused();
+  await expect(inputs(page, first.id).first()).toBeFocused();
   await answer(page, { [first.id]: rightAnswers[first.id], [second.id]: [wrongOption(second.id)], [third.id]: [wrongOption(third.id)] });
   await expect(page.getByRole('alert')).toHaveCount(0);
   await submit.click();
@@ -336,9 +356,9 @@ test('the check explains only the chosen answers, and passing it finishes the st
   // A changed answer loses its verdict; arrow keys move between a question's options.
   await answer(page, { [second.id]: rightAnswers[second.id] });
   await expect(fieldsets.nth(1)).not.toHaveAttribute('data-verdict');
-  await option(page, third.id, third.options[1].id).focus();
+  await inputs(page, third.id).nth(1).focus();
   await page.keyboard.press('ArrowUp');
-  await expect(option(page, third.id, third.options[0].id)).toBeChecked();
+  await expect(inputs(page, third.id).first()).toBeChecked();
   await answer(page, rightAnswers);
   await submit.click();
   await expect(page.locator('.step-state')).toHaveText('Выполнен');
@@ -353,7 +373,8 @@ test('the check explains only the chosen answers, and passing it finishes the st
   await expect(page.getByText('Проверка пройдена, шаг засчитан.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Уже умею — сразу к проверке' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Пройти ещё раз' }).click();
-  await expect(option(page, first.id, first.options[0].id)).toBeFocused();
+  await expect(inputs(page, first.id).first()).toBeFocused();
+  for (const question of questions) expect(await shownOrder(page, question.id)).toEqual(memberOrder(question));
 });
 
 test('«Уже умею» on a step with a check goes straight to it, and a failed check keeps the answers', async ({ page, context }) => {

@@ -4,7 +4,7 @@ import { compileLesson } from '../../scripts/guideContent.ts';
 import { library } from '../../content/library/index.ts';
 import { compileLibrary } from '../../scripts/libraryContent.ts';
 
-const userId = '34ae3545-ae23-41b1-a2c1-8292e58ba0dc';
+export const userId = '34ae3545-ae23-41b1-a2c1-8292e58ba0dc';
 const storageKey = 'sb-agentica-test-auth-token';
 
 export type ProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };

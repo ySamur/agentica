@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react';
 import { Icon } from '../../../components/Icon';
 import { nbsp } from '../../../lib/typography';
+import { useAuth } from '../../auth/AuthProvider';
 import { useGuideProgress } from '../GuideProgress';
 import { Rich } from './Rich';
+import { shuffled } from './shuffle';
 import type { Answers, CheckResult, Question } from './types';
 
 type CheckProps = {
@@ -16,6 +18,7 @@ type CheckProps = {
 // The step's check. The server grades every attempt and, once all answers are right, passes the step.
 // A wrong answer explains only the chosen options, so trying again still takes thought.
 export function Check({ stepId, questions, finished, expectFinish }: CheckProps) {
+  const { user } = useAuth();
   const { ready, submitCheck } = useGuideProgress();
   const [answers, setAnswers] = useState<Answers>({});
   const [result, setResult] = useState<CheckResult | null>(null);
@@ -115,7 +118,8 @@ export function Check({ stepId, questions, finished, expectFinish }: CheckProps)
           <legend><span className="check-number">{index + 1}/{questions.length}</span><span><Rich text={question.prompt} /></span></legend>
           {question.multiple && <p className="check-hint">{nbsp('Отметьте все верные ответы.')}</p>}
           <div className="check-options">
-            {question.options.map(option => {
+            {/* Every member gets an order of their own, the same on every visit. */}
+            {shuffled(question.options, `${user?.id ?? ''}:${stepId}:${question.id}`).map(option => {
               const inputId = `check-${question.id}-${option.id}`;
               const why = verdict?.why[option.id];
               const chosen = answers[question.id]?.includes(option.id) ?? false;
