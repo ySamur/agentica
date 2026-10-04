@@ -25,6 +25,8 @@ function accountUser(email: string, provider: 'google' | 'email', metadata: Reco
     role: 'authenticated',
     email,
     email_confirmed_at: '2026-09-24T00:00:00Z' as string | null,
+    // A requested address waiting for its confirmation links.
+    new_email: null as string | null,
     app_metadata: { provider, providers: [provider] },
     user_metadata: metadata,
     created_at: '2026-09-24T00:00:00Z',
@@ -46,6 +48,8 @@ function createState() {
     // Password reset letters asked for, and the scopes of every logout (`others` after a new password).
     recoverCount: 0,
     logoutScopes: [] as string[],
+    // A requested email change; the code exchange of its last link applies it.
+    emailChange: null as { from: string; to: string } | null,
     // SMTP down: GoTrue's 500 on sign-up with confirmations on.
     letterFails: false,
     exchangeCount: 0,
@@ -237,6 +241,14 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
           await json(route, { error_code: 'bad_code_verifier', msg: 'Invalid code' }, 400);
           return;
         }
+        // An email change's last link: the account moves to the new address.
+        const changed = state.emailChange && state.accounts.get(state.emailChange.from);
+        if (state.emailChange && changed) {
+          state.accounts.delete(state.emailChange.from);
+          state.accounts.set(state.emailChange.to, changed);
+          state.user = accountUser(state.emailChange.to, 'email', { display_name: changed.name });
+          state.emailChange = null;
+        }
         // A letter's link: the account is confirmed and signed in.
         const account = state.letter ? state.accounts.get(state.letter) : undefined;
         if (state.letter && account) {
@@ -255,7 +267,17 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     } else if (url.pathname === '/auth/v1/user') {
       if (request.method() === 'PUT') {
         if (state.updateFails) { await json(route, { msg: 'Unable to save' }, 500); return; }
-        const { data: metadata, password } = request.postDataJSON() as { data?: Record<string, unknown>; password?: string };
+        const { data: metadata, password, email } = request.postDataJSON() as { data?: Record<string, unknown>; password?: string; email?: string };
+        if (email !== undefined) {
+          if (state.accounts.has(email) || state.letterFails) {
+            await json(route, state.letterFails
+              ? { error_code: 'unexpected_failure', msg: 'Error sending email change email' }
+              : { error_code: 'email_exists', msg: 'A user with this email address has already been registered' }, state.letterFails ? 500 : 422);
+            return;
+          }
+          state.user.new_email = email;
+          state.emailChange = { from: state.user.email, to: email };
+        }
         const account = state.accounts.get(state.user.email);
         if (password !== undefined && account) {
           if (password === account.password) { await json(route, { error_code: 'same_password', msg: 'New password should be different from the old password.' }, 422); return; }

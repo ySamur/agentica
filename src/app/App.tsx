@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, ViewTransition } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, ViewTransition } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { LandingPage } from '../pages/landing/LandingPage';
 import { AuthProvider, useAuth, useSessionPending } from '../features/auth/AuthProvider';
@@ -84,10 +84,13 @@ function Layout() {
     document.title = `agentica — ${title}`;
   }, [title]);
 
+  // A letter's destination is spent once its callback hands over to a page. Members asking for an
+  // email change keep browsing meanwhile, so merely being signed in must not spend it.
+  const previousPath = useRef(location.pathname);
   useEffect(() => {
-    // A member has arrived, so a pending letter's destination is spent.
-    if (member && !['/login', '/auth/callback'].includes(location.pathname)) clearLetterDestination();
-  }, [member, location.pathname]);
+    if (previousPath.current === '/auth/callback' && location.pathname !== '/auth/callback') clearLetterDestination();
+    previousPath.current = location.pathname;
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!['/login', '/auth/callback'].includes(location.pathname)) clearDestination();

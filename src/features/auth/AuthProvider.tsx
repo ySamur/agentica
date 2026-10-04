@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from 'react-router';
 import { callbackAttempt, getSupabase, hasStoredSession, supabaseConfigured } from '../../lib/supabase';
 import { clearDestination, clearLetterDestination, rememberDestination, rememberLetterDestination } from './redirect';
 
-export type AppUser = { id: string; email: string; displayName: string; avatarUrl: string | null; viaGoogle: boolean };
+// `pendingEmail`: a requested new address that waits for its confirmation links.
+export type AppUser = { id: string; email: string; pendingEmail: string | null; displayName: string; avatarUrl: string | null; viaGoogle: boolean };
 // `confirm`: the email is not confirmed yet, so the session starts from the letter's link.
 export type PasswordResult = 'signed-in' | 'confirm';
 type AuthContextValue = {
@@ -19,6 +20,8 @@ type AuthContextValue = {
   resendConfirmation: (email: string, destination: string) => Promise<void>;
   requestPasswordReset: (email: string, destination: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  changeEmail: (email: string) => Promise<void>;
+  resendEmailChange: (email: string) => Promise<void>;
   // The session came from a password reset letter's link (PASSWORD_RECOVERY).
   recovering: boolean;
   signOut: (returnHome?: boolean) => Promise<void>;
@@ -26,6 +29,8 @@ type AuthContextValue = {
 };
 
 export const minPasswordLength = 8;
+// A light check before Supabase's own: something@domain.tld.
+export const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const unavailable = 'Вход временно недоступен. Попробуйте позже.';
 const offline = 'Не удалось войти. Проверьте соединение и попробуйте ещё раз.';
 const sessionEnded = 'Сессия завершена. Войдите снова.';
@@ -70,6 +75,7 @@ function mapUser(user: User): AppUser {
   return {
     id: user.id,
     email: user.email || '',
+    pendingEmail: nonEmpty(user.new_email),
     displayName: nonEmpty(metadata.display_name) || nonEmpty(metadata.full_name) || nonEmpty(metadata.name) || 'Пользователь',
     avatarUrl: avatar?.startsWith('https://') ? avatar : null,
     viaGoogle: Array.isArray(user.app_metadata.providers) ? user.app_metadata.providers.includes('google') : user.app_metadata.provider === 'google',
@@ -277,12 +283,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await client.auth.signOut({ scope: 'others' }).catch(() => undefined);
   }, [hasSession, signOut]);
 
+  // Supabase keeps the address until its links are followed: the new one's, and with Secure email
+  // change (on by default) the current one's too. The last link returns to the profile.
+  const changeEmail = useCallback(async (email: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    let failure: AuthError | null;
+    try {
+      rememberLetterDestination('/profile');
+      const client = await pending;
+      ({ error: failure } = await client.auth.updateUser({ email: email.trim() }, { emailRedirectTo: letterRedirect() }));
+    } catch {
+      throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure?.status === 401 || failure?.status === 403) {
+      await signOut();
+      throw new Error(sessionEnded);
+    }
+    if (failure && ['email_exists', 'user_already_exists', 'conflict'].includes(failure.code ?? '')) throw new Error('Этот адрес уже занят другим аккаунтом.');
+    if (failure) throw new Error(letterFailed(failure, 'письмо для смены адреса'));
+  }, [hasSession, signOut]);
+
+  const resendEmailChange = useCallback(async (email: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    let failure: AuthError | null;
+    try {
+      rememberLetterDestination('/profile');
+      const client = await pending;
+      ({ error: failure } = await client.auth.resend({ type: 'email_change', email, options: { emailRedirectTo: letterRedirect() } }));
+    } catch {
+      throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure) throw new Error(letterFailed(failure, 'письмо для смены адреса'));
+  }, [hasSession]);
+
   // Stable identities keep consumers and their effects from re-running on unrelated renders.
   const sessionUser = session?.user;
   const user = useMemo(() => sessionUser ? mapUser(sessionUser) : null, [sessionUser]);
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, recovering, signOut, updateName }),
-    [user, loading, signingOut, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, recovering, signOut, updateName],
+    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, recovering, signOut, updateName }),
+    [user, loading, signingOut, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, recovering, signOut, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

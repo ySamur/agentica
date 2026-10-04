@@ -4,8 +4,8 @@ import { stepAtPath } from '../guide/catalog';
 // counts too, so a guest following a link to a step lands on it after signing in.
 const allowedDestinations = ['/', '/path', '/library', '/profile', '/password', '/content', '/settings/profile'];
 const storageKey = 'agentica.auth.next';
-// A confirmation letter's link usually opens in a new tab, where sessionStorage is empty. Its
-// destination waits in localStorage until a member arrives, a sign-out, or the link's lifetime.
+// A letter's link usually opens in a new tab, where sessionStorage is empty. Its destination waits
+// in localStorage until its callback hands over to a page, a sign-out, or the link's lifetime.
 const letterKey = 'agentica.auth.letter-next';
 const letterLifetime = 24 * 60 * 60 * 1000;
 

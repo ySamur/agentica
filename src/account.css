@@ -110,6 +110,16 @@
   .profile-card .field-help:last-child { margin-bottom: 0; }
   .profile-form-footer { display: flex; align-items: center; gap: 20px; padding-top: 6px; }
   .profile-password { margin-top: 24px; }
+  /* A link-like button for secondary actions inside a form: cancel, send again. */
+  .text-button { padding: 0; background: none; color: var(--soft); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; transition: color .2s; }
+  .text-button:hover { color: var(--text); }
+  .text-button[aria-disabled=true] { cursor: default; color: var(--dim); text-decoration: none; }
+  .email-change { display: grid; justify-items: start; }
+  /* Stays in the layout when empty (a live region), without taking space. */
+  .email-pending { font-size: 14px; line-height: 1.6; color: var(--mint); }
+  .email-pending:not(:empty), .email-change > .text-button { margin-bottom: 14px; }
+  .email-change-form { justify-self: stretch; }
+  .email-change-form > input { margin-bottom: 0; }
   /* The new password page: one card, its heading directly over the form or the saved state. */
   :is(.password-form, .password-saved) { display: grid; justify-items: start; margin-top: 26px; }
   .password-form > input { margin-bottom: 0; }

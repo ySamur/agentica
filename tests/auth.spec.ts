@@ -301,6 +301,9 @@ test('a forgotten password: the letter opens a new password form in a new tab, a
   await expect(onward).toBeFocused();
   await onward.click();
   await expect(tab).toHaveURL('http://localhost:4317/path');
+  // The lazy route page and its cross-fade settle before the header is used.
+  await expect(tab.getByRole('heading', { level: 1 })).toHaveText('От клавиатуры к оркестровке.');
+  await settle(tab);
 
   await tab.getByRole('button', { name: 'Меню аккаунта' }).click();
   await tab.getByRole('menuitem', { name: 'Выйти' }).click();
@@ -337,6 +340,79 @@ test('an email account changes its password from the profile and returns there',
   await expect(page).toHaveURL('http://localhost:4317/profile');
 });
 
+test('an email account changes its address: checks, the pending address, both links, then sign-in with the new one', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context);
+  auth.accounts.set('member@example.com', { password: 'right-password-1', name: 'Участник По Почте', confirmed: true });
+  auth.accounts.set('taken@example.com', { password: 'other-password-1', name: 'Другой', confirmed: true });
+  await page.goto('/login?next=%2Fprofile');
+  await page.getByRole('textbox', { name: 'Email', exact: true }).fill('member@example.com');
+  await page.getByLabel('Пароль', { exact: true }).fill('right-password-1');
+  await page.getByLabel('Пароль', { exact: true }).press('Enter');
+  await expect(page).toHaveURL('http://localhost:4317/profile');
+
+  const toggle = page.getByRole('button', { name: 'Изменить email' });
+  await toggle.click();
+  const field = page.getByRole('textbox', { name: 'Новый email' });
+  await expect(field).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(field).toHaveCount(0);
+  await expect(toggle).toBeFocused();
+  await toggle.click();
+  const alert = page.getByRole('alert');
+  for (const [address, message] of [
+    ['member@example.com', 'Это ваш текущий адрес.'],
+    ['new-at-example.com', 'Проверьте email: похоже, в адресе опечатка.'],
+    ['taken@example.com', 'Этот адрес уже занят другим аккаунтом.'],
+  ]) {
+    await field.fill(address);
+    await field.press('Enter');
+    await expect(alert).toHaveText(message);
+    await expect(field).toBeFocused();
+    await expect(field).toHaveAttribute('aria-invalid', 'true');
+  }
+  auth.letterFails = true;
+  await field.fill('new@example.com');
+  await field.press('Enter');
+  await expect(alert).toHaveText('Не удалось отправить письмо для смены адреса. Попробуйте позже.');
+  auth.letterFails = false;
+  await field.press('Enter');
+
+  const pending = page.getByRole('status').filter({ hasText: 'new@example.com' });
+  await expect(pending).toContainText('ждёт подтверждения');
+  await expect(page.getByRole('button', { name: 'Указать другой адрес' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Письма отправлены, повторно — через минуту' })).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByRole('textbox', { name: 'Email', exact: true })).toHaveValue('member@example.com');
+  await page.reload();
+  await expect(pending).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Отправить письма ещё раз' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await settle(page);
+  await page.screenshot({ path: `.local/screenshots/profile-email-${testInfo.project.name}.png`, fullPage: true });
+
+  // With Secure email change, the first link only says so; the second one, here in a new tab, applies it.
+  await page.goto('/auth/callback?message=Confirmation+link+accepted.+Please+proceed+to+confirm+link+sent+to+the+other+email');
+  await expect(page.getByRole('heading', { name: 'Первая ссылка подтверждена' })).toBeVisible();
+  await expect(page).toHaveURL(/\/auth\/callback/);
+  const tab = await context.newPage();
+  await tab.goto('/auth/callback?code=fixture-one-time-code');
+  await expect(tab).toHaveURL('http://localhost:4317/profile');
+  await expect(tab.getByRole('textbox', { name: 'Email', exact: true })).toHaveValue('new@example.com');
+  await expect(tab.getByRole('status').filter({ hasText: 'ждёт подтверждения' })).toHaveCount(0);
+
+  await tab.getByRole('button', { name: 'Меню аккаунта' }).click();
+  await tab.getByRole('menuitem', { name: 'Выйти' }).click();
+  await tab.goto('/login');
+  const email = tab.getByRole('textbox', { name: 'Email', exact: true });
+  const password = tab.getByLabel('Пароль', { exact: true });
+  await email.fill('member@example.com');
+  await password.fill('right-password-1');
+  await password.press('Enter');
+  await expect(tab.getByRole('alert')).toHaveText('Неверный email или пароль.');
+  await email.fill('new@example.com');
+  await password.press('Enter');
+  await expect(tab).toHaveURL('http://localhost:4317/');
+});
+
 test('profile saves name, survives reload and keeps Google email read-only', async ({ page, context }, testInfo) => {
   await mockAuth(context, { signedIn: true });
   await page.goto('/profile');
@@ -344,8 +420,9 @@ test('profile saves name, survives reload and keeps Google email read-only', asy
   const input = page.getByRole('textbox', { name: 'Имя на сайте' });
   await expect(input).toHaveValue('Тестовый Разработчик');
   await expect(page.getByRole('textbox', { name: 'Email', exact: true })).toHaveAttribute('readonly', '');
-  // A Google account has no password of its own to change.
+  // A Google account has no password of its own to change, and its address comes from Google.
   await expect(page.getByRole('link', { name: 'Сменить пароль' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Изменить email' })).toHaveCount(0);
   await input.fill('  Новое Имя  ');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Имя сохранено');

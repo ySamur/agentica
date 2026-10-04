@@ -5,6 +5,7 @@ import { useAuth } from '../../features/auth/AuthProvider';
 import { UserAvatar } from '../../features/auth/UserAvatar';
 import { nbsp } from '../../lib/typography';
 import { RouteProgress } from './RouteProgress';
+import { EmailChange } from './EmailChange';
 
 export function ProfilePage() {
   const { user, updateName } = useAuth();
@@ -54,7 +55,8 @@ export function ProfilePage() {
         </div>
         <label htmlFor="profile-email">Email</label>
         <input id="profile-email" type="email" value={user.email} readOnly aria-describedby="email-help" />
-        <p className="field-help" id="email-help">{nbsp(user.viaGoogle ? 'Адрес меняется только в Google.' : 'Адрес пока нельзя изменить.')}</p>
+        <p className="field-help" id="email-help">{nbsp(user.viaGoogle ? 'Адрес меняется только в Google.' : 'По этому адресу вы входите и получаете письма.')}</p>
+        {!user.viaGoogle && <EmailChange user={user} />}
         {!user.viaGoogle && <Link className="ghost-button profile-password" to="/password" state={{ next: '/profile' }}>{nbsp('Сменить пароль')} <Icon name="arrow" size={16} /></Link>}
       </section>
     </div>

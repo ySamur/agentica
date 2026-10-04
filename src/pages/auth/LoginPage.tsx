@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState, ViewTransition, type ReactNode, type SubmitEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigationType, useSearchParams } from 'react-router';
 import { Icon } from '../../components/Icon';
-import { minPasswordLength, useAuth } from '../../features/auth/AuthProvider';
+import { emailPattern, minPasswordLength, useAuth } from '../../features/auth/AuthProvider';
 import { safeDestination } from '../../features/auth/redirect';
 import { PageStatus } from '../../components/PageStatus';
 import { nbsp } from '../../lib/typography';
 
 const morphs = ['hero', 'guide', 'outro'];
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type Field = 'name' | 'email' | 'password';
 // Sign in, create an account, or ask for a password reset letter.
 type Mode = 'signin' | 'signup' | 'reset';
