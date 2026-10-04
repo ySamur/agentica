@@ -15,6 +15,8 @@ type AuthContextValue = {
   signingOut: boolean;
   configured: boolean;
   error: string | null;
+  // A message for the next page after an account change that ends the session (account deleted).
+  notice: string | null;
   signIn: (destination: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<PasswordResult>;
   signUp: (email: string, password: string, name: string, destination: string) => Promise<PasswordResult>;
@@ -24,6 +26,8 @@ type AuthContextValue = {
   changeEmail: (email: string) => Promise<void>;
   // A prepared image (see avatarImage) replaces the photo; null removes the uploaded one.
   updateAvatar: (image: Blob | null) => Promise<void>;
+  // Deletes the account for good through the `delete-account` Edge Function; `email` confirms it.
+  deleteAccount: (email: string) => Promise<void>;
   resendEmailChange: (email: string) => Promise<void>;
   // The session came from a password reset letter's link (PASSWORD_RECOVERY).
   recovering: boolean;
@@ -100,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -126,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(nextSession);
           if (event === 'PASSWORD_RECOVERY') setRecovering(true);
           if (event === 'SIGNED_OUT') { clearDestination(); clearLetterDestination(); setRecovering(false); }
+          if (event === 'SIGNED_IN') setNotice(null);
         });
         unsubscribe = () => subscription.unsubscribe();
         const initialized = await client.auth.initialize();
@@ -362,11 +368,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (failure) throw new Error('Не удалось сохранить фото. Попробуйте ещё раз.');
   }, [sessionUser, signOut]);
 
+  // The server removes the photos and the user (progress cascades); this browser then forgets the
+  // session, which can no longer refresh, and lands on the landing with a notice.
+  const deleteAccount = useCallback(async (email: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    const client = await pending;
+    let status = 0;
+    try {
+      const { error: invokeError } = await client.functions.invoke('delete-account', { body: { email: email.trim() } });
+      // FunctionsHttpError carries the response; fetch and relay errors do not.
+      if (invokeError) status = invokeError.context instanceof Response ? invokeError.context.status : -1;
+    } catch {
+      status = -1;
+    }
+    if (status === 401) { await signOut(); throw new Error(sessionEnded); }
+    if (status === 400) throw new Error('Email не совпадает с адресом аккаунта.');
+    if (status !== 0) throw new Error('Не удалось удалить аккаунт. Проверьте соединение и попробуйте ещё раз.');
+    clearLetterDestination();
+    setNotice('Аккаунт удалён вместе с прогрессом и фото. Спасибо, что были с нами.');
+    // Like «Выйти»: the route guard waits while the landing replaces the profile.
+    await signOut(true);
+  }, [hasSession, signOut]);
+
   // Stable identities keep consumers and their effects from re-running on unrelated renders.
   const user = useMemo(() => sessionUser ? mapUser(sessionUser) : null, [sessionUser]);
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, recovering, signOut, updateName }),
-    [user, loading, signingOut, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, recovering, signOut, updateName],
+    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, notice, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, deleteAccount, recovering, signOut, updateName }),
+    [user, loading, signingOut, error, notice, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, deleteAccount, recovering, signOut, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

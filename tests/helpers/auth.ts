@@ -52,6 +52,9 @@ function createState() {
     avatars: new Map<string, { type: string; bytes: Buffer }>(),
     removedAvatars: [] as string[],
     storageFails: false,
+    // The `delete-account` Edge Function: whether it ran to the end, and a failing server.
+    accountDeleted: false,
+    deleteFails: false,
     // A requested email change; the code exchange of its last link applies it.
     emailChange: null as { from: string; to: string } | null,
     // SMTP down: GoTrue's 500 on sign-up with confirmations on.
@@ -207,6 +210,18 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     const url = new URL(request.url());
     if (url.pathname.startsWith('/rest/v1/')) {
       await data(route, request, url);
+    } else if (url.pathname === '/functions/v1/delete-account') {
+      // Like the function: a signed-in caller who types the account's email loses the account,
+      // their photos and (by cascade) their progress.
+      if (!request.headers().authorization?.startsWith('Bearer ey')) { await json(route, { error: 'not_signed_in' }, 401); return; }
+      if (state.deleteFails) { await json(route, { error: 'delete_failed' }, 500); return; }
+      const { email } = request.postDataJSON() as { email?: string };
+      if (email?.toLowerCase() !== state.user.email.toLowerCase()) { await json(route, { error: 'email_mismatch' }, 400); return; }
+      state.accountDeleted = true;
+      state.avatars.clear();
+      state.progress.clear();
+      state.accounts.delete(state.user.email);
+      await json(route, { deleted: true });
     } else if (url.pathname.startsWith('/storage/v1/object/public/avatars/')) {
       const image = state.avatars.get(decodeURIComponent(url.pathname.slice('/storage/v1/object/public/avatars/'.length)));
       if (image) await route.fulfill({ status: 200, contentType: image.type, body: image.bytes });

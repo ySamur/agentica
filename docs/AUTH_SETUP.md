@@ -27,6 +27,8 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610040002_library_content.sql`: the library gains `docs/agents.md` for step ★.3.
    - `202610040050_avatars.sql`: public bucket `avatars` (512 KB, WebP/PNG); members read, upload, replace and remove only `avatars/<own id>/…`.
    The site name lives in `user_metadata.display_name`; no profiles table.
+   **Edge Functions** (`supabase/functions/`; through MCP `deploy_edge_function`, or `supabase functions deploy <name> --no-verify-jwt`):
+   - `delete-account`: `verify_jwt` off, the function checks the bearer token with Auth and the typed email itself; deletes `avatars/<id>/…` and the user.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 
 ## Manual acceptance (automated tests use fixtures only)
@@ -36,6 +38,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
 - Email sign-up (name, email, password) shows «Отправили письмо…»; the letter's link in the same browser lands on the page asked for; in another browser it says to sign in with the password, which then works. Sign-in before confirming offers «Отправить письмо ещё раз». A wrong password says «Неверный email или пароль»; the profile shows «Email и пароль».
 - «Забыли пароль?» sends a letter; its link in the same browser (a new tab too) opens «Новый пароль.»; after saving, the old password is refused and the new one signs in, and other browsers' sessions end. «Сменить пароль» in an email account's profile does the same without a letter.
 - «Загрузить фото» in the profile: a photo shows cropped to a square in the profile and the header and survives a reload; «Заменить фото» leaves one file in Storage → avatars/<id>; «Убрать фото» falls back to Google's photo or the first letter.
+- «Удалить аккаунт» (last profile card): a wrong email is refused; the right one lands on the landing with «Аккаунт удалён…»; Authentication → Users no longer lists the account, Storage → avatars has no folder for it, `guide_progress` has no rows for it; signing in again creates a new, empty account.
 - «Изменить email» in an email account's profile: a taken address is refused; after sending, the profile shows the pending address after a reload too. The first link says «Первая ссылка подтверждена»; the second (same browser) returns to the profile with the new address, which then signs in while the old one is refused.
 - A profile name change survives reload and appears in the account menu.
 - Logout in one tab hides the menu and the route in all tabs; re-login keeps one account, the name and the progress.

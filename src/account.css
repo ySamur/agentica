@@ -110,6 +110,14 @@
   .profile-card .field-help:last-child { margin-bottom: 0; }
   .profile-form-footer { display: flex; align-items: center; gap: 20px; padding-top: 6px; }
   .profile-password { margin-top: 24px; }
+  /* Deleting the account: set apart in a warm red, the one destructive action of the site. */
+  .danger-card { border-color: #ff8f9d33; }
+  .danger-card .profile-card-note { max-width: 560px; }
+  .danger-toggle { margin-top: 22px; color: #ffb0ba; }
+  .danger-form { margin-top: 22px; }
+  .danger-form > input { margin-bottom: 18px; }
+  .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 22px; border-radius: 999px; background: #ff5f73; color: #1a0508; font-size: 15px; font-weight: 600; transition: background .2s; }
+  .danger-button:hover { background: #ff7a8b; }
   /* The photo's controls sit under the name in the identity row. */
   .avatar-picker { display: grid; justify-items: start; gap: 8px; margin-top: 12px; }
   .avatar-picker-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }

@@ -500,6 +500,48 @@ test('profile photo: checks the file, crops it to a 256 px square, replaces and 
   await expect(page.getByRole('button', { name: 'Убрать фото' })).toHaveCount(0);
 });
 
+test('deleting the account: the email confirms it, a server failure keeps it, then the landing says it is gone', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  auth.seed('plan-first', 'done');
+  await page.goto('/profile');
+  const toggle = page.getByRole('button', { name: 'Удалить аккаунт' });
+  await toggle.click();
+  const field = page.getByRole('textbox', { name: 'Чтобы подтвердить, введите developer@example.com' });
+  await expect(field).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(field).toHaveCount(0);
+  await expect(toggle).toBeFocused();
+
+  await toggle.click();
+  const alert = page.locator('.danger-card').getByRole('alert');
+  await field.fill('someone@example.com');
+  await field.press('Enter');
+  await expect(alert).toHaveText('Email не совпадает с адресом аккаунта.');
+  await expect(field).toBeFocused();
+  expect(auth.accountDeleted).toBe(false);
+  await field.fill('Developer@Example.com');
+  await settle(page);
+  await page.locator('.danger-card').screenshot({ path: `.local/screenshots/profile-delete-${testInfo.project.name}.png` });
+  auth.deleteFails = true;
+  await field.press('Enter');
+  await expect(alert).toHaveText('Не удалось удалить аккаунт. Проверьте соединение и попробуйте ещё раз.');
+  await expect(field).toBeFocused();
+  await expect(page).toHaveURL('http://localhost:4317/profile');
+  expect(auth.accountDeleted).toBe(false);
+
+  auth.deleteFails = false;
+  await field.press('Enter');
+  await expect(page).toHaveURL('http://localhost:4317/');
+  await expect(page.locator('main.landing-page')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Аккаунт удалён' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Войти', exact: true })).toBeVisible();
+  expect(auth.accountDeleted).toBe(true);
+  expect(auth.progress.size).toBe(0);
+  expect(auth.logoutScopes).toEqual(['local']);
+  await page.goto('/profile');
+  await expect(page).toHaveURL(/\/login\?next=%2Fprofile$/);
+});
+
 test('profile rejects blank names and supports retry after a save failure', async ({ page, context }) => {
   const auth = await mockAuth(context, { signedIn: true });
   await page.goto('/profile');

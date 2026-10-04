@@ -7,6 +7,7 @@ import { nbsp } from '../../lib/typography';
 import { RouteProgress } from './RouteProgress';
 import { EmailChange } from './EmailChange';
 import { AvatarPicker } from './AvatarPicker';
+import { DeleteAccount } from './DeleteAccount';
 
 export function ProfilePage() {
   const { user, updateName } = useAuth();
@@ -60,6 +61,7 @@ export function ProfilePage() {
         {!user.viaGoogle && <EmailChange user={user} />}
         {!user.viaGoogle && <Link className="ghost-button profile-password" to="/password" state={{ next: '/profile' }}>{nbsp('Сменить пароль')} <Icon name="arrow" size={16} /></Link>}
       </section>
+      <DeleteAccount user={user} />
     </div>
   </main>;
 }

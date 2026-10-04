@@ -74,7 +74,7 @@ function Layout() {
   const [starterOpen, setStarterOpen] = useState(false);
   const location = useLocation();
   const navigationType = useNavigationType();
-  const { error, user } = useAuth();
+  const { error, notice, user } = useAuth();
   const member = useMember();
   const openStarter = () => setStarterOpen(true);
   const title = pageTitle(location.pathname, member);
@@ -110,7 +110,7 @@ function Layout() {
     <div className="aurora aurora-calm" aria-hidden="true"><i /><i /><i /><i /></div>
     {/* Remounting per route resets the mobile and account menus after any navigation. */}
     <SiteHeader key={location.pathname} member={member} />
-    {error && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error}</p>}
+    {(error || notice) && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error || notice}</p>}
     {/* Router updates run as transitions, so each new page cross-fades in; a hash change on the same
         page is an update and stays still. Suspense sits outside, so a lazy page keeps the old one on
         screen until it is ready instead of flashing the fallback. */}

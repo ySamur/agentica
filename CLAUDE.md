@@ -22,7 +22,7 @@ Before reporting a change as done, run the `verify` skill.
 
 - `src/app/App.tsx`: routes and `Layout` (header, page cross-fade through `<ViewTransition>`, arrival focus, anchor scrolling).
 - `src/features/<name>/`: feature code: `auth`, `guide` (Маршрут), `library` (Библиотека), `landing`, `starter` (prompt dialog). Pages in `src/pages/<name>/`, shared UI in `src/components/`, helpers in `src/lib/`.
-- `supabase/migrations/`: schema, grants, RLS, published lessons. `tests/`: Playwright specs and helpers, the SQL security test.
+- `supabase/migrations/`: schema, grants, RLS, published lessons. `supabase/functions/`: Edge Functions (Deno) for what only the server may do (`delete-account`). `tests/`: Playwright specs and helpers, the SQL security test.
 - `content/guide/`: lesson sources with answer keys; `content/library/`: library materials (neither imported by `src/`); `scripts/`: their compilers and migration generators. Lesson map and content workflow: `docs/GUIDE_PLAN.md`.
 - `docs/AUTH_SETUP.md`: the owner-run setup checklist and the migration list.
 - `.claude/rules/`: area rules (landing, auth, guide, supabase, tests, styles); each loads with the files it covers.
@@ -41,7 +41,7 @@ Before reporting a change as done, run the `verify` skill.
 - Desktop only for now: no responsive layouts (no mobile or tablet breakpoints), no mobile tests, no mobile viewport checks. Leave existing mobile code as is unless asked.
 - "Landing" means the guest page only; the members' pages are Кабинет, Маршрут, Шаг, Библиотека, Профиль.
 - Out of scope: other sign-in methods.
-- Account work, one stage at a time (branch `account`): password reset (done), email change (done), avatar upload (done), account deletion, hosting.
+- Account work, one stage at a time (branch `account`): password reset (done), email change (done), avatar upload (done), account deletion (done; Edge Function deployed by the agent through MCP), hosting.
 
 ### UI
 - Russian UI copy; every string goes through `nbsp()` (`src/lib/typography.ts`).
