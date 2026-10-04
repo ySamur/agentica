@@ -30,7 +30,7 @@ Before reporting a change as done, run the `verify` skill.
 ## Routes
 
 - `/`: the landing for guests, `CabinetPage` for members. While the SDK restores the session, a stored one or an OAuth code counts as a member (`useSessionPending()`, for the header too), so members never see the landing flash. Members' header: Кабинет, Маршрут, Библиотека and «Продолжить».
-- `/path`, `/path/:stage/:step`, `/library` and `/profile` sit behind `RequireAuth`; guests go to `/login?next=…`. Also `/login` and `/auth/callback`.
+- `/path`, `/path/:stage/:step`, `/library`, `/profile` and `/password` (new password: after a reset letter, or from the profile) sit behind `RequireAuth`; guests go to `/login?next=…`. Also `/login` and `/auth/callback`.
 - Redirects: `/content` → `/path`; `/settings` and `/settings/profile` → `/profile`; trailing slashes are stripped.
 - Only the landing ships in the main chunk; every other page is `React.lazy`.
 - A new page needs a tab title in `titles` (`App.tsx`; otherwise it reads «Страница не найдена»), an `h1` with `tabIndex={-1}` and, for members, an entry in `allowedDestinations` (`src/features/auth/redirect.ts`; otherwise sign-in returns to `/`).
@@ -40,7 +40,8 @@ Before reporting a change as done, run the `verify` skill.
 ### Scope
 - Desktop only for now: no responsive layouts (no mobile or tablet breakpoints), no mobile tests, no mobile viewport checks. Leave existing mobile code as is unless asked.
 - "Landing" means the guest page only; the members' pages are Кабинет, Маршрут, Шаг, Библиотека, Профиль.
-- Out of scope: hosting, other sign-in methods, avatar upload, account deletion. Next stage: password reset, email change.
+- Out of scope: other sign-in methods.
+- Account work, one stage at a time (branch `account`): password reset (done), email change, avatar upload, account deletion, hosting.
 
 ### UI
 - Russian UI copy; every string goes through `nbsp()` (`src/lib/typography.ts`).

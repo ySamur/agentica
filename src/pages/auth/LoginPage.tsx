@@ -9,6 +9,8 @@ import { nbsp } from '../../lib/typography';
 const morphs = ['hero', 'guide', 'outro'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type Field = 'name' | 'email' | 'password';
+// Sign in, create an account, or ask for a password reset letter.
+type Mode = 'signin' | 'signup' | 'reset';
 
 // The landing's call to action that led here (see SignupLink), when it was a fresh step forward.
 function morphFrom(state: unknown) {
@@ -17,7 +19,7 @@ function morphFrom(state: unknown) {
 }
 
 export function LoginPage() {
-  const { user, loading, configured, error: sessionError, signIn, signInWithPassword, signUp, resendConfirmation } = useAuth();
+  const { user, loading, configured, error: sessionError, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset } = useAuth();
   const location = useLocation();
   const navigationType = useNavigationType();
   // Read once: the card takes the pill's transition name only on the way in, never on back or reload.
@@ -25,12 +27,14 @@ export function LoginPage() {
   const [params] = useSearchParams();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  // Email and password: sign in to an existing account or create one.
-  const [creating, setCreating] = useState(false);
+  // Email and password: sign in to an existing account, create one, or reset a forgotten password.
+  const [mode, setMode] = useState<Mode>('signin');
+  const creating = mode === 'signup';
+  const resetting = mode === 'reset';
   const [sending, setSending] = useState(false);
   const [formError, setFormError] = useState<{ field: Field | null; message: string } | null>(null);
-  // An account waiting for its letter's link: right after sign-up, or a sign-in before confirming.
-  const [letter, setLetter] = useState<{ email: string; reason: 'signup' | 'unconfirmed' } | null>(null);
+  // A letter on its way: a confirmation after sign-up or a sign-in before confirming, or a reset link.
+  const [letter, setLetter] = useState<{ email: string; reason: 'signup' | 'unconfirmed' | 'reset' } | null>(null);
   const [resend, setResend] = useState<'idle' | 'sending' | 'sent'>('idle');
   useEffect(() => {
     if (resend !== 'sent') return;
@@ -76,6 +80,7 @@ export function LoginPage() {
     if (creating && !value('name').trim()) return reject('name', 'Введите имя.');
     if (!email) return reject('email', 'Введите email.');
     if (!emailPattern.test(email)) return reject('email', 'Проверьте email: похоже, в адресе опечатка.');
+    if (resetting) return sendReset(email);
     if (!password) return reject('password', 'Введите пароль.');
     if (creating && password.length < minPasswordLength) return reject('password', 'Пароль слишком короткий.');
     setSending(true);
@@ -94,12 +99,26 @@ export function LoginPage() {
     }
   }
 
-  function switchMode() {
-    setCreating(!creating);
+  async function sendReset(email: string) {
+    setSending(true);
+    try {
+      await requestPasswordReset(email, next);
+      setLetter({ email, reason: 'reset' });
+      // The letter has just gone out; Supabase allows the next one a minute later.
+      setResend('sent');
+    } catch (cause) {
+      reject('email', cause instanceof Error ? cause.message : 'Не удалось отправить письмо.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function switchMode(to: Mode) {
+    setMode(to);
     setFormError(null);
     setLetter(null);
     // The first field of the new form, so keyboard users continue where the form changed.
-    pendingFocus.current = creating ? 'email' : 'name';
+    pendingFocus.current = to === 'signup' ? 'name' : 'email';
   }
 
   // aria-disabled rather than disabled: the button keeps focus while it waits.
@@ -108,7 +127,7 @@ export function LoginPage() {
     setResend('sending');
     setFormError(null);
     try {
-      await resendConfirmation(letter.email, next);
+      await (letter.reason === 'reset' ? requestPasswordReset : resendConfirmation)(letter.email, next);
       setResend('sent');
     } catch (cause) {
       setFormError({ field: null, message: cause instanceof Error ? cause.message : 'Не удалось отправить письмо.' });
@@ -116,9 +135,11 @@ export function LoginPage() {
     }
   }
 
-  const letterNote = letter && (letter.reason === 'signup'
-    ? `Отправили письмо со ссылкой на ${letter.email}. Откройте его в этом браузере — вход завершится сам.`
-    : `Email ещё не подтверждён. Откройте письмо со ссылкой, отправленное на ${letter.email}.`);
+  const letterNote = letter && {
+    signup: `Отправили письмо со ссылкой на ${letter.email}. Откройте его в этом браузере — вход завершится сам.`,
+    unconfirmed: `Email ещё не подтверждён. Откройте письмо со ссылкой, отправленное на ${letter.email}.`,
+    reset: `Если аккаунт с адресом ${letter.email} есть, отправили на него ссылку для нового пароля. Откройте её в этом браузере.`,
+  }[letter.reason];
 
   const invalid = (field: Field) => formError?.field === field;
   const described = (field: Field, help?: string) => [help, invalid(field) ? 'login-form-feedback' : null].filter(Boolean).join(' ') || undefined;
@@ -138,16 +159,21 @@ export function LoginPage() {
       <p className="login-caption">{nbsp('Первый вход через Google создаст аккаунт.')}</p>
       {(!configured || error || sessionError) && <p className="form-error" role="alert">{error || (!configured ? 'Вход временно недоступен. Попробуйте позже.' : sessionError)}</p>}
       <p className="login-divider" aria-hidden="true">или</p>
-      <form className="login-form" onSubmit={submit} noValidate aria-label={creating ? 'Регистрация по email' : 'Вход по email'}>
+      <form className="login-form" onSubmit={submit} noValidate aria-label={{ signin: 'Вход по email', signup: 'Регистрация по email', reset: 'Восстановление пароля' }[mode]}>
         {creating && <>
           <label htmlFor="login-name">{nbsp('Имя на сайте')}</label>
           <input ref={nameField} id="login-name" name="name" autoComplete="name" disabled={sending} aria-invalid={invalid('name')} aria-describedby={described('name')} />
         </>}
         <label htmlFor="login-email">Email</label>
-        <input ref={emailField} id="login-email" name="email" type="email" autoComplete="email" spellCheck={false} disabled={sending} aria-invalid={invalid('email')} aria-describedby={described('email')} />
-        <label htmlFor="login-password">Пароль</label>
-        <input ref={passwordField} id="login-password" name="password" type="password" autoComplete={creating ? 'new-password' : 'current-password'} disabled={sending} aria-invalid={invalid('password')} aria-describedby={described('password', creating ? 'login-password-help' : undefined)} />
+        <input ref={emailField} id="login-email" name="email" type="email" autoComplete="email" spellCheck={false} disabled={sending} aria-invalid={invalid('email')} aria-describedby={described('email', resetting ? 'login-reset-help' : undefined)} />
+        {resetting
+          ? <p className="field-help" id="login-reset-help">{nbsp('Пришлём ссылку, по которой можно задать новый пароль.')}</p>
+          : <>
+            <label htmlFor="login-password">Пароль</label>
+            <input ref={passwordField} id="login-password" name="password" type="password" autoComplete={creating ? 'new-password' : 'current-password'} disabled={sending} aria-invalid={invalid('password')} aria-describedby={described('password', creating ? 'login-password-help' : undefined)} />
+          </>}
         {creating && <p className="field-help" id="login-password-help">{nbsp(`Минимум ${minPasswordLength} символов.`)}</p>}
+        {mode === 'signin' && <button type="button" className="login-forgot" onClick={() => switchMode('reset')} disabled={sending}>{nbsp('Забыли пароль?')}</button>}
         <p id="login-form-feedback" className={`login-feedback ${formError ? 'form-error' : 'form-success'}`} role={formError ? 'alert' : 'status'}>
           {formError?.message || (letterNote ? nbsp(letterNote) : '')}
         </p>
@@ -155,15 +181,19 @@ export function LoginPage() {
           <button type="button" onClick={sendAgain} aria-disabled={resend !== 'idle'}>
             {resend === 'sending' ? 'Отправляем…' : resend === 'sent' ? 'Письмо отправлено, повторно — через минуту' : 'Отправить письмо ещё раз'}
           </button>
-          <p>{nbsp('Нет письма? Проверьте спам. Если адрес уже зарегистрирован, войдите паролем или через Google.')}</p>
+          <p>{nbsp(letter.reason === 'reset'
+            ? 'Нет письма? Проверьте спам и адрес. Аккаунт, созданный через Google, получит пароль так же.'
+            : 'Нет письма? Проверьте спам. Если адрес уже зарегистрирован, войдите паролем или через Google.')}</p>
         </div>}
         <button className="ghost-button" type="submit" disabled={sending}>
-          {sending ? (creating ? 'Создаём аккаунт…' : 'Входим…') : (creating ? 'Создать аккаунт' : 'Войти')}
+          {sending
+            ? { signin: 'Входим…', signup: 'Создаём аккаунт…', reset: 'Отправляем…' }[mode]
+            : { signin: 'Войти', signup: 'Создать аккаунт', reset: 'Отправить ссылку' }[mode]}
         </button>
       </form>
       <p className="login-switch">
-        {creating ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
-        <button type="button" onClick={switchMode} disabled={sending}>{creating ? 'Войти' : 'Зарегистрироваться'}</button>
+        {nbsp({ signin: 'Нет аккаунта?', signup: 'Уже есть аккаунт?', reset: 'Вспомнили пароль?' }[mode])}{' '}
+        <button type="button" onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} disabled={sending}>{mode === 'signin' ? 'Зарегистрироваться' : 'Войти'}</button>
       </p>
       <Link className="text-link" to="/">Вернуться на главную <Icon name="arrow" size={15} /></Link>
     </section>)}

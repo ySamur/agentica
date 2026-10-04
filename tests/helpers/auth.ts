@@ -43,6 +43,9 @@ function createState() {
     letter: null as string | null,
     resendCount: 0,
     resendLimited: false,
+    // Password reset letters asked for, and the scopes of every logout (`others` after a new password).
+    recoverCount: 0,
+    logoutScopes: [] as string[],
     // SMTP down: GoTrue's 500 on sign-up with confirmations on.
     letterFails: false,
     exchangeCount: 0,
@@ -209,6 +212,14 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
       state.resendCount += 1;
       state.letter = (request.postDataJSON() as { email: string }).email;
       await json(route, {});
+    } else if (url.pathname === '/auth/v1/recover') {
+      if (state.resendLimited) { await json(route, { error_code: 'over_email_send_rate_limit', msg: 'Email rate limit exceeded' }, 429); return; }
+      if (state.letterFails) { await json(route, { error_code: 'unexpected_failure', msg: 'Error sending recovery email' }, 500); return; }
+      state.recoverCount += 1;
+      // Like GoTrue: the same answer for any address, a letter only to an existing account.
+      const { email } = request.postDataJSON() as { email: string };
+      if (state.accounts.has(email)) state.letter = email;
+      await json(route, {});
     } else if (url.pathname === '/auth/v1/token') {
       if (url.searchParams.get('grant_type') === 'password') {
         const { email, password } = request.postDataJSON() as { email: string; password: string };
@@ -244,10 +255,17 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     } else if (url.pathname === '/auth/v1/user') {
       if (request.method() === 'PUT') {
         if (state.updateFails) { await json(route, { msg: 'Unable to save' }, 500); return; }
-        state.user.user_metadata = { ...state.user.user_metadata, ...request.postDataJSON().data };
+        const { data: metadata, password } = request.postDataJSON() as { data?: Record<string, unknown>; password?: string };
+        const account = state.accounts.get(state.user.email);
+        if (password !== undefined && account) {
+          if (password === account.password) { await json(route, { error_code: 'same_password', msg: 'New password should be different from the old password.' }, 422); return; }
+          account.password = password;
+        }
+        state.user.user_metadata = { ...state.user.user_metadata, ...metadata };
       }
       await json(route, state.user);
     } else if (url.pathname === '/auth/v1/logout') {
+      state.logoutScopes.push(url.searchParams.get('scope') ?? 'global');
       if (state.logoutFails) await json(route, { message: 'Server unavailable' }, 503);
       else await route.fulfill({ status: 204 });
     } else {

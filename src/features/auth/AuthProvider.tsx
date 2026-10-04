@@ -17,6 +17,10 @@ type AuthContextValue = {
   signInWithPassword: (email: string, password: string) => Promise<PasswordResult>;
   signUp: (email: string, password: string, name: string, destination: string) => Promise<PasswordResult>;
   resendConfirmation: (email: string, destination: string) => Promise<void>;
+  requestPasswordReset: (email: string, destination: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  // The session came from a password reset letter's link (PASSWORD_RECOVERY).
+  recovering: boolean;
   signOut: (returnHome?: boolean) => Promise<void>;
   updateName: (name: string) => Promise<void>;
 };
@@ -24,10 +28,12 @@ type AuthContextValue = {
 export const minPasswordLength = 8;
 const unavailable = 'Вход временно недоступен. Попробуйте позже.';
 const offline = 'Не удалось войти. Проверьте соединение и попробуйте ещё раз.';
-const confirmRedirect = () => `${window.location.origin}/auth/callback`;
-// With confirmations on, GoTrue answers 500 `unexpected_failure` when the letter cannot be sent (SMTP).
-const letterFailed = (error: AuthError) => error.status === 500
-  ? 'Не удалось отправить письмо с подтверждением. Попробуйте позже.'
+const sessionEnded = 'Сессия завершена. Войдите снова.';
+// Every letter's link (confirmation, password reset) returns through the one allowed callback URL.
+const letterRedirect = () => `${window.location.origin}/auth/callback`;
+// GoTrue answers 500 `unexpected_failure` when a letter cannot be sent (SMTP).
+const letterFailed = (error: AuthError, letter: string) => error.status === 500
+  ? `Не удалось отправить ${letter}. Попробуйте позже.`
   : passwordError(error);
 
 // Supabase Auth error codes → what the person can do about them.
@@ -37,6 +43,9 @@ function passwordError(error: AuthError) {
     case 'user_already_exists':
     case 'email_exists': return 'Этот email уже зарегистрирован. Войдите паролем или через Google.';
     case 'weak_password': return `Пароль слишком простой: минимум ${minPasswordLength} символов, лучше с буквами и цифрами.`;
+    case 'same_password': return 'Новый пароль совпадает с текущим. Придумайте другой.';
+    case 'reauthentication_needed':
+    case 'reauthentication_not_valid': return 'Для смены пароля войдите заново и повторите.';
     case 'email_address_invalid':
     case 'validation_failed': return 'Проверьте email: похоже, в адресе опечатка.';
     case 'email_not_confirmed': return 'Подтвердите email по ссылке из письма, затем войдите.';
@@ -72,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(supabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -96,7 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!active) return;
           revision += 1;
           setSession(nextSession);
-          if (event === 'SIGNED_OUT') { clearDestination(); clearLetterDestination(); }
+          if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+          if (event === 'SIGNED_OUT') { clearDestination(); clearLetterDestination(); setRecovering(false); }
         });
         unsubscribe = () => subscription.unsubscribe();
         const initialized = await client.auth.initialize();
@@ -173,12 +184,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       result = await client.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { display_name: name.trim() }, emailRedirectTo: confirmRedirect() },
+        options: { data: { display_name: name.trim() }, emailRedirectTo: letterRedirect() },
       });
     } catch {
       throw new Error('Не удалось создать аккаунт. Проверьте соединение и разрешите хранение данных сайта.');
     }
-    if (result.error) throw new Error(letterFailed(result.error));
+    if (result.error) throw new Error(letterFailed(result.error, 'письмо с подтверждением'));
     return result.data.session ? 'signed-in' : 'confirm';
   }, []);
 
@@ -189,11 +200,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       rememberLetterDestination(destination);
       const client = await pending;
-      ({ error: failure } = await client.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: confirmRedirect() } }));
+      ({ error: failure } = await client.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: letterRedirect() } }));
     } catch {
       throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
     }
-    if (failure) throw new Error(letterFailed(failure));
+    if (failure) throw new Error(letterFailed(failure, 'письмо с подтверждением'));
+  }, []);
+
+  // Supabase answers the same whether the address has an account or not. The letter's link signs in
+  // with PASSWORD_RECOVERY, and the callback page then opens the new password form.
+  const requestPasswordReset = useCallback(async (email: string, destination: string) => {
+    const pending = getSupabase();
+    if (!pending) throw new Error(unavailable);
+    let failure: AuthError | null;
+    try {
+      rememberLetterDestination(destination);
+      const client = await pending;
+      ({ error: failure } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo: letterRedirect() }));
+    } catch {
+      throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure) throw new Error(letterFailed(failure, 'письмо со ссылкой'));
   }, []);
 
   const signOut = useCallback(async (returnHome = false) => {
@@ -218,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasSession = Boolean(session);
   const updateName = useCallback(async (value: string) => {
     const pending = getSupabase();
-    if (!pending || !hasSession) throw new Error('Сессия завершена. Войдите снова.');
+    if (!pending || !hasSession) throw new Error(sessionEnded);
     const name = value.trim();
     if (!name) throw new Error('Введите имя.');
     const client = await pending;
@@ -230,12 +257,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // USER_UPDATED updates the session through the subscription, including other tabs.
   }, [hasSession, signOut]);
 
+  // A new password ends the account's sessions on other devices: after a reset, someone else may hold one.
+  const updatePassword = useCallback(async (password: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    const client = await pending;
+    let failure: AuthError | null;
+    try {
+      ({ error: failure } = await client.auth.updateUser({ password }));
+    } catch {
+      throw new Error('Не удалось сохранить пароль. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure?.status === 401 || (failure?.status === 403 && !failure.code?.startsWith('reauthentication'))) {
+      await signOut();
+      throw new Error(sessionEnded);
+    }
+    if (failure) throw new Error(passwordError(failure));
+    // Best effort: the password is saved either way.
+    await client.auth.signOut({ scope: 'others' }).catch(() => undefined);
+  }, [hasSession, signOut]);
+
   // Stable identities keep consumers and their effects from re-running on unrelated renders.
   const sessionUser = session?.user;
   const user = useMemo(() => sessionUser ? mapUser(sessionUser) : null, [sessionUser]);
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signInWithPassword, signUp, resendConfirmation, signOut, updateName }),
-    [user, loading, signingOut, error, signIn, signInWithPassword, signUp, resendConfirmation, signOut, updateName],
+    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, recovering, signOut, updateName }),
+    [user, loading, signingOut, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, recovering, signOut, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

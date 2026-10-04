@@ -244,6 +244,99 @@ test('an expired letter link says so and leads back to signing in', async ({ pag
   await expect(page.getByText('Ссылка из письма устарела')).toBeVisible();
 });
 
+test('a forgotten password: the letter opens a new password form in a new tab, and only the new password works', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context);
+  auth.accounts.set('member@example.com', { password: 'old-password-1', name: 'Участник По Почте', confirmed: true });
+  await page.goto('/path');
+  const email = page.getByRole('textbox', { name: 'Email', exact: true });
+  await email.fill('member@example.com');
+  await page.getByRole('button', { name: 'Забыли пароль?' }).click();
+  await expect(email).toBeFocused();
+  await expect(email).toHaveValue('member@example.com');
+  await expect(page.getByLabel('Пароль', { exact: true })).toHaveCount(0);
+  auth.letterFails = true;
+  await email.press('Enter');
+  await expect(page.getByRole('alert')).toHaveText('Не удалось отправить письмо со ссылкой. Попробуйте позже.');
+  await expect(email).toBeFocused();
+  auth.letterFails = false;
+  await email.press('Enter');
+  await expect(page.getByRole('status').filter({ hasText: 'member@example.com' })).toContainText('ссылку для нового пароля');
+  await expect(page.getByRole('button', { name: 'Письмо отправлено, повторно — через минуту' })).toHaveAttribute('aria-disabled', 'true');
+  expect(auth.recoverCount).toBe(1);
+  await settle(page);
+  await page.screenshot({ path: `.local/screenshots/login-reset-${testInfo.project.name}.png`, fullPage: true });
+
+  // A mail app opens the link in a new tab: the reset session lands on the new password form.
+  const tab = await context.newPage();
+  await tab.goto('/auth/callback?code=fixture-one-time-code');
+  await expect(tab).toHaveURL('http://localhost:4317/password');
+  await expect(tab).toHaveTitle('agentica — Новый пароль');
+  await expect(tab.getByText('Вы вошли по ссылке из письма')).toBeVisible();
+  const fresh = tab.getByLabel('Новый пароль', { exact: true });
+  const repeat = tab.getByLabel('Повторите пароль');
+  const alert = tab.getByRole('alert');
+  await fresh.fill('short');
+  await fresh.press('Enter');
+  await expect(alert).toHaveText('Пароль слишком короткий.');
+  await expect(fresh).toBeFocused();
+  await fresh.fill('new-password-2');
+  await repeat.fill('new-password-3');
+  await repeat.press('Enter');
+  await expect(alert).toHaveText('Пароли не совпадают.');
+  await expect(repeat).toBeFocused();
+  await expect(repeat).toHaveAttribute('aria-invalid', 'true');
+  await fresh.fill('old-password-1');
+  await repeat.fill('old-password-1');
+  await repeat.press('Enter');
+  await expect(alert).toContainText('совпадает с текущим');
+  await expect(fresh).toBeFocused();
+  await settle(tab);
+  await tab.screenshot({ path: `.local/screenshots/password-${testInfo.project.name}.png`, fullPage: true });
+  await fresh.fill('new-password-2');
+  await repeat.fill('new-password-2');
+  await repeat.press('Enter');
+  await expect(tab.getByRole('status').filter({ hasText: 'Пароль сохранён' })).toBeVisible();
+  expect(auth.logoutScopes).toEqual(['others']);
+  const onward = tab.getByRole('link', { name: 'Продолжить' });
+  await expect(onward).toBeFocused();
+  await onward.click();
+  await expect(tab).toHaveURL('http://localhost:4317/path');
+
+  await tab.getByRole('button', { name: 'Меню аккаунта' }).click();
+  await tab.getByRole('menuitem', { name: 'Выйти' }).click();
+  await tab.goto('/login');
+  const password = tab.getByLabel('Пароль', { exact: true });
+  await tab.getByRole('textbox', { name: 'Email', exact: true }).fill('member@example.com');
+  await password.fill('old-password-1');
+  await password.press('Enter');
+  await expect(tab.getByRole('alert')).toHaveText('Неверный email или пароль.');
+  await password.fill('new-password-2');
+  await password.press('Enter');
+  await expect(tab).toHaveURL('http://localhost:4317/');
+});
+
+test('an email account changes its password from the profile and returns there', async ({ page, context }) => {
+  const auth = await mockAuth(context);
+  auth.accounts.set('member@example.com', { password: 'old-password-1', name: 'Участник По Почте', confirmed: true });
+  await page.goto('/login?next=%2Fprofile');
+  await page.getByRole('textbox', { name: 'Email', exact: true }).fill('member@example.com');
+  await page.getByLabel('Пароль', { exact: true }).fill('old-password-1');
+  await page.getByLabel('Пароль', { exact: true }).press('Enter');
+  await expect(page).toHaveURL('http://localhost:4317/profile');
+  await page.getByRole('link', { name: 'Сменить пароль' }).click();
+  await expect(page).toHaveURL('http://localhost:4317/password');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.getByText('Вы вошли по ссылке из письма')).toHaveCount(0);
+  await page.getByLabel('Новый пароль', { exact: true }).fill('new-password-2');
+  await page.getByLabel('Повторите пароль').fill('new-password-2');
+  await page.getByRole('button', { name: 'Сохранить пароль' }).click();
+  const back = page.getByRole('link', { name: 'Вернуться в профиль' });
+  await expect(back).toBeFocused();
+  expect(auth.accounts.get('member@example.com')?.password).toBe('new-password-2');
+  await back.click();
+  await expect(page).toHaveURL('http://localhost:4317/profile');
+});
+
 test('profile saves name, survives reload and keeps Google email read-only', async ({ page, context }, testInfo) => {
   await mockAuth(context, { signedIn: true });
   await page.goto('/profile');
@@ -251,6 +344,8 @@ test('profile saves name, survives reload and keeps Google email read-only', asy
   const input = page.getByRole('textbox', { name: 'Имя на сайте' });
   await expect(input).toHaveValue('Тестовый Разработчик');
   await expect(page.getByRole('textbox', { name: 'Email', exact: true })).toHaveAttribute('readonly', '');
+  // A Google account has no password of its own to change.
+  await expect(page.getByRole('link', { name: 'Сменить пароль' })).toHaveCount(0);
   await input.fill('  Новое Имя  ');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Имя сохранено');

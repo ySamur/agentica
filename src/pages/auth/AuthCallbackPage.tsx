@@ -6,10 +6,10 @@ import { clearDestination, getDestination } from '../../features/auth/redirect';
 import { PageStatus } from '../../components/PageStatus';
 
 export function AuthCallbackPage() {
-  const { user, loading, configured, error } = useAuth();
+  const { user, loading, configured, error, recovering } = useAuth();
   const navigate = useNavigate();
   const failure = callbackAttempt.errorCode === 'otp_expired'
-    ? 'Ссылка из письма устарела или уже использована. Войдите с паролем: мы предложим отправить новое письмо.'
+    ? 'Ссылка из письма устарела или уже использована. Запросите новое письмо на странице входа.'
     : callbackAttempt.error === 'access_denied'
     ? 'Вход отменён. Вы можете попробовать снова.'
     : callbackAttempt.error || error || !callbackAttempt.hasCode
@@ -17,20 +17,24 @@ export function AuthCallbackPage() {
       : null;
 
   useEffect(() => {
-    if (loading) return;
-    if (user && !failure) {
+    if (loading || !user || failure) return;
+    // The SDK announces a reset link's session (PASSWORD_RECOVERY) from a timer it sets while
+    // restoring the session; this later timer runs after it, so a reset always reaches the new
+    // password form. Reading the destination here keeps it across StrictMode's second setup.
+    const timer = window.setTimeout(() => {
       const destination = getDestination();
-      // Keep the same destination across StrictMode's second effect setup.
-      navigate(destination, { replace: true });
-    }
-  }, [user, loading, failure, navigate]);
+      if (recovering) navigate('/password', { replace: true, state: { next: destination, recovery: true } });
+      else navigate(destination, { replace: true });
+    });
+    return () => window.clearTimeout(timer);
+  }, [user, loading, failure, recovering, navigate]);
 
   if (loading) return <PageStatus title="Завершаем вход…" message="Возвращаем вас в agentica." />;
   if (user && !failure) return <PageStatus title="Всё готово…" />;
   // A code without a failure or a session: the SDK had no PKCE verifier for it, so the link was
-  // opened in another browser. A letter's link has confirmed the email by then.
+  // opened in another browser. A confirmation link has confirmed the email by then.
   const message = !configured ? 'Вход временно недоступен. Попробуйте позже.' : failure
-    || 'Ссылка открыта не в том браузере, где начинали вход. Если вы подтверждали email, он уже подтверждён: войдите здесь с паролем.';
+    || 'Ссылка открыта не в том браузере, где её запрашивали. Если вы подтверждали email, он уже подтверждён: войдите здесь с паролем. Ссылку для нового пароля запросите заново в этом браузере.';
   return <PageStatus title="Вход не завершён" message={message} retry={() => {
     const next = getDestination();
     clearDestination();

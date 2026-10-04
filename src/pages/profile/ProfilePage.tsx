@@ -1,4 +1,5 @@
 import { useState, type SubmitEvent } from 'react';
+import { Link } from 'react-router';
 import { Icon } from '../../components/Icon';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { UserAvatar } from '../../features/auth/UserAvatar';
@@ -54,6 +55,7 @@ export function ProfilePage() {
         <label htmlFor="profile-email">Email</label>
         <input id="profile-email" type="email" value={user.email} readOnly aria-describedby="email-help" />
         <p className="field-help" id="email-help">{nbsp(user.viaGoogle ? 'Адрес меняется только в Google.' : 'Адрес пока нельзя изменить.')}</p>
+        {!user.viaGoogle && <Link className="ghost-button profile-password" to="/password" state={{ next: '/profile' }}>{nbsp('Сменить пароль')} <Icon name="arrow" size={16} /></Link>}
       </section>
     </div>
   </main>;

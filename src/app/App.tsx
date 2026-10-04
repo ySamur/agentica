@@ -19,6 +19,7 @@ const CabinetPage = lazy(() => import('../pages/cabinet/CabinetPage').then(modul
 const LoginPage = lazy(() => import('../pages/auth/LoginPage').then(module => ({ default: module.LoginPage })));
 const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage').then(module => ({ default: module.AuthCallbackPage })));
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(module => ({ default: module.ProfilePage })));
+const PasswordPage = lazy(() => import('../pages/auth/PasswordPage').then(module => ({ default: module.PasswordPage })));
 const PathPage = lazy(() => import('../pages/path/PathPage').then(module => ({ default: module.PathPage })));
 const StepPage = lazy(() => import('../pages/path/StepPage').then(module => ({ default: module.StepPage })));
 const LibraryPage = lazy(() => import('../pages/library/LibraryPage').then(module => ({ default: module.LibraryPage })));
@@ -27,6 +28,7 @@ const titles: Record<string, string> = {
   '/login': 'Вход',
   '/auth/callback': 'Завершение входа',
   '/profile': 'Профиль',
+  '/password': 'Новый пароль',
   '/path': 'Маршрут',
   '/library': 'Библиотека',
 };
@@ -144,6 +146,7 @@ export default function App() {
       <Route path="settings/profile" element={<Navigate to="/profile" replace />} />
       <Route element={<RequireAuth />}>
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="password" element={<PasswordPage />} />
         <Route path="path" element={<PathPage />} />
         <Route path="path/:stage/:step" element={<StepPage />} />
         <Route path="library" element={<LibraryPage />} />
