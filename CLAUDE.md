@@ -13,6 +13,7 @@ Russian-language site for developers moving from hand-written code to Claude Cod
 | `npm run build` | Typecheck, then Vite build. |
 | `npm test -- --project=desktop` | Playwright, desktop project only. |
 | `npm run test:security` | Grants and RLS; after any change in `supabase/migrations/`, `content/guide/` or `content/library/`. |
+| `npm run test:hosting` | `vercel.json`: SPA fallback, security headers, the CSP hash of `index.html`'s inline script; after changing either. |
 | `npm run guide:content -- <step-id>` | Writes the migration that publishes a lesson from `content/guide/`. |
 | `npm run library:content` | Writes the migration that syncs the library with `content/library/`. |
 
@@ -24,7 +25,7 @@ Before reporting a change as done, run the `verify` skill.
 - `src/features/<name>/`: feature code: `auth`, `guide` (Маршрут), `library` (Библиотека), `landing`, `starter` (prompt dialog). Pages in `src/pages/<name>/`, shared UI in `src/components/`, helpers in `src/lib/`.
 - `supabase/migrations/`: schema, grants, RLS, published lessons. `supabase/functions/`: Edge Functions (Deno) for what only the server may do (`delete-account`). `tests/`: Playwright specs and helpers, the SQL security test.
 - `content/guide/`: lesson sources with answer keys; `content/library/`: library materials (neither imported by `src/`); `scripts/`: their compilers and migration generators. Lesson map and content workflow: `docs/GUIDE_PLAN.md`.
-- `docs/AUTH_SETUP.md`: the owner-run setup checklist and the migration list.
+- `docs/AUTH_SETUP.md`: the owner-run setup checklist (Supabase, Google, Vercel) and the migration list. `vercel.json`: build, SPA fallback, security headers and CSP.
 - `.claude/rules/`: area rules (landing, auth, guide, supabase, tests, styles); each loads with the files it covers.
 
 ## Routes
@@ -41,7 +42,7 @@ Before reporting a change as done, run the `verify` skill.
 - Desktop only for now: no responsive layouts (no mobile or tablet breakpoints), no mobile tests, no mobile viewport checks. Leave existing mobile code as is unless asked.
 - "Landing" means the guest page only; the members' pages are Кабинет, Маршрут, Шаг, Библиотека, Профиль.
 - Out of scope: other sign-in methods.
-- Account work, one stage at a time (branch `account`): password reset (done), email change (done), avatar upload (done), account deletion (done; Edge Function `delete-account` deployed), hosting (next: Vercel, no own domain yet).
+- Account work, one stage at a time (branch `account`): password reset (done), email change (done), avatar upload (done), account deletion (done; Edge Function `delete-account` deployed), hosting (Vercel, no own domain yet; `vercel.json`, owner steps in `docs/AUTH_SETUP.md`).
 
 ### UI
 - Russian UI copy; every string goes through `nbsp()` (`src/lib/typography.ts`).

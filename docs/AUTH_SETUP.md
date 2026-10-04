@@ -31,6 +31,14 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `delete-account`: `verify_jwt` off, the function checks the bearer token with Auth and the typed email itself; deletes `avatars/<id>/…` and the user.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 
+## Hosting: Vercel (owner-run)
+1. vercel.com → sign up with GitHub → Add New → Project → import `ySamur/agentica`. `vercel.json` sets Vite, `npm run build`, `dist`. Production Branch (Settings → Git): the branch the owner releases from (`main`); every other branch gets a preview URL.
+2. Environment Variables (Production and Preview): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (the publishable key only, never Secret/`service_role`). `VITE_SITE_URL` is optional: the build takes `https://$VERCEL_PROJECT_PRODUCTION_URL` for link previews. Redeploy after changing them.
+3. Supabase → Authentication → URL Configuration: Site URL `https://<project>.vercel.app` (letters fall back to it); Redirect URLs add `https://<project>.vercel.app/auth/callback` and, for previews, `https://<project>-*-<vercel-scope>.vercel.app/auth/callback`; keep the localhost entries for development.
+4. Google Cloud → Clients: the redirect URI stays the Supabase callback; add `https://<project>.vercel.app` to JavaScript origins. In Testing mode only listed test users can sign in; public sign-in needs the app published and verified.
+5. Check: `/profile` reloads without 404, Google and email sign-in return to the site, a reset letter's link opens `/password`, DevTools → Console shows no CSP errors.
+A custom domain later: Vercel → Domains, then replace the `vercel.app` address in steps 3–4 and authenticate the domain for mail (SPF/DKIM) in Brevo.
+
 ## Manual acceptance (automated tests use fixtures only)
 - Guest `/path/tasks/plan-first` shows login without the step text; Google sign-in returns to that step with its lesson.
 - On 3.2 a wrong answer explains only the chosen option and keeps the step «В процессе»; all right marks it «Выполнен» everywhere. `rest/v1/guide_progress` POST with `{"step_id":"plan-first","status":"done"}` is refused (RLS).

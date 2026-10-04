@@ -39,8 +39,11 @@ function siteMeta(site: string | undefined): Plugin {
   };
 }
 
+// On Vercel the production address needs no setting: VERCEL_PROJECT_PRODUCTION_URL (no scheme).
+const vercelSite = process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), siteMeta(loadEnv(mode, process.cwd(), 'VITE_').VITE_SITE_URL)],
+  plugins: [react(), siteMeta(loadEnv(mode, process.cwd(), 'VITE_').VITE_SITE_URL || vercelSite)],
   // Test servers must not invalidate the running developer server's dependencies.
   cacheDir: mode.startsWith('e2e') ? `.local/vite-${mode}` : 'node_modules/.vite',
   // The landing's motion layer loads lazily; pre-bundling its dependencies up front keeps
