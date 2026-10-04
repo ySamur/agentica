@@ -3,11 +3,12 @@ import type { LessonSource } from './types.ts';
 // 2.1 Как агент видит проект. Facts: code.claude.com/docs/en/context-window (what loads at start:
 // system prompt, environment and git status, CLAUDE.md files, MEMORY.md head, tool and skill names;
 // `/context` breakdown), /how-claude-code-works (files read on demand; compaction clears old output,
-// then summarises), /model-config (200K and 1M windows), /best-practices (performance degrades as
-// context fills).
+// then summarises), /model-config (current models run with the 1M window on every plan; 200K for
+// the 4.6 models and for Opus 4.8+ on Bedrock, Agent Platform and Foundry), /best-practices
+// (performance degrades as context fills).
 export const lesson: LessonSource = {
   stepId: 'project-view',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
   minutes: 12,
   outcome: 'Вы понимаете, что агент держит в голове: что он знает с первой секунды, что читает по ходу и почему к концу длинной сессии начинает ошибаться.',
   blocks: [
@@ -25,7 +26,7 @@ export const lesson: LessonSource = {
     { type: 'text', text: 'Код проекта целиком в окно не попадает. Агент читает файлы по ходу работы — поиском и чтением, как вы в редакторе. Поэтому ответ зависит от того, что он успел прочитать.' },
     { type: 'diagram', name: 'context-window', caption: 'Окно заполняется по ходу работы. У предела Claude Code сжимает разговор: старый вывод уходит, остаётся сводка.' },
     { type: 'heading', text: 'Когда окно заполняется' },
-    { type: 'text', text: 'Окно большое — от 200 тысяч токенов, у новых моделей до миллиона, — но конечное. У предела Claude Code сначала убирает старый вывод команд, а потом заменяет разговор сводкой: просьбы, решения, состояние файлов. Детали при этом теряются.' },
+    { type: 'text', text: 'Окно большое — у текущих моделей миллион токенов, у старых и у части облачных провайдеров 200 тысяч, — но конечное. У предела Claude Code сначала убирает старый вывод команд, а потом заменяет разговор сводкой: просьбы, решения, состояние файлов. Детали при этом теряются.' },
     { type: 'callout', tone: 'trap', title: 'Длинная сессия глупеет', text: 'Документация Claude Code говорит прямо: чем полнее контекст, тем хуже работает модель — она «забывает» ранние инструкции и чаще ошибается. Если агент вдруг нарушает договорённость часовой давности, дело не в упрямстве, а в окне.' },
     { type: 'heading', text: 'Посмотрите сами' },
     { type: 'command', code: '/context', caption: 'Покажет, сколько места занимает каждая часть: инструкции, CLAUDE.md, память, навыки, инструменты, разговор.' },

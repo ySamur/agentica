@@ -1,31 +1,33 @@
 import type { LessonSource } from './types.ts';
 
 // 6.5 Экономика. Facts: code.claude.com/docs/en/model-config (/model and --model; aliases sonnet,
-// opus, haiku, opusplan; /effort levels low…max) and /costs (/usage: cost, tokens by model, prompt
-// cache stats; there is no /cost; prompt caching is automatic; a larger context means more tokens per
-// request; /clear between tasks), /headless (total_cost_usd).
+// opus, haiku, opusplan; /effort levels low, medium, high, xhigh, max, saved per model, max for the
+// session only), /costs (Pro and Max subscribers see plan usage bars and a breakdown, the session
+// cost figure is for API users; tokens by model, prompt cache stats; prompt caching is automatic; a
+// larger context means more tokens per request; /clear between tasks), /commands (/cost and /stats
+// are aliases of /usage), /headless (total_cost_usd).
 export const lesson: LessonSource = {
   stepId: 'economics',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
   minutes: 12,
   outcome: 'Вы выбираете модель и уровень усердия под задачу, видите расходы и не платите за раздутый контекст.',
   blocks: [
-    { type: 'text', text: 'Работа агента стоит токенов: каждый запрос несёт весь контекст сессии, а каждый субагент делает свои запросы. Экономить — не значит брать самую дешёвую модель. Это значит не платить за то, что не помогает результату.' },
+    { type: 'text', text: 'Работа агента стоит токенов: каждый запрос несёт весь контекст сессии, а каждый субагент делает свои запросы. На подписке Pro или Max токены расходуют лимиты плана, при оплате через API — деньги. Правила одни: на подписке вы экономите лимиты, на API — бюджет. Экономить — не значит брать самую дешёвую модель. Это значит не тратить на то, что не помогает результату.' },
     { type: 'heading', text: 'Модель под задачу' },
     {
       type: 'list',
       items: [
         '**`/model`** меняет модель в сессии, `claude --model` — при запуске. Короткие имена: `sonnet`, `opus`, `haiku`.',
         '**`opusplan`** — Opus думает в режиме планирования, Sonnet исполняет план. Сильное рассуждение там, где оно нужно, и дешёвое исполнение.',
-        '**`/effort`** задаёт усердие: `low` для набросков, выше — для багов и крайних случаев, `max` — для самых трудных задач.',
+        '**`/effort`** задаёт усердие: `low` для набросков, выше — для багов и крайних случаев, `xhigh` и `max` — для самых трудных задач. Уровень запоминается для модели, только `max` действует до конца сессии (шаг 3.4).',
       ],
     },
     { type: 'heading', text: 'Где видны расходы' },
-    { type: 'command', code: '/usage', caption: 'Стоимость сессии, токены по моделям и статистика кеша. В безголовом режиме то же видно в поле `total_cost_usd`.' },
+    { type: 'command', code: '/usage', caption: 'На подписке — шкалы лимитов плана и разбивка, что их расходует. При оплате через API — стоимость сессии. Там же токены по моделям и статистика кеша. `/cost` и `/stats` открывают тот же экран, а в безголовом режиме стоимость видна в поле `total_cost_usd`.' },
     {
       type: 'session',
       title: '~/projects/shop',
-      summary: 'Симуляция сеанса: разработчик смотрит /usage после долгой сессии и видит, что большая часть токенов ушла на повторное чтение раздутого контекста. Он очищает контекст, переключается на opusplan для следующей задачи, и стоимость запросов падает.',
+      summary: 'Симуляция сеанса: разработчик смотрит /usage после долгой сессии и видит, что большая часть токенов ушла на повторное чтение раздутого контекста. Он очищает контекст, переключается на opusplan для следующей задачи, и каждый следующий запрос несёт меньше токенов.',
       lines: [
         { kind: 'prompt', text: '/usage', typed: true },
         { kind: 'info', text: 'Сессия: 3 ч, большая часть токенов — длинный контекст' },
@@ -36,7 +38,7 @@ export const lesson: LessonSource = {
         { kind: 'done', text: 'Новая задача — в чистом окне и с подходящей моделью.' },
       ],
     },
-    { type: 'heading', text: 'Куда утекают деньги' },
+    { type: 'heading', text: 'Куда утекают лимиты и деньги' },
     {
       type: 'list',
       items: [
@@ -52,7 +54,7 @@ export const lesson: LessonSource = {
   practice: {
     task: 'Неделю смотрите `/usage` в конце каждой рабочей сессии. Найдите, что съедает больше всего: длинные сессии, субагенты, переделки. Попробуйте `opusplan` на задаче с планированием и сравните результат и расход.',
     done: [
-      'вы знаете, сколько стоит ваш типичный рабочий день с агентом;',
+      'вы знаете, сколько лимита или денег уходит на ваш типичный рабочий день с агентом;',
       'вы нашли главный источник лишних расходов;',
       'вы сравнили `opusplan` с одной моделью на реальной задаче.',
     ],
@@ -60,12 +62,12 @@ export const lesson: LessonSource = {
   check: {
     questions: [
       {
-        id: 'see-cost',
-        prompt: 'Как посмотреть стоимость текущей сессии в Claude Code?',
+        id: 'limit-spent',
+        prompt: 'Вы на подписке Max, и к обеду Claude Code предупреждает, что лимит почти исчерпан. Как понять, что его съело?',
         options: [
-          { id: 'usage', text: 'Командой `/usage`.', correct: true, why: 'Да. Там стоимость, токены по моделям и статистика кеша.' },
-          { id: 'cost', text: 'Командой `/cost`.', why: 'Такой команды нет — расходы показывает `/usage`.' },
-          { id: 'dashboard', text: 'Никак, только в счёте в конце месяца.', why: 'Расходы видны прямо в сессии — `/usage`.' },
+          { id: 'breakdown', text: 'Открыть `/usage` и посмотреть разбивку: что расходует лимит плана.', correct: true, why: 'Да. На подписке `/usage` показывает шкалы лимитов и разбивку расхода. `/cost` и `/stats` открывают тот же экран.' },
+          { id: 'dollars', text: 'Открыть `/usage` и смотреть на стоимость сессии в долларах.', why: 'На подписке эта цифра к оплате не относится: она для тех, кто платит через API. Смотрите шкалы лимитов и разбивку на том же экране.' },
+          { id: 'cheapest', text: 'Сразу переключиться на самую дешёвую модель.', why: 'Это гадание: сначала узнайте, что расходует лимит. Часто виноват раздутый контекст, а не модель.' },
         ],
       },
       {

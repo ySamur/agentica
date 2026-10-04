@@ -33,14 +33,14 @@ Format and security rules: `.claude/rules/guide.md`.
 One line per step: outcome · key facts · check themes · links. Stages build on each other: refer back instead of repeating. The source's header comment and `verified` date record what was checked.
 
 **1 Первый контакт**
-- `install`: installed, signed in, first questions · native installer, no `sudo npm`, `claude -c/-r`, `/init`, `claude doctor` · where to run, resume, sudo.
-- `permissions`: knows what runs without asking; sets project rules · `auto` is the starting mode (v2.1.283+), falls back to `default`; Shift+Tab cycle; deny → ask → allow; `.claude/settings.json` vs `.local` · deny wins, auto start, mode for exploring, deny list.
+- `install`: installed, signed in, first questions · native installer, no `sudo npm` (npm needs Node 22+), accounts (Pro/Max, Team/Enterprise, Console, cloud providers; no free plan), `claude -c/-r`, `/init`, `claude doctor` · where to run, resume, sudo.
+- `permissions`: knows what runs without asking; sets project rules · `auto` is the starting mode (v2.1.283+), falls back to Manual (`default` in settings); Shift+Tab cycle; "don't ask again": commands and domains per repo, file edits per session; deny → ask → allow; `.claude/settings.json` vs `.local` · deny wins, auto start, mode for exploring, deny list.
 - `explore-code`: uses the agent as a researcher, verifies answers · `@` files and folders; ask for files and functions; ask about absence · precise question, confident answer, known file.
 - `first-edit`: small edit with a criterion; reads diffs; declines with feedback · Esc, queued messages, `acceptEdits`, give a pass/fail check · criterion, wrong file, green tests.
 - `checkpoints`: rewinds safely, knows the limits · Esc Esc, `/rewind` options, not tracked: commands, manual and subagent edits; ~30 days · rm vs files, restore code only, why git.
 
 **2 Контекст**
-- `project-view`: knows what fills the context and how to look · context window; loaded at start (system prompt, CLAUDE.md, auto memory, git status); `/context`; auto-compaction · what the agent sees on start, why answers degrade late in a session.
+- `project-view`: knows what fills the context and how to look · context window (1M on current models, 200K on older ones and some cloud providers); loaded at start (system prompt, CLAUDE.md, auto memory, git status); `/context`; auto-compaction · what the agent sees on start, why answers degrade late in a session.
 - `claude-md`: writes a short, useful CLAUDE.md · locations (`~/.claude/CLAUDE.md`, `./CLAUDE.md`, `CLAUDE.local.md`, subfolder files on demand), `@path` imports, `.claude/rules/` with `paths`, `/init`, `/memory` · what belongs, where to put a personal preference, a 300-line file.
 - `conventions`: puts commands, style and checks where the agent obeys them · what to include / leave out, "would removing this cause mistakes?", verification commands; CLAUDE.md is advice, hooks enforce (→ 5.1) · which line to cut, rule vs hook.
 - `clean-context`: keeps long sessions sharp · `/clear` between tasks, `/compact <focus>`, rewind summarize, `/btw`, subagents for research (→ 6.1), restart after two failed corrections · when to clear, what to compact, polluted context.
@@ -49,7 +49,7 @@ One line per step: outcome · key facts · check themes · links. Stages build o
 - `task-anatomy`: states goal, limits, done criterion · before/after examples (validateEmail with cases); symptom + place + what "fixed" means for bugs · pick the best-posed task, missing criterion.
 - `plan-first`: plans before code (the pilot) · plan mode, editing the plan, approving · when to plan, what to read in a plan.
 - `decomposition`: splits work into verifiable steps · explore → plan → implement → commit; one change per step with its own check; screenshots for UI · order the steps, oversized step.
-- `iterations`: corrects course early · Esc, specific feedback, `/rewind`, `/clear` + better prompt after two misses, effort · when to restart, vague vs specific feedback.
+- `iterations`: corrects course early · Esc, specific feedback, `/rewind`, `/clear` + better prompt after two misses, `ultrathink` vs `/effort` (`low`…`max` with `xhigh`, saved per model) · when to restart, vague vs specific feedback.
 
 **4 Ревью**
 - `read-diff`: reviews an agent diff like a colleague's · files and tests first, scope creep; `/diff`, `/code-review` (`--fix`, `--comment`) · spot the problem in a diff.
@@ -63,14 +63,14 @@ One line per step: outcome · key facts · check themes · links. Stages build o
 - `commands-skills`: packages repeat work as skills · `.claude/skills/<name>/SKILL.md`, frontmatter (`name`, `description`, `allowed-tools`, `disable-model-invocation`), `.claude/commands/` · skill vs CLAUDE.md vs hook.
 - `mcp`: connects external tools safely · `claude mcp add` (http, stdio), scopes local/project/user, `.mcp.json`, `/mcp` · scope choice, trust and permissions.
 - `git-flow`: lets the agent commit and open PRs under rules · commits with messages, `gh pr create`, deny push (→ 1.2), worktrees preview (→ 6.2) · what to automate, what to keep.
-- `agent-ci`: runs Claude in CI · `/install-github-app`, `anthropics/claude-code-action@v1`, `@claude` mentions, `claude -p`, secrets · safe CI setup choices.
+- `agent-ci`: runs Claude in CI · `/install-github-app` (needs `gh`, github.com only), `anthropics/claude-code-action@v1`, `@claude` mentions, `claude -p --bare`, secrets · safe CI setup choices.
 
 **6 Оркестровка**
-- `subagents`: delegates research and review to subagents · `.claude/agents/*.md`, frontmatter (`name`, `description`, `tools`, `model`), built-ins Explore, Plan, general-purpose, separate context · when a subagent helps.
-- `worktrees`: runs parallel sessions safely · `claude --worktree <name>` / `-w`, `.claude/worktrees/`, cleanup on exit, `.worktreeinclude` · conflicts, isolation.
+- `subagents`: delegates research and review to subagents · `.claude/agents/*.md`, frontmatter (`name`, `description`, `tools`, `model`), built-ins Explore, Plan, general-purpose, separate context, background by default · when a subagent helps.
+- `worktrees`: runs parallel sessions safely · `claude --worktree <name>` / `-w`, `.claude/worktrees/`, branch `worktree-<name>`, cleanup on exit (clean unnamed ones; named ones ask), `.worktreeinclude` (ignored files only) · conflicts, isolation.
 - `agent-roles`: splits researcher, writer and reviewer · fresh-context reviewer, tests-writer vs implementer, competing hypotheses · role assignment.
 - `agent-sdk`: embeds agents in services · `claude -p`, `--output-format json|stream-json`, `--allowedTools`, `--permission-mode`; `@anthropic-ai/claude-agent-sdk`, `claude-agent-sdk`, `query()` · headless vs SDK, read-only limits.
-- `economics`: chooses models and effort with costs in mind · `/model`, `opusplan`, `/effort`, `/usage` (there is no `/cost`), automatic prompt caching, `total_cost_usd` · model choice by task.
+- `economics`: chooses models and effort with costs in mind · `/model`, `opusplan`, `/effort`, `/usage` (`/cost` and `/stats` are aliases; subscribers see plan limits, API users dollars), automatic prompt caching, `total_cost_usd` · model choice by task.
 
 **★ Выпускной проект** (no checks: practice and manual marks)
 - `idea-to-pr`: one real task from idea to merged PR using the whole route.

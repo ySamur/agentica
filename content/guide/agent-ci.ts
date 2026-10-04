@@ -1,18 +1,21 @@
 import type { LessonSource } from './types.ts';
 
-// 5.5 Агент в CI. Facts: code.claude.com/docs/en/github-actions (/install-github-app; workflow with
-// anthropics/claude-code-action@v1 and the ANTHROPIC_API_KEY secret; @claude mentions without `prompt`,
-// automation with `prompt`; minimal permissions), /headless (claude -p, --output-format json,
-// --allowedTools, --max-turns) and /gitlab-ci-cd (a GitLab example exists).
+// 5.5 Агент в CI. Facts: code.claude.com/docs/en/github-actions (/install-github-app needs the gh CLI
+// and works only with github.com repositories; workflow with anthropics/claude-code-action@v1 and the
+// ANTHROPIC_API_KEY secret; @claude mentions without `prompt`, automation with `prompt`; minimal
+// permissions), /headless (claude -p, --output-format json, --allowedTools, --max-turns; --bare is
+// recommended for CI and scripts, skips auto-discovery of hooks, skills, plugins, MCP servers, auto
+// memory and CLAUDE.md, never reads OAuth, takes ANTHROPIC_API_KEY, and will become the default for
+// -p) and /gitlab-ci-cd (a GitLab example exists).
 export const lesson: LessonSource = {
   stepId: 'agent-ci',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
   minutes: 13,
   outcome: 'Вы запускаете агента в CI — ответы на `@claude`, автоматическое ревью, безголовые прогоны `claude -p` — с секретами и правами под контролем.',
   blocks: [
     { type: 'text', text: 'Агент не обязан жить только в вашем терминале. В CI он отвечает на упоминания в задачах и PR, ревьюит каждый PR и выполняет рутину по расписанию — тот же Claude Code, только без интерактива.' },
     { type: 'heading', text: 'GitHub Actions за одну команду' },
-    { type: 'command', code: '/install-github-app', caption: 'Запустите в Claude Code: команда установит приложение GitHub, добавит секрет и подготовит файл workflow.' },
+    { type: 'command', code: '/install-github-app', caption: 'Запустите в Claude Code: команда установит приложение GitHub, добавит секрет и подготовит файл workflow. Нужен GitHub CLI `gh`, и работает она только с репозиториями на github.com.' },
     {
       type: 'code',
       file: '.github/workflows/claude.yml',
@@ -28,14 +31,14 @@ export const lesson: LessonSource = {
       ],
     },
     { type: 'heading', text: 'Безголовый запуск' },
-    { type: 'text', text: 'В любом CI, не только в GitHub, работает `claude -p`: запрос без интерактива, результат — в stdout. Для GitLab в документации есть готовый пример.' },
-    { type: 'command', code: 'claude -p "Найди в изменениях ветки места без тестов" --output-format json --allowedTools "Read,Grep,Glob" --max-turns 10', caption: '`--allowedTools` разрешает только чтение, `--max-turns` ограничивает число ходов, а JSON удобно разбирать скриптом.' },
+    { type: 'text', text: 'В любом CI, не только в GitHub, работает `claude -p`: запрос без интерактива, результат — в stdout. Для CI и скриптов документация советует добавлять `--bare`, а со временем он станет для `-p` умолчанием. Для GitLab в документации есть готовый пример.' },
+    { type: 'command', code: 'claude -p "Найди в изменениях ветки места без тестов" --bare --output-format json --allowedTools "Read,Grep,Glob" --max-turns 10', caption: '`--bare` не подгружает хуки, навыки, плагины, MCP-серверы, CLAUDE.md и авто-память, а ключ берёт из `ANTHROPIC_API_KEY`. `--allowedTools` разрешает только чтение, `--max-turns` ограничивает число ходов, а JSON удобно разбирать скриптом.' },
     {
       type: 'session',
       title: 'ci · feature/promo',
       summary: 'Симуляция прогона в CI: claude -p читает изменения ветки, находит место без тестов и возвращает результат в JSON для следующего шага пайплайна.',
       lines: [
-        { kind: 'command', text: 'claude -p "Найди места без тестов" --output-format json', typed: true },
+        { kind: 'command', text: 'claude -p "Найди места без тестов" --bare --output-format json', typed: true },
         { kind: 'info', text: 'Читаю изменения ветки feature/promo: 6 файлов' },
         { kind: 'info', text: 'Без тестов: src/cart/promo.ts — ветка с просроченным кодом' },
         { kind: 'done', text: '{"result": "Без тестов: 1 место", "session_id": "…"}' },

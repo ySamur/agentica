@@ -25,6 +25,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610030010_library_content.sql`: the library's materials (`npm run library:content`).
    - `202610040001_guide_content_public_profile.sql`: step ★.3 rewritten without publishing.
    - `202610040002_library_content.sql`: the library gains `docs/agents.md` for step ★.3.
+   - `202610040003_guide_content_install_…_agent_ci.sql`: ten lessons corrected against the October docs.
    The site name lives in `user_metadata.display_name`; no profiles table.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 

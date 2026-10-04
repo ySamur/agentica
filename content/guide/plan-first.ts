@@ -1,11 +1,12 @@
 import type { LessonSource } from './types.ts';
 
 // 3.2 План до кода. Facts: code.claude.com/docs/en/permission-modes (plan mode, Shift+Tab, /plan,
-// --permission-mode, approval options, Ctrl+G) and /best-practices (explore → plan → code; skip the
-// plan when the diff fits one sentence).
+// --permission-mode, approval options: approve and use auto mode or auto-accept edits, approve and
+// approve edits manually, keep planning; Ctrl+G) and /best-practices (explore → plan → code; skip
+// the plan when the diff fits one sentence).
 export const lesson: LessonSource = {
   stepId: 'plan-first',
-  verified: '2026-10-02',
+  verified: '2026-10-04',
   minutes: 12,
   outcome: 'Вы заставляете агента сначала разобраться и предложить план, правите этот план и только потом пускаете агента в код.',
   blocks: [
@@ -67,7 +68,7 @@ export const lesson: LessonSource = {
         '**Границы.** Что он трогать не будет. Если границы не названы, назовите их сами.',
       ],
     },
-    { type: 'text', text: 'Решение за вами. Claude Code предложит одобрить план и дальше править без подтверждений, одобрить и подтверждать каждую правку или продолжить планирование. Сам план можно поправить руками: **Ctrl+G** откроет его в вашем редакторе.' },
+    { type: 'text', text: 'Решение за вами. Claude Code предложит одобрить план и перейти в режим auto (если он недоступен — принимать правки автоматически), одобрить и подтверждать каждую правку вручную или продолжить планирование. Сам план можно поправить руками: **Ctrl+G** откроет его в вашем редакторе.' },
     { type: 'callout', tone: 'trap', title: 'План не заменяет ревью', text: 'Одобренный план — договорённость о намерениях, а не гарантия результата. В деталях агент может от него отступить, поэтому diff всё равно читаете целиком. Как это делать быстро, разберём на этапе 4.' },
     { type: 'callout', tone: 'tip', title: 'Когда план не нужен', text: 'Опечатка, строка лога, переименование переменной. Правило из документации Claude Code: если diff можно описать одним предложением, просите сделать сразу.' },
   ],

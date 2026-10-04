@@ -1,11 +1,12 @@
 import type { LessonSource } from './types.ts';
 
 // 6.1 Субагенты. Facts: code.claude.com/docs/en/sub-agents (own context window, only the result goes
-// back; built-in Explore, Plan, general-purpose; .claude/agents/<name>.md with name, description,
-// tools, model; invoked by asking or by @-mention; parallel subagents; each makes its own requests).
+// back; built-in Explore, Plan, general-purpose; background by default in interactive sessions;
+// .claude/agents/<name>.md with name, description, tools, model; invoked by asking or by @-mention;
+// parallel subagents; each makes its own requests).
 export const lesson: LessonSource = {
   stepId: 'subagents',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
   minutes: 13,
   outcome: 'Вы поручаете исследование, ревью и тесты субагентам — помощникам со своим контекстом, — и основная сессия остаётся чистой для решений.',
   blocks: [
@@ -20,7 +21,7 @@ export const lesson: LessonSource = {
         '**general-purpose** — универсальный помощник для многошаговых задач.',
       ],
     },
-    { type: 'text', text: 'Часто агент зовёт их сам. Но можно и прямо попросить: «Используй субагентов, чтобы найти все вызовы платёжного API и описать, где они различаются».' },
+    { type: 'text', text: 'Часто агент зовёт их сам. Но можно и прямо попросить: «Используй субагентов, чтобы найти все вызовы платёжного API и описать, где они различаются». По умолчанию субагенты работают в фоне: пока они читают, вы продолжаете разговор с основной сессией.' },
     { type: 'heading', text: 'Свой субагент' },
     {
       type: 'code',

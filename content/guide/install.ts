@@ -1,11 +1,14 @@
 import type { LessonSource } from './types.ts';
 
 // 1.1 Установка и первый запуск. Facts: code.claude.com/docs/en/setup (installers, no sudo with npm,
-// Homebrew/WinGet without auto-update), /authentication (account types), /quickstart and
-// /sessions (claude -c, claude -r, /resume, /init, /help, claude doctor, /exit).
+// npm needs Node.js 22+, Homebrew/WinGet update themselves only with
+// CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE=1, the free plan has no Claude Code), /authentication (Pro,
+// Max, Team/Enterprise by an admin's invite, Console, Bedrock / Google Cloud's Agent Platform /
+// Microsoft Foundry), /quickstart and /sessions (claude -c, claude -r, /resume, /init, /help,
+// claude doctor, /exit).
 export const lesson: LessonSource = {
   stepId: 'install',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
   minutes: 10,
   outcome: 'Claude Code установлен, вы вошли в аккаунт и провели первый разговор с агентом в своём репозитории.',
   blocks: [
@@ -13,9 +16,9 @@ export const lesson: LessonSource = {
     { type: 'heading', text: 'Установка' },
     { type: 'text', text: 'Рекомендуемый способ — официальный установщик: он ставит Claude Code и дальше обновляет его сам.' },
     { type: 'command', code: 'curl -fsSL https://claude.ai/install.sh | bash', caption: 'macOS, Linux и WSL. В Windows PowerShell: `irm https://claude.ai/install.ps1 | iex`.' },
-    { type: 'callout', tone: 'trap', title: 'Без sudo', text: 'Через npm тоже можно: `npm install -g @anthropic-ai/claude-code`. Но не добавляйте `sudo`: документация прямо предупреждает о проблемах с правами и безопасностью. Homebrew и WinGet работают, только обновлять их придётся вручную.' },
+    { type: 'callout', tone: 'trap', title: 'Без sudo', text: 'Через npm тоже можно, если стоит Node.js 22 или новее: `npm install -g @anthropic-ai/claude-code`. Но не добавляйте `sudo`: документация прямо предупреждает о проблемах с правами и безопасностью. Homebrew и WinGet тоже подходят, но сами обновляются, только если задать переменную `CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE=1`.' },
     { type: 'heading', text: 'Первый запуск' },
-    { type: 'text', text: 'Перейдите в корень проекта и наберите `claude`. В первый раз откроется браузер для входа: подойдёт подписка Claude Pro или Max, аккаунт Claude Console с оплатой API или корпоративный доступ. Дальше вход запоминается.' },
+    { type: 'text', text: 'Перейдите в корень проекта и наберите `claude`. В первый раз откроется браузер для входа: подойдёт подписка Claude Pro или Max, аккаунт Team или Enterprise (вход аккаунтом claude.ai по приглашению администратора) или аккаунт Claude Console с оплатой API. Дальше вход запоминается. Бесплатный план Claude Code не включает. Если компания работает через облако, Claude Code подключают и к нему: Amazon Bedrock, Agent Platform в Google Cloud, Microsoft Foundry.' },
     {
       type: 'session',
       title: '~/projects/shop',
@@ -25,7 +28,7 @@ export const lesson: LessonSource = {
         { kind: 'meta', text: 'Claude Code · вход выполнен' },
         { kind: 'prompt', text: 'Что это за проект и как запустить его локально?', typed: true },
         { kind: 'info', text: 'Читаю package.json, README.md, docker-compose.yml' },
-        { kind: 'info', text: 'Node 20, PostgreSQL в Docker, фронтенд на Vite' },
+        { kind: 'info', text: 'Node 22, PostgreSQL в Docker, фронтенд на Vite' },
         { kind: 'info', text: 'Запуск: docker compose up -d, затем npm run dev' },
         { kind: 'prompt', text: 'Где лежат тесты и чем их запускать?', typed: true },
         { kind: 'info', text: 'tests/ — Vitest, команда npm test; e2e — npm run e2e' },

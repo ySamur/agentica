@@ -1,12 +1,13 @@
 import type { LessonSource } from './types.ts';
 
 // 3.3 Декомпозиция на проверяемые шаги. Facts: code.claude.com/docs/en/best-practices (explore → plan
-// → implement → commit; Ctrl+G edits the plan; give each change a pass/fail check),
-// /interactive-mode (Ctrl+T shows Claude's task list) and /goal (a completion condition checked
-// after every turn; one measurable state, how to prove it, constraints, optional turn limit).
+// → implement → commit; Ctrl+G edits the plan; give each change a pass/fail check) and /goal (a
+// completion condition checked after every turn; one measurable state, how to prove it,
+// constraints, optional turn limit). The Ctrl+T task list is left out: on current models it stays
+// empty unless CLAUDE_CODE_ENABLE_TODO_TOOLS=1 (/tools-reference).
 export const lesson: LessonSource = {
   stepId: 'decomposition',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
   minutes: 14,
   outcome: 'Вы режете большую задачу на шаги, у каждого из которых есть своя проверка, и ведёте агента по ним.',
   blocks: [
@@ -62,8 +63,6 @@ export const lesson: LessonSource = {
         { kind: 'done', text: 'Шаги 1–2 готовы и закоммичены. Дальше — кнопка.' },
       ],
     },
-    { type: 'heading', text: 'Список задач агента' },
-    { type: 'text', text: 'В многошаговой работе агент может вести свой список задач. **Ctrl+T** показывает его: что сделано, что в работе, что впереди. Удобно, чтобы понять, где он сейчас, не читая весь разговор.' },
     { type: 'heading', text: 'Цель вместо подталкиваний' },
     { type: 'text', text: 'Когда шаги однотипны — довести тесты модуля до зелёного, разбить большой файл, — задайте условие завершения командой `/goal`. После каждого хода отдельная проверка смотрит, выполнено ли условие, и если нет, агент продолжает сам.' },
     { type: 'command', code: '/goal все тесты в tests/reports проходят, линтер чистый, другие тесты не тронуты', caption: 'Одно измеримое состояние, способ его проверить и ограничения. Можно добавить «или остановись через 20 ходов».' },

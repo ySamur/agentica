@@ -3,10 +3,12 @@ import type { LessonSource } from './types.ts';
 // 3.4 Итерации и корректировка курса. Facts: code.claude.com/docs/en/best-practices (course-correct
 // early: Esc, "Undo that", /rewind, /clear after two failed corrections), /interactive-mode (queued
 // messages are read when the current tool calls finish) and /model-config (only `ultrathink` is a
-// recognised keyword; "think hard" is plain text; /effort levels from low to max).
+// recognised keyword: it adds an in-context instruction and leaves the effort level unchanged; "think
+// hard" is plain text; /effort levels low, medium, high, xhigh, max; `/effort <level>` is saved as the
+// model's default, `max` lasts for the current session only).
 export const lesson: LessonSource = {
   stepId: 'iterations',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
   minutes: 12,
   outcome: 'Вы замечаете, что агент свернул не туда, и быстро возвращаете его на курс: остановкой, точной поправкой, откатом или новым стартом.',
   blocks: [
@@ -50,7 +52,7 @@ export const lesson: LessonSource = {
       ],
     },
     { type: 'heading', text: 'Когда задача трудная' },
-    { type: 'text', text: 'Для трудного решения — алгоритма, архитектуры, запутанного бага — добавьте в запрос слово `ultrathink`: на этом ходу агент подумает глубже. Фразы вроде «подумай хорошенько» Claude Code особо не распознаёт — это обычный текст. Уровень усердия на всю сессию задаёт `/effort`: от `low` для быстрых набросков до `max` для самых трудных задач.' },
+    { type: 'text', text: 'Для трудного решения — алгоритма, архитектуры, запутанного бага — добавьте в запрос слово `ultrathink`: Claude Code допишет в контекст указание подумать глубже на этом ходу. Фразы вроде «подумай хорошенько» Claude Code особо не распознаёт — это обычный текст. Уровень усердия `ultrathink` не меняет, его задаёт `/effort`: `low`, `medium`, `high`, `xhigh` или `max`. Выбранный уровень запоминается для модели и в следующих сессиях, только `max` действует до конца текущей.' },
     { type: 'callout', tone: 'trap', title: 'Поздняя поправка дорогая', text: 'Если молча ждать конца, агент построит на неверном решении ещё десяток правок. Видите, что он свернул не туда, — сразу нажимайте Esc.' },
     { type: 'callout', tone: 'tip', title: 'Спросите, почему', text: 'Не понимаете решение агента — спросите, почему он сделал именно так и какие были варианты. Иногда он прав, а иногда в ответе видна ошибка рассуждения, которую легко поправить.' },
   ],
