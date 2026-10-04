@@ -436,6 +436,70 @@ test('profile saves name, survives reload and keeps Google email read-only', asy
   await page.screenshot({ path: `.local/screenshots/profile-${testInfo.project.name}.png`, fullPage: true });
 });
 
+test('profile photo: checks the file, crops it to a 256 px square, replaces and removes it', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  await page.goto('/profile');
+  const avatar = page.locator('.profile-identity .user-avatar');
+  await expect(avatar).toHaveText('Т');
+  const picker = page.locator('.avatar-picker input[type=file]');
+  const alert = page.locator('.avatar-picker').getByRole('alert');
+  const status = page.locator('.avatar-picker').getByRole('status');
+  // A landscape picture, drawn by the browser itself.
+  const landscape = (color: string) => page.evaluate(fill => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = fill;
+    context.fillRect(0, 0, 400, 300);
+    return canvas.toDataURL('image/png').split(',')[1];
+  }, color);
+  const photo = { name: 'me.png', mimeType: 'image/png', buffer: Buffer.from(await landscape('#ff8800'), 'base64') };
+
+  for (const [file, message] of [
+    [{ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') }, 'Подойдёт фото в JPG, PNG или WebP.'],
+    [{ name: 'huge.png', mimeType: 'image/png', buffer: Buffer.alloc(10 * 1024 * 1024 + 1) }, 'Файл больше 10 МБ. Выберите фото поменьше.'],
+    [{ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('not a picture') }, 'Не получилось прочитать картинку. Попробуйте другой файл.'],
+  ] as const) {
+    await picker.setInputFiles(file);
+    await expect(alert).toHaveText(message);
+  }
+  auth.storageFails = true;
+  await picker.setInputFiles(photo);
+  await expect(alert).toHaveText('Не удалось загрузить фото. Попробуйте ещё раз.');
+  auth.storageFails = false;
+
+  await page.getByRole('button', { name: 'Загрузить фото' }).focus();
+  await picker.setInputFiles(photo);
+  await expect(status).toHaveText('Фото обновлено');
+  const image = avatar.locator('img');
+  await expect(image).toHaveAttribute('src', /^https:\/\/agentica-test\.supabase\.co\/storage\/v1\/object\/public\/avatars\/34ae3545-ae23-41b1-a2c1-8292e58ba0dc\/\w+\.webp$/);
+  expect(await page.evaluate(async src => {
+    const blob = await (await fetch(src)).blob();
+    const bitmap = await createImageBitmap(blob);
+    return [bitmap.width, bitmap.height, blob.type];
+  }, (await image.getAttribute('src'))!)).toEqual([256, 256, 'image/webp']);
+  await expect(page.locator('.account-trigger img')).toHaveAttribute('src', await image.getAttribute('src') ?? '');
+  const [first] = auth.avatars.keys();
+  await settle(page);
+  await page.screenshot({ path: `.local/screenshots/profile-photo-${testInfo.project.name}.png` });
+
+  // A new photo gets a new file; the old one goes.
+  await picker.setInputFiles({ ...photo, buffer: Buffer.from(await landscape('#5533ff'), 'base64') });
+  await expect(image).not.toHaveAttribute('src', new RegExp(first));
+  expect(auth.removedAvatars).toEqual([first]);
+  expect(auth.avatars.size).toBe(1);
+
+  await page.getByRole('button', { name: 'Убрать фото' }).click();
+  await expect(status).toHaveText('Фото убрано');
+  await expect(avatar).toHaveText('Т');
+  await expect(page.getByRole('button', { name: 'Загрузить фото' })).toBeFocused();
+  expect(auth.avatars.size).toBe(0);
+  await page.reload();
+  await expect(avatar).toHaveText('Т');
+  await expect(page.getByRole('button', { name: 'Убрать фото' })).toHaveCount(0);
+});
+
 test('profile rejects blank names and supports retry after a save failure', async ({ page, context }) => {
   const auth = await mockAuth(context, { signedIn: true });
   await page.goto('/profile');

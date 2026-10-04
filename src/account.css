@@ -110,6 +110,13 @@
   .profile-card .field-help:last-child { margin-bottom: 0; }
   .profile-form-footer { display: flex; align-items: center; gap: 20px; padding-top: 6px; }
   .profile-password { margin-top: 24px; }
+  /* The photo's controls sit under the name in the identity row. */
+  .avatar-picker { display: grid; justify-items: start; gap: 8px; margin-top: 12px; }
+  .avatar-picker-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+  .avatar-picker-actions .ghost-button { padding: 10px 18px; font-size: 14px; }
+  .avatar-picker-actions .ghost-button[aria-disabled=true] { cursor: wait; opacity: .65; }
+  .avatar-picker-help { font-size: 13px; line-height: 1.6; color: var(--dim); }
+  .avatar-picker > :is(.form-error, .form-success):empty { display: none; }
   /* A link-like button for secondary actions inside a form: cancel, send again. */
   .text-button { padding: 0; background: none; color: var(--soft); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; transition: color .2s; }
   .text-button:hover { color: var(--text); }

@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AuthError, Session, User } from '@supabase/supabase-js';
 import { useLocation, useNavigate } from 'react-router';
-import { callbackAttempt, getSupabase, hasStoredSession, supabaseConfigured } from '../../lib/supabase';
+import { avatarUrl, callbackAttempt, getSupabase, hasStoredSession, supabaseConfigured } from '../../lib/supabase';
 import { clearDestination, clearLetterDestination, rememberDestination, rememberLetterDestination } from './redirect';
 
-// `pendingEmail`: a requested new address that waits for its confirmation links.
-export type AppUser = { id: string; email: string; pendingEmail: string | null; displayName: string; avatarUrl: string | null; viaGoogle: boolean };
+// `pendingEmail`: a requested new address that waits for its confirmation links. `ownAvatar`: the
+// photo is one the member uploaded (it wins over Google's and can be removed).
+export type AppUser = { id: string; email: string; pendingEmail: string | null; displayName: string; avatarUrl: string | null; ownAvatar: boolean; viaGoogle: boolean };
 // `confirm`: the email is not confirmed yet, so the session starts from the letter's link.
 export type PasswordResult = 'signed-in' | 'confirm';
 type AuthContextValue = {
@@ -21,6 +22,8 @@ type AuthContextValue = {
   requestPasswordReset: (email: string, destination: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   changeEmail: (email: string) => Promise<void>;
+  // A prepared image (see avatarImage) replaces the photo; null removes the uploaded one.
+  updateAvatar: (image: Blob | null) => Promise<void>;
   resendEmailChange: (email: string) => Promise<void>;
   // The session came from a password reset letter's link (PASSWORD_RECOVERY).
   recovering: boolean;
@@ -69,15 +72,24 @@ function nonEmpty(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+// An uploaded photo's path: in the member's own folder, as the storage policies require. Kept apart
+// from `avatar_url`, which Google rewrites on every sign-in.
+function ownAvatarPath(user: User) {
+  const path = nonEmpty(user.user_metadata.avatar_path);
+  return path && path.startsWith(`${user.id}/`) && /^[\w-]+\/[\w-]+\.(webp|png)$/.test(path) ? path : null;
+}
+
 function mapUser(user: User): AppUser {
   const metadata = user.user_metadata;
-  const avatar = nonEmpty(metadata.avatar_url) || nonEmpty(metadata.picture);
+  const own = ownAvatarPath(user);
+  const avatar = (own && avatarUrl(own)) || nonEmpty(metadata.avatar_url) || nonEmpty(metadata.picture);
   return {
     id: user.id,
     email: user.email || '',
     pendingEmail: nonEmpty(user.new_email),
     displayName: nonEmpty(metadata.display_name) || nonEmpty(metadata.full_name) || nonEmpty(metadata.name) || 'Пользователь',
     avatarUrl: avatar?.startsWith('https://') ? avatar : null,
+    ownAvatar: own !== null,
     viaGoogle: Array.isArray(user.app_metadata.providers) ? user.app_metadata.providers.includes('google') : user.app_metadata.provider === 'google',
   };
 }
@@ -249,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   const hasSession = Boolean(session);
+  const sessionUser = session?.user;
   const updateName = useCallback(async (value: string) => {
     const pending = getSupabase();
     if (!pending || !hasSession) throw new Error(sessionEnded);
@@ -318,12 +331,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (failure) throw new Error(letterFailed(failure, 'письмо для смены адреса'));
   }, [hasSession]);
 
+  // A new photo gets a new name, so caches never show the old one; the old file goes once the
+  // account points at the new one.
+  const updateAvatar = useCallback(async (image: Blob | null) => {
+    const pending = getSupabase();
+    if (!pending || !sessionUser) throw new Error(sessionEnded);
+    const previous = ownAvatarPath(sessionUser);
+    const path = image && `${sessionUser.id}/${Date.now().toString(36)}.${image.type === 'image/png' ? 'png' : 'webp'}`;
+    let failure: { status?: number } | null = null;
+    try {
+      const client = await pending;
+      const avatars = client.storage.from('avatars');
+      if (image && path) {
+        const { error: uploadError } = await avatars.upload(path, image, { contentType: image.type, cacheControl: '31536000', upsert: false });
+        if (uploadError) throw new Error('Не удалось загрузить фото. Попробуйте ещё раз.');
+      }
+      ({ error: failure } = await client.auth.updateUser({ data: { avatar_path: path } }));
+      if (failure) {
+        if (path) await avatars.remove([path]).catch(() => undefined);
+      } else if (previous && previous !== path) {
+        await avatars.remove([previous]).catch(() => undefined);
+      }
+    } catch (cause) {
+      throw cause instanceof Error && cause.message.startsWith('Не удалось') ? cause : new Error('Не удалось сохранить фото. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure?.status === 401 || failure?.status === 403) {
+      await signOut();
+      throw new Error(sessionEnded);
+    }
+    if (failure) throw new Error('Не удалось сохранить фото. Попробуйте ещё раз.');
+  }, [sessionUser, signOut]);
+
   // Stable identities keep consumers and their effects from re-running on unrelated renders.
-  const sessionUser = session?.user;
   const user = useMemo(() => sessionUser ? mapUser(sessionUser) : null, [sessionUser]);
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, recovering, signOut, updateName }),
-    [user, loading, signingOut, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, recovering, signOut, updateName],
+    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, recovering, signOut, updateName }),
+    [user, loading, signingOut, error, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, recovering, signOut, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

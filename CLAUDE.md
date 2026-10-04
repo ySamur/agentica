@@ -41,7 +41,7 @@ Before reporting a change as done, run the `verify` skill.
 - Desktop only for now: no responsive layouts (no mobile or tablet breakpoints), no mobile tests, no mobile viewport checks. Leave existing mobile code as is unless asked.
 - "Landing" means the guest page only; the members' pages are Кабинет, Маршрут, Шаг, Библиотека, Профиль.
 - Out of scope: other sign-in methods.
-- Account work, one stage at a time (branch `account`): password reset (done), email change (done), avatar upload, account deletion, hosting.
+- Account work, one stage at a time (branch `account`): password reset (done), email change (done), avatar upload (done), account deletion, hosting.
 
 ### UI
 - Russian UI copy; every string goes through `nbsp()` (`src/lib/typography.ts`).

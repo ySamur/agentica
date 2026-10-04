@@ -73,6 +73,11 @@ function getConfiguration() {
 const configuration = getConfiguration();
 export const supabaseConfigured = configuration !== null;
 
+// A profile photo's address in the public `avatars` bucket (supabase/migrations/202610040050_avatars.sql).
+export function avatarUrl(path: string) {
+  return configuration ? `${configuration.url}/storage/v1/object/public/avatars/${path}` : null;
+}
+
 // Passed to the client below, so the synchronous check can never drift from the SDK. It equals
 // the SDK's default key, which keeps existing sessions. The check only picks which page to
 // show before the SDK loads; access is still enforced by RLS.

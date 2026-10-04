@@ -48,6 +48,10 @@ function createState() {
     // Password reset letters asked for, and the scopes of every logout (`others` after a new password).
     recoverCount: 0,
     logoutScopes: [] as string[],
+    // Profile photos by path in the `avatars` bucket, the paths removed, and an upload that fails.
+    avatars: new Map<string, { type: string; bytes: Buffer }>(),
+    removedAvatars: [] as string[],
+    storageFails: false,
     // A requested email change; the code exchange of its last link applies it.
     emailChange: null as { from: string; to: string } | null,
     // SMTP down: GoTrue's 500 on sign-up with confirmations on.
@@ -97,6 +101,20 @@ async function rows(route: Route, request: Request, found: unknown[]) {
   if (!request.headers().accept?.includes('vnd.pgrst.object')) await json(route, found);
   else if (found.length === 1) await json(route, found[0]);
   else await json(route, { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' }, 406);
+}
+
+// The image in a storage upload: storage-js sends a Blob as multipart form data.
+function uploadedImage(request: Request) {
+  const body = request.postDataBuffer() ?? Buffer.alloc(0);
+  const contentType = request.headers()['content-type'] ?? '';
+  const boundary = /boundary=([^;]+)/.exec(contentType)?.[1];
+  if (!boundary) return { type: contentType, bytes: body };
+  for (const part of body.toString('latin1').split(`--${boundary}`)) {
+    const split = part.indexOf('\r\n\r\n');
+    const type = /content-type:\s*([^\r\n]+)/i.exec(part.slice(0, split))?.[1];
+    if (split !== -1 && type?.startsWith('image/')) return { type, bytes: Buffer.from(part.slice(split + 4, -2), 'latin1') };
+  }
+  return null;
 }
 
 // `?step_id=eq.plan-first` → 'plan-first'.
@@ -189,6 +207,23 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     const url = new URL(request.url());
     if (url.pathname.startsWith('/rest/v1/')) {
       await data(route, request, url);
+    } else if (url.pathname.startsWith('/storage/v1/object/public/avatars/')) {
+      const image = state.avatars.get(decodeURIComponent(url.pathname.slice('/storage/v1/object/public/avatars/'.length)));
+      if (image) await route.fulfill({ status: 200, contentType: image.type, body: image.bytes });
+      else await json(route, { statusCode: '404', error: 'not_found', message: 'Object not found' }, 404);
+    } else if (url.pathname.startsWith('/storage/v1/object/avatars/') && request.method() === 'POST') {
+      // Like the storage policies: only into the member's own folder.
+      const path = decodeURIComponent(url.pathname.slice('/storage/v1/object/avatars/'.length));
+      if (state.storageFails) { await json(route, { statusCode: '500', error: 'internal', message: 'Storage unavailable' }, 500); return; }
+      if (!path.startsWith(`${userId}/`)) { await json(route, { statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy' }, 403); return; }
+      const image = uploadedImage(request);
+      if (!image) { await json(route, { statusCode: '400', error: 'invalid_mime_type', message: 'mime type not supported' }, 400); return; }
+      state.avatars.set(path, image);
+      await json(route, { Id: path, Key: `avatars/${path}` });
+    } else if (url.pathname === '/storage/v1/object/avatars' && request.method() === 'DELETE') {
+      const { prefixes } = request.postDataJSON() as { prefixes: string[] };
+      for (const path of prefixes) { state.avatars.delete(path); state.removedAvatars.push(path); }
+      await json(route, prefixes.map(name => ({ name })));
     } else if (url.pathname === '/auth/v1/authorize') {
       state.authorizeUrl = url.href;
       const callback = new URL(url.searchParams.get('redirect_to')!);

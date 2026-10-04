@@ -25,6 +25,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610030010_library_content.sql`: the library's materials (`npm run library:content`).
    - `202610040001_guide_content_public_profile.sql`: step ★.3 rewritten without publishing.
    - `202610040002_library_content.sql`: the library gains `docs/agents.md` for step ★.3.
+   - `202610040050_avatars.sql`: public bucket `avatars` (512 KB, WebP/PNG); members read, upload, replace and remove only `avatars/<own id>/…`.
    The site name lives in `user_metadata.display_name`; no profiles table.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 
@@ -34,6 +35,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
 - Opening a step marks it «В процессе»; «Выполнено» and «Уже умею» survive a reload and another browser; «Продолжить» leads to the last opened unfinished step.
 - Email sign-up (name, email, password) shows «Отправили письмо…»; the letter's link in the same browser lands on the page asked for; in another browser it says to sign in with the password, which then works. Sign-in before confirming offers «Отправить письмо ещё раз». A wrong password says «Неверный email или пароль»; the profile shows «Email и пароль».
 - «Забыли пароль?» sends a letter; its link in the same browser (a new tab too) opens «Новый пароль.»; after saving, the old password is refused and the new one signs in, and other browsers' sessions end. «Сменить пароль» in an email account's profile does the same without a letter.
+- «Загрузить фото» in the profile: a photo shows cropped to a square in the profile and the header and survives a reload; «Заменить фото» leaves one file in Storage → avatars/<id>; «Убрать фото» falls back to Google's photo or the first letter.
 - «Изменить email» in an email account's profile: a taken address is refused; after sending, the profile shows the pending address after a reload too. The first link says «Первая ссылка подтверждена»; the second (same browser) returns to the profile with the new address, which then signs in while the old one is refused.
 - A profile name change survives reload and appears in the account menu.
 - Logout in one tab hides the menu and the route in all tabs; re-login keeps one account, the name and the progress.
