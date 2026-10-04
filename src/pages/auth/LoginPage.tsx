@@ -128,19 +128,19 @@ export function LoginPage() {
   return <main id="main" className="account-page container login-page">
     {morphing(<section className="account-card login-card">
       <span className="account-emblem"><Icon name="spark" size={31} /></span>
-      <span className="story-eyebrow"><i /> Вход в agentica</span>
-      <h1>Маршрут начинается <em className="accent glow-text">здесь.</em></h1>
+      <span className="story-eyebrow"><i /> {nbsp('Вход в agentica')}</span>
+      <h1 tabIndex={-1}>Маршрут начинается <em className="accent glow-text">здесь.</em></h1>
       <p className="login-lead">{nbsp('Войдите через Google или по email, прогресс сохранится на любом устройстве.')}</p>
       <button className="google-button" onClick={login} disabled={busy}>
         <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.9h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.9 6.1-15.1Z"/><path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.6-5.1c-1.8 1.2-4.1 1.9-6.9 1.9-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20.4 20.4 0 0 0 24 44Z"/><path fill="#FBBC05" d="M12.6 27.5a12.3 12.3 0 0 1 0-7V15H5.8a20 20 0 0 0 0 18l6.8-5.5Z"/><path fill="#EA4335" d="M24 12.1c3 0 5.7 1 7.8 3l5.8-5.8A19.6 19.6 0 0 0 24 4 20.4 20.4 0 0 0 5.8 15l6.8 5.5c1.6-4.8 6.1-8.4 11.4-8.4Z"/></svg>
-        {busy ? 'Переходим в Google…' : 'Продолжить с Google'}
+        {busy ? nbsp('Переходим в Google…') : nbsp('Продолжить с Google')}
       </button>
       <p className="login-caption">{nbsp('Первый вход через Google создаст аккаунт.')}</p>
       {(!configured || error || sessionError) && <p className="form-error" role="alert">{error || (!configured ? 'Вход временно недоступен. Попробуйте позже.' : sessionError)}</p>}
       <p className="login-divider" aria-hidden="true">или</p>
       <form className="login-form" onSubmit={submit} noValidate aria-label={creating ? 'Регистрация по email' : 'Вход по email'}>
         {creating && <>
-          <label htmlFor="login-name">Имя на сайте</label>
+          <label htmlFor="login-name">{nbsp('Имя на сайте')}</label>
           <input ref={nameField} id="login-name" name="name" autoComplete="name" disabled={sending} aria-invalid={invalid('name')} aria-describedby={described('name')} />
         </>}
         <label htmlFor="login-email">Email</label>
@@ -167,6 +167,6 @@ export function LoginPage() {
       </p>
       <Link className="text-link" to="/">Вернуться на главную <Icon name="arrow" size={15} /></Link>
     </section>)}
-    <span className="account-page-note"><Icon name="shield" size={15} /> {nbsp('Только имя и email. Без доступа к письмам.')}</span>
+    <span className="account-page-note"><Icon name="shield" size={15} /> {nbsp('Только имя и email')}</span>
   </main>;
 }

@@ -1,8 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Answers, CheckResult, Lesson } from '../features/guide/lesson/types';
+import type { LibraryBodyRow, LibraryItemRow } from '../features/library/types';
 
-// The route's tables and RPC (supabase/migrations/202609290001_guide.sql).
+// The route's tables and RPCs (supabase/migrations/*_guide*.sql).
 export type GuideProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };
-type GuideStepRow = { step_id: string; body: string };
+// `lesson` is null until the step's lesson is written.
+type GuideStepRow = { step_id: string; lesson: Lesson | null };
 type Database = {
   public: {
     Tables: {
@@ -10,6 +13,19 @@ type Database = {
         Row: GuideStepRow;
         Insert: GuideStepRow;
         Update: Partial<GuideStepRow>;
+        Relationships: [];
+      };
+      // Read-only for members (supabase/migrations/*_library.sql); bodies only for passed steps.
+      library_items: {
+        Row: LibraryItemRow;
+        Insert: LibraryItemRow;
+        Update: Partial<LibraryItemRow>;
+        Relationships: [];
+      };
+      library_bodies: {
+        Row: LibraryBodyRow;
+        Insert: LibraryBodyRow;
+        Update: Partial<LibraryBodyRow>;
         Relationships: [];
       };
       guide_progress: {
@@ -23,6 +39,7 @@ type Database = {
     Views: Record<string, never>;
     Functions: {
       open_guide_step: { Args: { step: string }; Returns: GuideProgressRow[] };
+      submit_guide_check: { Args: { step: string; answers: Answers }; Returns: CheckResult };
     };
   };
 };

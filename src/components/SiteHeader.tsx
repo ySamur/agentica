@@ -6,7 +6,7 @@ import { JoinLink } from '../features/auth/JoinLink';
 import { useGuideProgress } from '../features/guide/GuideProgress';
 import { resumeStep, resumeVerb } from '../features/guide/progress';
 
-// Members return to the step they left; before the first one, the route starts from 0.1.
+// Members return to the step they left; before the first one, the route starts from 1.1.
 // Until their progress arrives (or if it cannot), it opens the route itself.
 function ContinueLink() {
   const { progress, ready } = useGuideProgress();
@@ -32,6 +32,7 @@ export function SiteHeader({ member }: { member: boolean }) {
           {member ? <>
             <NavLink to="/" end onClick={closeMenu}>Кабинет</NavLink>
             <NavLink to="/path" onClick={closeMenu}>Маршрут</NavLink>
+            <NavLink to="/library" onClick={closeMenu}>Библиотека</NavLink>
           </> : <>
             {/* Named after the sections they lead to; the one being read is marked by the landing's motion layer. */}
             <Link to="/#why" onClick={closeMenu}>Роль</Link>

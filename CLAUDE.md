@@ -1,30 +1,69 @@
 # agentica
 
-Russian-language React 19 + TypeScript 7 + Vite app: guest landing, Google or email+password sign-in via Supabase, members' route (cabinet, stages, steps with progress), profile.
+Russian-language site for developers moving from hand-written code to Claude Code. Guests get the landing; members sign in (Google or email + password via Supabase Auth) and get Кабинет, Маршрут (6 stages and a capstone, 31 steps, saved progress), Библиотека (materials that open with passed steps) and Профиль.
 
-## Architecture
-- `src/app/App.tsx` owns routes: `/` is the landing for guests and `CabinetPage` for members (while the SDK loads, `useSessionPending` counts a stored session or an OAuth code as a member, for the header too); `/path` (map), `/path/:stage/:step`, `/profile` sit behind `RequireAuth`; `/content`, `/settings/profile` redirect. Only the landing ships in the main chunk; other pages use `React.lazy`. The header switches to the members' nav and «Продолжить».
-- `AuthProvider` (`src/features/auth/`): `signIn` (Google OAuth, PKCE), `signInWithPassword`, `signUp` (name into `user_metadata.display_name`), `resendConfirmation`. Email confirmation is on: sign-up, and sign-in before confirming, return `confirm`; the letter's link returns through `/auth/callback` (PKCE, so only in the browser that started it; elsewhere the callback says the email is confirmed and to sign in with the password; `otp_expired` gets its own message). Auth error codes map to Russian messages there; `LoginPage` holds the email form below Google.
-- `src/lib/supabase.ts` loads the SDK lazily and creates one client (`getSupabase()`, `null` when unconfigured).
-- Feature code stays in `src/features/<name>/`; shared UI in `src/components/`. Layered styles: `src/styles.css` (the one dark palette on `:root`; header, footer and shared pieces `.aurora`, `.glow-button`, `.ghost-button`, `.story-eyebrow`, `.accent`), `src/account.css` (account menu, login, work-page glass), `src/guide.css` (cabinet, route, step), `src/landing.css` (landing only: film, sections, `data-header` modes). Work pages share Layout's still `.aurora-calm`; one `.glow-button` per screen.
-- The route lives in `src/features/guide/`: `catalog.ts` is the public map (8 stages, 35 steps; ids are progress keys, stable and unique, without stage prefix; no imports, so Node tests load it). Step texts are members-only rows in `guide_steps`; progress is `guide_progress` (own rows via grants + RLS; the server sets `user_id` and `updated_at`); RPC `open_guide_step` records the resume point without undoing finished steps. `GuideProgressProvider` (in `App`) loads once per member and saves optimistically with rollback; `resumeStep` picks the latest opened unfinished step. A new step needs a catalog entry and a `guide_steps` migration.
-- The landing opens with one sticky scene (`TypingFilm`): scroll-scrubbed WebP frames, the agent's terminal (`ClaudeSession`) typing by scroll, then the hero with the CTAs. Scene progress points and the scene's length (`sceneLength`, svh, passed to CSS as `--scene-length`) live in `introPhases.ts` (shared with tests). Frames: `public/frames/typing/{desktop,desktop-hd,mobile}`, 233 each (every frame of 0.2–9.5 s at 25 fps), cut from Pexels clip 7534237 by Mikhail Nilov (free license) with the brand grade baked in; reduced motion and data saver get one still. `motion/frames.ts` loads the poster and every 16th frame first, the rest on the first scroll or 2.5 s after that pass in a visible tab; `leanDevice()` (2g/3g, ≤2 GB memory) skips odd frames and the HD set.
-- Landing motion is the lazy chunk `src/features/landing/motion/`: GSAP (ScrollTrigger, SplitText, ScrambleText, DrawSVG; Standard no-charge license) and Lenis smooth scrolling for fine pointers only. Components render static, finished markup; `main[data-motion]` is `pending|on|off` (`off`: reduced motion, data saver, screens under 560px tall, or the chunk not arriving within 4 s). Import `gsap`/`@gsap/react`/`lenis` only there, or they land in the main chunk. Scrubbed staggers need explicit start states (`gsap.set`); a callback that renders from a tween also runs `onRefresh`.
-- Anchors scroll through `scrollToTarget` and modals use `lockScroll`/`unlockScroll` (`src/lib/smoothScroll.ts`). All UI copy goes through `nbsp()` (`src/lib/typography.ts`); accent words use `.accent` (Cormorant Italic). Member pages focus their `h1` after a link (`useArrivalFocus`).
-- Route changes cross-fade through React's `<ViewTransition>` in `Layout`; the landing's `SignupLink` pill morphs into the login card (`.signup-morph` in `styles.css`). Every «Начать бесплатно» link is a `JoinLink` (`src/features/auth/JoinLink.tsx`).
-- `index.html` carries the link-preview tags and a `<noscript>` notice; `vite.config.ts` (`siteMeta`) adds `og:url`, `og:image` (`public/og.jpg`, 1200×630) and JSON-LD only when `VITE_SITE_URL` is set (the 4317 test server sets `https://agentica.test`). `public/` also holds `site.webmanifest` (icons 192/512), `robots.txt` (members' pages and sign-in disallowed).
-- The landing's Claude Code session is simulated. Out of scope: hosting, other sign-in methods, avatar upload, account deletion; password reset and email change (next stage).
+**Stack:** React 19 · TypeScript 7 · Vite 8 · React Router 8 (`react-router`) · Supabase JS · GSAP + Lenis (landing only) · Playwright · oxlint.
+
+## Commands
+
+| Command | Notes |
+|---|---|
+| `npm run dev` | Port 3000, else the next free one: use the printed `Local` URL. |
+| `npm run lint` | oxlint, 0 errors. |
+| `npm run build` | Typecheck, then Vite build. |
+| `npm test -- --project=desktop` | Playwright, desktop project only. |
+| `npm run test:security` | Grants and RLS; after any change in `supabase/migrations/`, `content/guide/` or `content/library/`. |
+| `npm run guide:content -- <step-id>` | Writes the migration that publishes a lesson from `content/guide/`. |
+| `npm run library:content` | Writes the migration that syncs the library with `content/library/`. |
+
+Before reporting a change as done, run the `verify` skill.
+
+## Where things live
+
+- `src/app/App.tsx`: routes and `Layout` (header, page cross-fade through `<ViewTransition>`, arrival focus, anchor scrolling).
+- `src/features/<name>/`: feature code: `auth`, `guide` (Маршрут), `library` (Библиотека), `landing`, `starter` (prompt dialog). Pages in `src/pages/<name>/`, shared UI in `src/components/`, helpers in `src/lib/`.
+- `supabase/migrations/`: schema, grants, RLS, published lessons. `tests/`: Playwright specs and helpers, the SQL security test.
+- `content/guide/`: lesson sources with answer keys; `content/library/`: library materials (neither imported by `src/`); `scripts/`: their compilers and migration generators. Roadmap: `docs/GUIDE_PLAN.md`.
+- `docs/AUTH_SETUP.md`: the owner-run setup checklist and the migration list.
+- `.claude/rules/`: area rules (landing, auth, guide, supabase, tests, styles); each loads with the files it covers.
+
+## Routes
+
+- `/`: the landing for guests, `CabinetPage` for members. While the SDK restores the session, a stored one or an OAuth code counts as a member (`useSessionPending()`, for the header too), so members never see the landing flash. Members' header: Кабинет, Маршрут, Библиотека and «Продолжить».
+- `/path`, `/path/:stage/:step`, `/library` and `/profile` sit behind `RequireAuth`; guests go to `/login?next=…`. Also `/login` and `/auth/callback`.
+- Redirects: `/content` → `/path`; `/settings` and `/settings/profile` → `/profile`; trailing slashes are stripped.
+- Only the landing ships in the main chunk; every other page is `React.lazy`.
+- A new page needs a tab title in `titles` (`App.tsx`; otherwise it reads «Страница не найдена»), an `h1` with `tabIndex={-1}` and, for members, an entry in `allowedDestinations` (`src/features/auth/redirect.ts`; otherwise sign-in returns to `/`).
 
 ## Rules
-- Desktop only for now: the mobile version is not in development. Don't build responsive/adaptive layouts (no mobile or tablet breakpoints/media queries), don't write mobile tests, don't run the iPhone Playwright project or check mobile viewports. Leave existing mobile code as is unless asked.
-- Keep Russian UI copy, keyboard navigation and focus handling, reduced-motion support, strict types.
-- Style: 2 spaces, single quotes, semicolons, ESM; PascalCase components and files, camelCase code, kebab-case CSS. No formatter: match surrounding code.
-- Lint is oxlint (`.oxlintrc.json`; typescript-eslint lacks TS 7 support): 0 errors, justify every `oxlint-disable` inline.
-- Checks: `npm run lint`, `npm run build` (includes typecheck), `npm test -- --project=desktop`, `npm run test:security` after migration changes.
-- Tests: Playwright on installed Chrome, desktop project only (the iPhone project stays in config but is not run). Mock Supabase only at the network boundary via `tests/helpers/auth.ts`; never add production auth bypasses. Cover changed interactions and focus (desktop only).
-- Security: `.env.local` holds only the Supabase URL and Publishable key (plus the optional public `VITE_SITE_URL`), never OAuth secrets or service-role keys. Enforce access with grants and RLS, not route guards alone. Owner-run setup and the migration list: `docs/AUTH_SETUP.md`. Supabase MCP (`.mcp.json`, untracked) stays `read_only=true`; write access only when the owner allows it for a migration, then back.
-- Playwright owns ports 4317/4318. Dev prefers port 3000 and falls back to a free one (use the printed `Local` URL). Stop servers you start; never kill unrelated processes. PowerShell: `npm.cmd`.
-- Keep `dist/`, `test-results/`, `.local/` out of commits.
-- Commits: focused, imperative conventional subjects (`fix: …`). PRs: problem, behavior, validation commands, desktop screenshots for visual changes.
-- A PostToolUse hook type-checks after `.ts`/`.tsx` edits; fix reported errors before moving on.
-- `.env*` files are deny-listed; never ask for their contents.
+
+### Scope
+- Desktop only for now: no responsive layouts (no mobile or tablet breakpoints), no mobile tests, no mobile viewport checks. Leave existing mobile code as is unless asked.
+- "Landing" means the guest page only; the members' pages are Кабинет, Маршрут, Шаг, Библиотека, Профиль.
+- Out of scope: hosting, other sign-in methods, avatar upload, account deletion. Next stage: password reset, email change.
+
+### UI
+- Russian UI copy; every string goes through `nbsp()` (`src/lib/typography.ts`).
+- Keyboard navigation and focus everywhere. After a link, `Layout` focuses the new page's `h1[tabindex="-1"]` (`useArrivalFocus`).
+- Respect reduced motion: `prefersReducedMotion()` and `motionAllowed()` in `src/lib/motion.ts`.
+- Anchors scroll with `scrollToTarget()`; modals use `lockScroll()`/`unlockScroll()` (`src/lib/smoothScroll.ts`). Both drive Lenis while the landing runs it.
+- Reuse the shared pieces from `src/styles.css` before inventing new ones. One `.glow-button` per screen (the main action), the rest `.ghost-button`.
+
+### Code
+- 2 spaces, single quotes, semicolons, ESM. PascalCase components and their files, camelCase code, kebab-case CSS classes. No formatter: match the surrounding code.
+- Strict types (TS 7 has `strict` on by default).
+- oxlint (`.oxlintrc.json`; typescript-eslint has no TS 7 support): 0 errors, justify every `oxlint-disable` inline.
+- A PostToolUse hook type-checks after every `.ts`/`.tsx` edit; fix what it reports before moving on.
+
+### Security
+- `.env.local` holds only the Supabase URL and Publishable key (plus the optional public `VITE_SITE_URL`): never OAuth secrets or service-role keys. `.env*` files are deny-listed; never ask for their contents.
+- Enforce access with grants and RLS, not route guards alone. Never add production auth bypasses.
+- Supabase MCP (`.mcp.json`, untracked) has write access (owner's decision, 2026-10-03: a test project, no production). Apply migrations with `apply_migration`, one file at a time, in name order; never change data or schema outside a migration file.
+
+### Environment
+- Windows. In PowerShell run `npm.cmd`, and never rewrite files with `Get-Content`/`Set-Content`: PowerShell 5.1 reads BOM-less UTF-8 as cp1251 and mangles the Russian text. Files are UTF-8 without BOM, LF; edit them with Edit/Write.
+- Playwright owns ports 4317/4318. Stop the servers you start; never kill unrelated processes.
+
+### Git
+- Focused commits with imperative conventional subjects (`feat: …`, `fix: …`). Keep `dist/`, `test-results/` and `.local/` out of them.
+- PRs: problem, behavior, validation commands, desktop screenshots for visual changes.

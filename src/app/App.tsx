@@ -9,6 +9,7 @@ import { GuideProgressProvider } from '../features/guide/GuideProgress';
 import { StarterDialog } from '../features/starter/StarterDialog';
 import { SiteHeader } from '../components/SiteHeader';
 import { PageStatus } from '../components/PageStatus';
+import { useArrivalFocus } from '../lib/arrivalFocus';
 import { scrollToTarget } from '../lib/smoothScroll';
 
 export type PageContext = { openStarter: () => void };
@@ -20,12 +21,14 @@ const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage').the
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(module => ({ default: module.ProfilePage })));
 const PathPage = lazy(() => import('../pages/path/PathPage').then(module => ({ default: module.PathPage })));
 const StepPage = lazy(() => import('../pages/path/StepPage').then(module => ({ default: module.StepPage })));
+const LibraryPage = lazy(() => import('../pages/library/LibraryPage').then(module => ({ default: module.LibraryPage })));
 
 const titles: Record<string, string> = {
   '/login': 'Вход',
   '/auth/callback': 'Завершение входа',
   '/profile': 'Профиль',
   '/path': 'Маршрут',
+  '/library': 'Библиотека',
 };
 
 // `/` is the members' cabinet or the guest landing. Until the SDK restores the session,
@@ -73,6 +76,7 @@ function Layout() {
   const member = useMember();
   const openStarter = () => setStarterOpen(true);
   const title = pageTitle(location.pathname, member);
+  useArrivalFocus(location.pathname, location.hash);
 
   useEffect(() => {
     document.title = `agentica — ${title}`;
@@ -114,13 +118,23 @@ function Layout() {
   </>;
 }
 
+// One address per page: `/path/x/y/` becomes `/path/x/y`, so titles, sign-in returns and the
+// progress all see the address the catalog knows.
+function Root() {
+  const location = useLocation();
+  if (location.pathname.length > 1 && location.pathname.endsWith('/')) {
+    return <Navigate to={{ pathname: location.pathname.replace(/\/+$/, ''), search: location.search, hash: location.hash }} state={location.state} replace />;
+  }
+  return <Layout />;
+}
+
 function IndexRoute() {
   return useMember() ? <CabinetPage /> : <LandingPage />;
 }
 
 export default function App() {
   return <BrowserRouter><AuthProvider><GuideProgressProvider><Routes>
-    <Route element={<Layout />}>
+    <Route element={<Root />}>
       <Route index element={<IndexRoute />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="auth/callback" element={<AuthCallbackPage />} />
@@ -132,6 +146,7 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="path" element={<PathPage />} />
         <Route path="path/:stage/:step" element={<StepPage />} />
+        <Route path="library" element={<LibraryPage />} />
       </Route>
       <Route path="*" element={<PageStatus title="Страница не найдена" message="Возможно, адрес изменился. Вернёмся к вашим идеям?" />} />
     </Route>

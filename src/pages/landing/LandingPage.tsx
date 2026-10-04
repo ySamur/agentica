@@ -63,14 +63,15 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
   },
 ];
 
-// The book names each stage as the route's headings do: «Этап 0»…«Этап 6», then the capstone's ★.
+// The book names each stage as the route's headings do: «Этап 1»…«Этап 6», then the capstone's ★.
 const stageLabel = (stage: GuideStage) => stage.number === '★' ? stage.number : nbsp(`Этап ${stage.number}`);
 
 const questions = [
   { title: 'Заменит ли ИИ разработчиков?', answer: 'Он меняет содержание работы. Набор кода всё больше делегируется агентам, а ценность смещается к постановке задач, архитектуре, ревью и ответственности за результат. Именно этим навыкам посвящён путеводитель.' },
   { title: 'Что такое Claude Code?', answer: 'Инструмент Anthropic для агентной разработки. Он работает в терминале, IDE, десктопном приложении и браузере: читает проект, редактирует файлы и выполняет команды — с вашего разрешения.' },
   { title: 'Нужен ли опыт программирования?', answer: 'Да, и он становится преимуществом. Оркестратор должен понимать, о чём просит, и уметь оценить результат. Чем глубже ваш опыт, тем точнее задачи и строже ревью.' },
-  { title: 'Что внутри путеводителя?', answer: 'Семь этапов перехода и выпускной проект — от первого запуска до команды агентов. Шаги можно отмечать выполненными, прогресс сохраняется на любом устройстве. Материалы шагов дополняются постепенно.' },
+  { title: 'Что внутри маршрута?', answer: 'Шесть этапов и выпускной проект — 31 шаг от первого запуска до команды агентов. Каждый шаг — урок на 10–15 минут: пример сессии в терминале, практика в вашем проекте и проверка на ситуациях из реальной работы. Пройденные шаги открывают в библиотеке готовые запросы, шаблоны и чеклисты.' },
+  { title: 'Можно пропустить то, что я уже умею?', answer: 'Да. Порядок шагов — рекомендация, а не требование. Кнопка «Уже умею» ведёт сразу к проверке: ответили верно — шаг засчитан, и его материалы открылись в библиотеке.' },
   { title: 'Регистрация платная?', answer: 'Нет. Войдите через Google или по email и паролю: мы храним только имя, email и ваш прогресс.' },
 ].map(question => ({ title: nbsp(question.title), answer: nbsp(question.answer) }));
 
@@ -141,7 +142,7 @@ export function LandingPage() {
       <section className="path container" id="how" aria-labelledby="path-title">
         <div className="story-head" data-reveal="head">
           <span className="story-eyebrow"><i /> Путь перехода</span>
-          {/* Habits, not steps: members count 35 steps on their route. */}
+          {/* Habits, not steps: the six stages' promises (catalog.ts); members count 31 steps on their route. */}
           <h2 id="path-title">Шесть привычек{' '}<br />от клавиатуры <em className="accent">к{' '}оркестровке.</em></h2>
           <p>{nbsp('Переход не случается за один день. Это последовательность привычек — каждая снимает с вас часть рутины.')}</p>
         </div>
@@ -151,13 +152,13 @@ export function LandingPage() {
       <section className="guide container" id="guide" aria-labelledby="guide-title">
         <div className="guide-copy" data-reveal="head">
           <span className="story-eyebrow"><i /> Только для участников</span>
-          <h2 id="guide-title">Путеводитель по{' '}переходу{' '}<br />ждёт <em className="accent">внутри.</em></h2>
-          {/* Same count as catalog.ts and the members' pages: stages 00–06 plus the capstone. */}
-          <p>{nbsp('Семь этапов и выпускной проект: от первого запуска Claude Code до команды агентов. Отмечайте пройденное — прогресс сохраняется в аккаунте. Материалы этапов дополняются, новые появляются у вас сразу.')}</p>
+          <h2 id="guide-title">Весь маршрут{' '}<br />уже <em className="accent">внутри.</em></h2>
+          {/* Same counts as catalog.ts and the members' pages: stages 1–6 plus the capstone, 31 steps (tests/landing.spec.ts). */}
+          <p>{nbsp('Шесть этапов и выпускной проект — 31 урок от первого запуска Claude Code до команды агентов. Проверка в конце урока засчитывает шаг, прогресс сохраняется в аккаунте.')}</p>
           <ul className="guide-perks">
-            <li><Icon name="check" size={17} /> {nbsp('Вход через Google за пару кликов')}</li>
-            <li><Icon name="check" size={17} /> {nbsp('Или по email и паролю')}</li>
-            <li><Icon name="check" size={17} /> {nbsp('Только имя и email')}</li>
+            <li><Icon name="check" size={17} /> {nbsp('Урок на 10–15 минут с практикой в вашем проекте')}</li>
+            <li><Icon name="check" size={17} /> {nbsp('Проверка на ситуациях из реальной работы')}</li>
+            <li><Icon name="check" size={17} /> {nbsp('Библиотека запросов, шаблонов и чеклистов')}</li>
           </ul>
           <SignupLink morph="guide">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
         </div>

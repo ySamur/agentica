@@ -6,7 +6,6 @@ import { useGuideProgress } from '../../features/guide/GuideProgress';
 import { completedCount, isComplete, resumeStep, stageTally, statusLabels } from '../../features/guide/progress';
 import { ResumeLink } from '../../features/guide/ResumeLink';
 import { StageMeter } from '../../features/guide/StageMeter';
-import { useArrivalFocus } from '../../lib/arrivalFocus';
 import { spotlight } from '../../lib/spotlight';
 import { nbsp } from '../../lib/typography';
 
@@ -15,7 +14,6 @@ const trackStages = spotlight('.stage-card');
 // The whole route: every stage with its steps and their status. The order is a recommendation, never a lock.
 export function PathPage() {
   const { progress, ready } = useGuideProgress();
-  const heading = useArrivalFocus<HTMLHeadingElement>();
   const location = useLocation();
   // The resume point is only marked once the progress is known.
   const next = ready ? resumeStep(progress) : null;
@@ -30,8 +28,8 @@ export function PathPage() {
   return <main id="main" className="account-page container path-page">
     <div className="page-heading path-heading">
       <span className="story-eyebrow"><i /> Маршрут</span>
-      <h1 ref={heading} tabIndex={-1}>От клавиатуры <em className="accent">к{' '}оркестровке.</em></h1>
-      <p>{nbsp('Семь этапов и выпускной проект. Продолжайте с того места, где остановились.')}</p>
+      <h1 tabIndex={-1}>От клавиатуры <em className="accent">к{' '}оркестровке.</em></h1>
+      <p>{nbsp('Шесть этапов и выпускной проект. Продолжайте с того места, где остановились.')}</p>
       <div className="path-summary">
         <ResumeLink />
         <span className="path-total"><span>{nbsp(`${done} из ${steps.length} шагов пройдено`)}</span><i style={{ '--fill': done / steps.length } as CSSProperties} /></span>

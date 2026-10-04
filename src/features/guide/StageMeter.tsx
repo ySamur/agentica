@@ -17,8 +17,10 @@ export function StageMeter({ progress, current, linked = false }: { progress: Pr
         <span className="visually-hidden">, пройдено {done} из {total}</span>
         <i style={{ '--fill': done / total } as CSSProperties} />
       </>;
-      return <li key={stage.id} aria-current={stage.id === current ? 'step' : undefined} data-complete={done === total || undefined}>
-        {linked ? <Link className="stage-meter-cell" to={`#stage-${stage.id}`}>{content}</Link> : <div className="stage-meter-cell">{content}</div>}
+      // On the cell, not the item: screen readers announce «current» on the focused link.
+      const cell = { className: 'stage-meter-cell', 'aria-current': stage.id === current ? 'step' as const : undefined };
+      return <li key={stage.id} data-complete={done === total || undefined}>
+        {linked ? <Link {...cell} to={`#stage-${stage.id}`}>{content}</Link> : <div {...cell}>{content}</div>}
       </li>;
     })}
   </ol>;

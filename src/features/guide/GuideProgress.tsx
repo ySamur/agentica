@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { getSupabase, type GuideProgressRow } from '../../lib/supabase';
+import { nbsp } from '../../lib/typography';
+import type { Answers, CheckResult } from './lesson/types';
 import { isComplete, type Progress, type StepProgress, type StepStatus } from './progress';
 
 type GuideProgressValue = {
@@ -13,12 +15,16 @@ type GuideProgressValue = {
   setStatus: (stepId: string, status: StepStatus) => Promise<void>;
   // Records that a step was opened: starts it, or makes it the latest opened. Finished steps stay finished.
   open: (stepId: string) => void;
+  // One attempt at a step's check. The server grades it and, once every answer is right, passes the
+  // step itself; the new row then shows. Rejects with an Error to show if the request fails.
+  submitCheck: (stepId: string, answers: Answers) => Promise<CheckResult>;
 };
 
 type Loaded = { owner: string; progress: Progress; ready: boolean; error: string | null };
 
 const empty: Progress = new Map();
-const saveFailed = 'Не удалось сохранить отметку. Проверьте соединение и попробуйте ещё раз.';
+const saveFailed = nbsp('Не удалось сохранить отметку. Проверьте соединение и попробуйте ещё раз.');
+const checkFailed = nbsp('Не удалось проверить ответы. Проверьте соединение и попробуйте ещё раз.');
 const GuideProgressContext = createContext<GuideProgressValue | null>(null);
 
 const toEntry = (row: Pick<GuideProgressRow, 'status' | 'updated_at'>): StepProgress => ({ status: row.status, updatedAt: row.updated_at });
@@ -69,7 +75,7 @@ export function GuideProgressProvider({ children }: { children: ReactNode }) {
         confirmed.current = rows;
         setLoaded({ owner: userId, progress: rows, ready: true, error: null });
       } catch {
-        if (!controller.signal.aborted) setLoaded({ owner: userId, progress: empty, ready: false, error: 'Не удалось загрузить прогресс. Проверьте соединение и попробуйте ещё раз.' });
+        if (!controller.signal.aborted) setLoaded({ owner: userId, progress: empty, ready: false, error: nbsp('Не удалось загрузить прогресс. Проверьте соединение и попробуйте ещё раз.') });
       }
     };
     void load();
@@ -147,9 +153,25 @@ export function GuideProgressProvider({ children }: { children: ReactNode }) {
     void record();
   }, [userId, ready, claim, show, confirm, rollback, signOut]);
 
+  const submitCheck = useCallback(async (stepId: string, answers: Answers) => {
+    const pending = getSupabase();
+    if (!pending || !userId || !ready) throw new Error(checkFailed);
+    const isNewest = claim(stepId);
+    try {
+      const client = await pending;
+      const { data, error: requestError, status } = await client.rpc('submit_guide_check', { step: stepId, answers }).retry(false);
+      if (status === 401) await signOut();
+      if (requestError || !data) throw requestError;
+      if (data.progress) confirm(isNewest, stepId, toEntry(data.progress));
+      return data;
+    } catch {
+      throw new Error(checkFailed);
+    }
+  }, [userId, ready, claim, confirm, signOut]);
+
   const value = useMemo<GuideProgressValue>(
-    () => ({ progress, ready, error, reload, setStatus, open }),
-    [progress, ready, error, reload, setStatus, open],
+    () => ({ progress, ready, error, reload, setStatus, open, submitCheck }),
+    [progress, ready, error, reload, setStatus, open, submitCheck],
   );
   return <GuideProgressContext.Provider value={value}>{children}</GuideProgressContext.Provider>;
 }

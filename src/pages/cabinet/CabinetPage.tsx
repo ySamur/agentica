@@ -5,14 +5,12 @@ import { useGuideProgress } from '../../features/guide/GuideProgress';
 import { completedCount, hasStarted, resumeStep } from '../../features/guide/progress';
 import { ResumeLink } from '../../features/guide/ResumeLink';
 import { StageMeter } from '../../features/guide/StageMeter';
-import { useArrivalFocus } from '../../lib/arrivalFocus';
 import { nbsp } from '../../lib/typography';
 
 // The members' home: a greeting, the one step to take next and how far the route has come.
 export function CabinetPage() {
   const { user } = useAuth();
   const { progress, ready } = useGuideProgress();
-  const heading = useArrivalFocus<HTMLHeadingElement>();
   const next = resumeStep(progress);
   // Until the progress is known, a returning member is the likelier guess.
   const started = !ready || hasStarted(progress);
@@ -23,11 +21,11 @@ export function CabinetPage() {
   return <main id="main" className="account-page container cabinet">
     <section className="cabinet-intro" aria-labelledby="cabinet-title">
       <span className="story-eyebrow"><i /> Кабинет</span>
-      <h1 id="cabinet-title" ref={heading} tabIndex={-1}>{started ? 'С возвращением' : 'Добро пожаловать'}{firstName ? <>, <em className="accent">{firstName}.</em></> : '.'}</h1>
+      <h1 id="cabinet-title" tabIndex={-1}>{started ? 'С возвращением' : 'Добро пожаловать'}{firstName ? <>, <em className="accent">{firstName}.</em></> : '.'}</h1>
       <p className="cabinet-lead">{nbsp(!ready
         ? 'Маршрут от ручного кода к оркестровке агентов.'
         : started ? `Вы остановились на этапе «${next.stage.title}». Следующий шаг уже ждёт.`
-        : 'Семь этапов от ручного кода к оркестровке агентов и выпускной проект. Начнём с точки отсчёта.')}</p>
+        : 'Шесть этапов от ручного кода к оркестровке агентов и выпускной проект. Начнём с первого запуска.')}</p>
       <div className="cabinet-actions">
         <ResumeLink />
         <Link className="ghost-button" to="/path">Весь маршрут</Link>

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { stages } from '../src/features/guide/catalog';
+import { stages, steps } from '../src/features/guide/catalog';
 import { frameCount, heroAt, phases, sceneLength } from '../src/features/landing/introPhases';
 import { holdSupabaseSdk, mockAuth } from './helpers/auth';
 
@@ -444,9 +444,12 @@ test('the landing speaks of what is inside today and lists the route\'s stages',
   await expect(page.getByText(/Скоро|готовится|после выхода|как только он выйдет/)).toHaveCount(0);
   const rows = page.locator('#guide .guide-stages > li');
   await expect(rows).toHaveCount(stages.length);
-  // Named as the route's own headings do: «Этап 0», the capstone with its ★.
+  // Named as the route's own headings do: «Этап 1», the capstone with its ★.
   await expect(rows.first()).toContainText(`Этап ${stages[0]!.number}${stages[0]!.title}`);
   await expect(rows.last()).toContainText(`★${stages.at(-1)!.title}`);
+  // The copy counts what members find: six stages, the capstone and every step of catalog.ts.
+  await expect(page.locator('#guide .guide-copy > p')).toContainText(`Шесть этапов и выпускной проект — ${steps.length} урок`);
+  await expect(page.locator('.ask-item', { hasText: 'Что внутри маршрута?' })).toContainText(`${steps.length} шаг`);
 });
 
 test('the header marks the section being read', async ({ page }) => {
