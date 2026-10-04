@@ -9,6 +9,7 @@ import type { LessonSource } from './types.ts';
 export const lesson: LessonSource = {
   stepId: 'project-view',
   verified: '2026-10-04',
+  claudeCode: '2.1.289',
   minutes: 12,
   outcome: 'Вы понимаете, что агент держит в голове: что он знает с первой секунды, что читает по ходу и почему к концу длинной сессии начинает ошибаться.',
   blocks: [
@@ -63,7 +64,7 @@ export const lesson: LessonSource = {
         options: [
           { id: 'little', text: 'Почти ничего: CLAUDE.md, окружение и `git status`, а файлы он прочитает по ходу.', correct: true, why: 'Да. Код не загружается целиком: агент читает файлы инструментами по мере работы.' },
           { id: 'everything', text: 'Весь код: Claude Code индексирует репозиторий при запуске.', why: 'Такого шага нет. В окно попадает то, что агент прочитал, плюс CLAUDE.md, память и сведения об окружении.' },
-          { id: 'readme', text: 'Только README.', why: 'README агент прочитает, если понадобится, как и любой файл. Сам по себе он в окно не попадает.' },
+          { id: 'readme', text: 'README и `package.json`: их Claude Code читает сам при каждом запуске.', why: 'Сами по себе они в окно не попадают: агент прочитает их, когда понадобится, как любой файл.' },
         ],
       },
       {

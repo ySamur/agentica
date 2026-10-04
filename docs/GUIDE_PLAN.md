@@ -18,12 +18,12 @@ The members' route as a guide from hand-written code to orchestrating agents. Re
 1. Outcome: one line, what the member can do after the step.
 2. Teaching blocks: short text between visuals: `session` (scripted Claude Code session), `compare` (before/after prompt or file), `diff` (with reviewer marks), `diagram`, `callout` (`trap`, `tip`), `command` and `code` (copyable).
 3. Practice: one task in the member's own project, plus a «Готово, если» list.
-4. Check: 2–4 scenario questions ("the agent proposes X; what do you do?"), not trivia. Every option has a `why`; the right one starts with «Да.». The capstone has none.
+4. Check: 2–4 scenario questions ("the agent proposes X; what do you do?"), not trivia. Wrong options are plausible mistakes, as specific and about as long as the right one (it is never more than ~15% longer; options are shuffled per member). Every option has a `why`; the right one starts with «Да.». The capstone has none.
 
 Format and security rules: `.claude/rules/guide.md`.
 
 ## Editing content
-1. Facts: check each against code.claude.com (the `claude-code-guide` agent); cite the pages in the source's header comment and set `verified`. Leave out what the docs don't confirm.
+1. Facts: check each against code.claude.com (the `claude-code-guide` agent); cite the pages in the source's header comment and set `verified` and `claudeCode` (the release in the CHANGELOG that day). Leave out what the docs don't confirm.
 2. Edit `content/guide/<step-id>.ts` or `content/library/<stage>.ts`.
 3. `npm run guide:content -- <step-id>` or `npm run library:content` writes a new migration; add it to `docs/AUTH_SETUP.md`.
 4. Lint, build, `npm test -- --project=desktop`, `npm run test:security` (fails until the database matches the sources).
