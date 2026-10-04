@@ -12,7 +12,7 @@
   :is(.stage-meter-cell, .path-total, .stage-card-tally) > i { position: relative; display: block; height: 2px; overflow: hidden; border-radius: 2px; background: #ffffff1a; }
   :is(.stage-meter-cell, .path-total, .stage-card-tally) > i::after { content: ''; position: absolute; inset: 0; background: var(--glow); transform-origin: 0 50%; scale: var(--fill, 0) 1; transition: scale .6s cubic-bezier(.2, .7, .2, 1); }
 
-  /* The film's chapter pill, spread over the eight stages. */
+  /* The film's chapter pill, spread over the seven stages. */
   .stage-meter { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--edge); border-radius: 22px; background: #07080fcc; }
   .stage-meter > li { display: grid; min-width: 0; }
   .stage-meter-cell { display: grid; grid-template-columns: 1fr auto; align-content: start; gap: 8px; padding: 12px 12px 13px; border-radius: 16px; color: var(--dim); transition: background .3s, color .3s; }

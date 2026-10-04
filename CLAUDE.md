@@ -23,7 +23,7 @@ Before reporting a change as done, run the `verify` skill.
 - `src/app/App.tsx`: routes and `Layout` (header, page cross-fade through `<ViewTransition>`, arrival focus, anchor scrolling).
 - `src/features/<name>/`: feature code: `auth`, `guide` (Маршрут), `library` (Библиотека), `landing`, `starter` (prompt dialog). Pages in `src/pages/<name>/`, shared UI in `src/components/`, helpers in `src/lib/`.
 - `supabase/migrations/`: schema, grants, RLS, published lessons. `tests/`: Playwright specs and helpers, the SQL security test.
-- `content/guide/`: lesson sources with answer keys; `content/library/`: library materials (neither imported by `src/`); `scripts/`: their compilers and migration generators. Roadmap: `docs/GUIDE_PLAN.md`.
+- `content/guide/`: lesson sources with answer keys; `content/library/`: library materials (neither imported by `src/`); `scripts/`: their compilers and migration generators. Lesson map and content workflow: `docs/GUIDE_PLAN.md`.
 - `docs/AUTH_SETUP.md`: the owner-run setup checklist and the migration list.
 - `.claude/rules/`: area rules (landing, auth, guide, supabase, tests, styles); each loads with the files it covers.
 

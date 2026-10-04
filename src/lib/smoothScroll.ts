@@ -7,10 +7,6 @@ export function setScroller(next: Lenis | null) {
   scroller = next;
 }
 
-export function isSmoothScrolling() {
-  return scroller !== null;
-}
-
 // Lenis skips the native scroll event after its own last step, so a jump in that frame (find in page, a
 // control taking focus) leaves it measuring from where it stopped. At rest it takes the page's position first.
 function settle(lenis: Lenis) {

@@ -198,7 +198,7 @@ test('opening a finished step keeps it finished', async ({ page, context }, test
   await expect(page.locator('.step-state')).toHaveText('Выполнен');
   await expect(page.getByRole('link', { name: /Следующий шаг: ★\.2/ })).toBeVisible();
   expect(auth.progress.get('idea-to-pr')?.status).toBe('done');
-  await screenshot(page, `.local/screenshots/step-placeholder-${testInfo.project.name}.png`);
+  await screenshot(page, `.local/screenshots/step-finished-${testInfo.project.name}.png`);
 });
 
 test('a failed save rolls back with a clear message and focus returns to the buttons', async ({ page, context }) => {

@@ -9,7 +9,7 @@ const storageKey = 'sb-agentica-test-auth-token';
 
 export type ProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };
 // The written lessons as the server holds them: what members read and the keys only it sees.
-// Other steps have no lesson yet (`null`).
+// A step missing from content/guide would get `null` (the placeholder).
 export const published = new Map(lessons.map(source => [source.stepId, compileLesson(source)]));
 // The library as published: every title, and bodies the server hands out per passed step.
 export const materials = compileLibrary(library);
