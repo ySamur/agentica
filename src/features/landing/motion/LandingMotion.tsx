@@ -13,6 +13,7 @@ import { buildBook } from './book';
 import { footerSweep, headerStates, magnetize, navSpy, outroLight, tickerSpeed } from './chrome';
 import { buildFilm } from './film';
 import { buildPath, scrubPath } from './path';
+import { buildShelf } from './shelf';
 import { onScreen, rise } from './scene';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText, ScrambleTextPlugin, DrawSVGPlugin);
@@ -130,6 +131,7 @@ export default function LandingMotion({ main }: { main: RefObject<HTMLElement | 
       if (wide) buildPath(root, signal);
       else scrubPath(root);
       buildBook(root, { fine, wide, signal });
+      const stopShelf = buildShelf(root);
       const stopHeader = headerStates(root, film);
       const stopSpy = navSpy();
       if (fine) {
@@ -148,6 +150,7 @@ export default function LandingMotion({ main }: { main: RefObject<HTMLElement | 
         stopHeader();
         stopSpy();
         stopFilm();
+        stopShelf();
         stopScrolling?.();
         root.dataset.motion = 'pending';
       };

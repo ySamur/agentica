@@ -94,6 +94,45 @@ test('Google PKCE login returns to the route and exchanges the code once', async
   expect(auth.exchangeCount).toBe(1);
 });
 
+test('«Начать бесплатно» opens the sign-up form; the address keeps the form, «Войти» switches back', async ({ page, context }) => {
+  await mockAuth(context);
+  await page.goto('/login?mode=signup&next=%2Fpath');
+  await expect(page).toHaveTitle('agentica — Регистрация');
+  await expect(page.locator('.login-card .story-eyebrow')).toHaveText('Регистрация в agentica');
+  await expect(page.getByRole('form', { name: 'Регистрация по email' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Имя на сайте' })).toBeVisible();
+  // Switching forms rewrites the address in place: a reload keeps the form, the return address stays.
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
+  await expect(page).toHaveTitle('agentica — Вход');
+  await expect(page.getByRole('textbox', { name: 'Email', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath&mode=signup$/);
+  await expect(page.getByRole('textbox', { name: 'Имя на сайте' })).toBeFocused();
+  await page.reload();
+  await expect(page.getByRole('form', { name: 'Регистрация по email' })).toBeVisible();
+  // The header's «Войти» over the sign-up form opens the sign-in one.
+  await page.locator('.site-header').getByRole('link', { name: 'Войти' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('form', { name: 'Вход по email' })).toBeVisible();
+  await expect(page.locator('.login-card .story-eyebrow')).toHaveText('Вход в agentica');
+  await expect(page.getByRole('textbox', { name: 'Имя на сайте' })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Email', exact: true })).toBeFocused();
+});
+
+test('the header of the sign-in form offers sign-up, keeping the return address', async ({ page, context }) => {
+  await mockAuth(context);
+  await page.goto('/profile');
+  await expect(page).toHaveURL(/\/login\?next=%2Fprofile$/);
+  const join = page.locator('.site-header').getByRole('link', { name: 'Начать бесплатно' });
+  await join.click();
+  await expect(page).toHaveURL(/\/login\?mode=signup&next=%2Fprofile$/);
+  await expect(page.getByRole('form', { name: 'Регистрация по email' })).toBeVisible();
+  // The link goes away with the form it led to, so focus moves on to the form's first field.
+  await expect(join).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Имя на сайте' })).toBeFocused();
+});
+
 test('email sign-up checks the form, then creates the account and returns to the route', async ({ page, context }, testInfo) => {
   await mockAuth(context);
   await page.goto('/path');
@@ -178,7 +217,7 @@ test('email confirmation: resend, sign-in before the link, the link in another b
   await password.press('Enter');
   const note = page.getByRole('status').filter({ hasText: 'confirm@example.com' });
   await expect(note).toContainText('Отправили письмо со ссылкой');
-  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fpath&mode=signup$/);
   // The letter has just gone out: resending waits out Supabase's minute.
   const sent = page.getByRole('button', { name: 'Письмо отправлено, повторно — через минуту' });
   await expect(sent).toHaveAttribute('aria-disabled', 'true');
