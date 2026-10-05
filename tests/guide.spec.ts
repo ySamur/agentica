@@ -24,6 +24,27 @@ test('each member gets check options in an order of their own, so the right answ
   expect(firstIsRight.filter(Boolean).length).toBeLessThan(firstIsRight.length * 0.4);
 });
 
+// An option's length as members read it, without the inline marks.
+const visibleLength = (text: string) => text.replace(/[`*]/g, '').length;
+
+test('checks never give the right answer away by its length', () => {
+  let single = 0;
+  let longest = 0;
+  for (const [stepId, { lesson, key }] of published) {
+    for (const question of lesson.check?.questions ?? []) {
+      const right = (option: { id: string }) => key![question.id].correct.includes(option.id);
+      const rightLength = Math.max(...question.options.filter(right).map(option => visibleLength(option.text)));
+      const wrongLength = Math.max(...question.options.filter(option => !right(option)).map(option => visibleLength(option.text)));
+      expect(rightLength, `${stepId}/${question.id}: the right option is over 15% longer than the longest wrong one`).toBeLessThanOrEqual(wrongLength * 1.15);
+      if (question.multiple) continue;
+      single++;
+      if (rightLength >= wrongLength) longest++;
+    }
+  }
+  // About a third is chance with three options; more is a pattern a member can learn.
+  expect(longest).toBeLessThanOrEqual(single / 3);
+});
+
 test('members land in the cabinet and start the route from its first step', async ({ page, context }, testInfo) => {
   await mockAuth(context, { signedIn: true });
   const errors: string[] = [];
@@ -414,9 +435,8 @@ for (const [stepId, { lesson, key }] of published) {
     await page.goto(step.path);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(step.title);
     await expect(page.locator('.lesson > *')).toHaveCount(lesson.blocks.length);
-    // The release and month the facts were checked against, once a lesson records them.
-    if (lesson.verified) await expect(page.locator('.step-verified')).toContainText(lesson.verified.claudeCode);
-    else await expect(page.locator('.step-verified')).toHaveCount(0);
+    // The release the facts were checked against.
+    await expect(page.locator('.step-verified')).toContainText(lesson.verified!.claudeCode);
     await expectNoOverflow(page);
     await screenshot(page, `.local/screenshots/lesson-${stepId}-${testInfo.project.name}.png`);
     if (!key) return;

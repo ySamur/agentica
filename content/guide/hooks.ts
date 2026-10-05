@@ -6,7 +6,8 @@ import type { LessonSource } from './types.ts';
 // and script match this project's own working PostToolUse hook (.claude/settings.json).
 export const lesson: LessonSource = {
   stepId: 'hooks',
-  verified: '2026-10-03',
+  verified: '2026-10-05',
+  claudeCode: '2.1.289',
   minutes: 14,
   outcome: 'Вы превращаете правила, которые агент обязан соблюдать, в хуки — команды, которые Claude Code сам запускает в нужный момент.',
   blocks: [
@@ -78,7 +79,7 @@ export const lesson: LessonSource = {
         options: [
           { id: 'post-hook', text: 'Хук `PostToolUse` на `Edit|Write`, который запускает форматтер.', correct: true, why: 'Да. Хук выполняется после каждой правки, что бы агент ни решил.' },
           { id: 'claude-md', text: 'Строка в CLAUDE.md: «всегда запускай форматтер».', why: 'Это совет: агент может забыть, особенно в длинной сессии.' },
-          { id: 'remind', text: 'Напоминать в каждом запросе.', why: 'Утомительно и ненадёжно. Хук делает это сам.' },
+          { id: 'remind', text: 'Напоминать в каждом запросе запускать форматтер после правки.', why: 'Утомительно и ненадёжно. Хук делает это сам.' },
         ],
       },
       {
@@ -87,7 +88,7 @@ export const lesson: LessonSource = {
         options: [
           { id: 'exit-2', text: 'Выйти с кодом 2 и написать причину в stderr.', correct: true, why: 'Да. Действие блокируется, а текст причины получает агент.' },
           { id: 'exit-0', text: 'Выйти с кодом 0 и написать причину в stdout.', why: 'Код 0 значит «всё в порядке»: действие выполнится.' },
-          { id: 'crash', text: 'Упасть без сообщения.', why: 'Агент не узнает, что не так и как исправиться.' },
+          { id: 'exit-1', text: 'Завершиться с кодом 1 без сообщения: агент сам поймёт.', why: 'Код 1 не блокирует действие: правка выполнится, а агент не узнает причину.' },
         ],
       },
       {

@@ -10,6 +10,6 @@ export type LessonSource = Omit<Lesson, 'check' | 'verified'> & {
   // When the facts were last checked against the Claude Code docs (YYYY-MM-DD).
   verified: string;
   // The Claude Code release those docs described (`2.1.289`); members see it with the date.
-  claudeCode?: string;
+  claudeCode: string;
   check?: { questions: QuestionSource[] };
 };

@@ -4,7 +4,8 @@ import type { LessonSource } from './types.ts';
 // delegation limit (4.5). The site has no free-text input, so the member keeps the notes in the repo.
 export const lesson: LessonSource = {
   stepId: 'before-after',
-  verified: '2026-10-03',
+  verified: '2026-10-05',
+  claudeCode: '2.1.289',
   minutes: 12,
   outcome: 'Вы сравниваете, как работали раньше и как работаете с агентом, на цифрах и фактах, а не на ощущениях.',
   blocks: [

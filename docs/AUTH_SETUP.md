@@ -27,6 +27,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610040002_library_content.sql`: the library gains `docs/agents.md` for step ★.3.
    - `202610040003_guide_content_install_…_agent_ci.sql`: ten lessons corrected against the October docs.
    - `202610040004_guide_content_stages_1_3.sql`: stages 1–3 with balanced checks and the «Проверено на Claude Code» mark (renamed from the generator's 190-character name).
+   - `202610050001_guide_content_stages_4_6_capstone.sql`: stages 4–6 with balanced checks and the mark; the capstone gets the mark only (renamed likewise).
    The site name lives in `user_metadata.display_name`; no profiles table.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
 

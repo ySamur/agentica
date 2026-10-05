@@ -1,11 +1,13 @@
 import type { LessonSource } from './types.ts';
 
-// 5.3 MCP. Facts: code.claude.com/docs/en/mcp (claude mcp add --transport http|stdio, --scope
+// 5.3 MCP. Facts: code.claude.com/docs/en/mcp (claude mcp add --transport http|stdio; SSE is
+// deprecated, WebSocket is configured in JSON only and left out; --scope
 // local|project|user; .mcp.json with mcpServers; ${VAR} expansion in stdio env; /mcp for status and
 // sign-in; tool names mcp__<server>__<tool> in permission rules; trust only servers you know).
 export const lesson: LessonSource = {
   stepId: 'mcp',
-  verified: '2026-10-03',
+  verified: '2026-10-05',
+  claudeCode: '2.1.289',
   minutes: 13,
   outcome: 'Вы подключаете агенту внешние инструменты через MCP — трекер, базу, документацию — с подходящей областью действия и под контролем прав.',
   blocks: [
@@ -66,8 +68,8 @@ export const lesson: LessonSource = {
         prompt: 'Вся команда должна пользоваться одним MCP-сервером трекера задач. Какую область выбрать?',
         options: [
           { id: 'project', text: '`--scope project`: подключение ляжет в `.mcp.json` и попадёт в репозиторий.', correct: true, why: 'Да. Коллеги получат его вместе с кодом.' },
-          { id: 'local', text: 'По умолчанию, `local`.', why: 'Так сервер увидите только вы и только в этом проекте.' },
-          { id: 'user', text: '`--scope user`.', why: 'Это ваш личный сервер для всех проектов — коллеги его не получат.' },
+          { id: 'local', text: 'По умолчанию (`local`): каждый коллега увидит сервер, открыв проект.', why: 'Нет: `local` — только для вас и только в этом проекте.' },
+          { id: 'user', text: '`--scope user`: сервер станет доступен всем пользователям и проектам этой машины.', why: '`user` — ваш личный сервер во всех ваших проектах. Коллеги его не получат.' },
         ],
       },
       {
@@ -75,8 +77,8 @@ export const lesson: LessonSource = {
         prompt: 'Серверу нужна строка подключения к базе с паролем. Как указать её в `.mcp.json`, который коммитится?',
         options: [
           { id: 'env', text: 'Через переменную окружения: `${READONLY_DATABASE_URL}`.', correct: true, why: 'Да. В файле остаётся имя переменной, а сам секрет — у каждого в окружении.' },
-          { id: 'inline', text: 'Вписать строку прямо в файл.', why: 'Пароль окажется в репозитории и в истории git.' },
-          { id: 'readme', text: 'Положить строку в README рядом.', why: 'Ещё хуже: секрет в открытом виде для всех.' },
+          { id: 'inline', text: 'Вписать строку прямо в файл: репозиторий всё равно приватный.', why: 'Пароль окажется в репозитории и в истории git.' },
+          { id: 'base64', text: 'Закодировать пароль в base64 и вписать в файл.', why: 'base64 — не шифрование: пароль восстанавливается одной командой.' },
         ],
       },
       {
@@ -85,7 +87,7 @@ export const lesson: LessonSource = {
         options: [
           { id: 'deny', text: 'Правило `deny` на `mcp__tracker__delete_issue`.', correct: true, why: 'Да. Инструменты MCP подчиняются тем же правилам доступа.' },
           { id: 'ask', text: 'Попросить агента в запросе ничего не удалять.', why: 'Это совет, а не запрет.' },
-          { id: 'remove', text: 'Отключить сервер целиком.', why: 'Слишком грубо: остальные инструменты сервера полезны.' },
+          { id: 'remove', text: 'Удалить сервер `tracker` из конфигурации целиком.', why: 'Слишком грубо: остальные инструменты сервера полезны.' },
         ],
       },
     ],

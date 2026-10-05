@@ -9,7 +9,8 @@ import type { LessonSource } from './types.ts';
 // -p) and /gitlab-ci-cd (a GitLab example exists).
 export const lesson: LessonSource = {
   stepId: 'agent-ci',
-  verified: '2026-10-04',
+  verified: '2026-10-05',
+  claudeCode: '2.1.289',
   minutes: 13,
   outcome: 'Вы запускаете агента в CI — ответы на `@claude`, автоматическое ревью, безголовые прогоны `claude -p` — с секретами и правами под контролем.',
   blocks: [
@@ -59,11 +60,11 @@ export const lesson: LessonSource = {
     questions: [
       {
         id: 'api-key',
-        prompt: 'Где хранить ключ API для workflow с агентом?',
+        prompt: 'Коллега предлагает для скорости вписать ключ API прямо в workflow: «репозиторий приватный». Что ответите?',
         options: [
-          { id: 'secrets', text: 'В секретах репозитория: `${{ secrets.ANTHROPIC_API_KEY }}`.', correct: true, why: 'Да. Ключ не попадает ни в код, ни в историю git.' },
-          { id: 'yaml', text: 'Прямо в файле workflow.', why: 'Ключ окажется в репозитории и в истории git.' },
-          { id: 'env-file', text: 'В закоммиченном рядом `.env`.', why: 'Тот же результат: секрет в репозитории.' },
+          { id: 'secrets', text: 'Ключ — в секреты репозитория, а в workflow — `${{ secrets.ANTHROPIC_API_KEY }}`.', correct: true, why: 'Да. Ключ не попадает ни в код, ни в историю git.' },
+          { id: 'yaml', text: 'Можно: репозиторий приватный, и файл workflow посторонние всё равно не увидят.', why: 'Ключ останется в истории git навсегда, и его увидит каждый, у кого есть доступ к репозиторию.' },
+          { id: 'env-file', text: 'Лучше вынести ключ в закоммиченный `.env` рядом с workflow.', why: 'Тот же результат: секрет в репозитории.' },
         ],
       },
       {
@@ -71,7 +72,7 @@ export const lesson: LessonSource = {
         prompt: 'Нужно, чтобы агент ревьюил каждый новый PR без упоминаний. Что для этого нужно?',
         options: [
           { id: 'prompt-input', text: 'Автоматический режим: workflow на событие PR с входом `prompt`.', correct: true, why: 'Да. С `prompt` агент выполняет заданную работу сам, без `@claude`.' },
-          { id: 'mention', text: 'Каждый раз писать `@claude` в PR.', why: 'Это ручной режим — легко забыть.' },
+          { id: 'mention', text: 'Попросить команду упоминать `@claude` в каждом новом PR.', why: 'Это ручной режим — легко забыть.' },
           { id: 'local', text: 'Запускать `/code-review` локально перед каждым пушем.', why: 'Полезно, но это не CI: проверка зависит от того, не забудет ли человек.' },
         ],
       },
@@ -82,8 +83,8 @@ export const lesson: LessonSource = {
         options: [
           { id: 'tools', text: 'Инструменты: `--allowedTools` только на чтение.', correct: true, why: 'Да. Для поиска проблем агенту не нужно ничего менять.' },
           { id: 'turns', text: 'Число ходов: `--max-turns`.', correct: true, why: 'Да. Это страхует от бесконечной работы и лишних затрат.' },
-          { id: 'output', text: 'Формат вывода: только текст.', why: 'Формат не про безопасность; JSON даже удобнее разбирать скриптом.' },
-          { id: 'nothing', text: 'Ничего: в CI нет ничего ценного.', why: 'В CI есть секреты и доступ к репозиторию — права стоит сужать.' },
+          { id: 'output', text: 'Формат вывода: только текст, без JSON.', why: 'Формат не про безопасность; JSON даже удобнее разбирать скриптом.' },
+          { id: 'nothing', text: 'Ничего: в CI нет ничего ценного, ограничения только мешают.', why: 'В CI есть секреты и доступ к репозиторию — права стоит сужать.' },
         ],
       },
     ],
