@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router';
 import { Icon } from '../../components/Icon';
-import { useAuth } from './AuthProvider';
+import { useAuth, useSessionPending } from './AuthProvider';
 import { UserAvatar } from './UserAvatar';
 
 export function AccountMenu() {
-  const { user, loading, signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  // Without a session on its way a visitor is a guest until they sign in, so «Войти» needs no wait.
+  const restoring = useSessionPending();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +47,7 @@ export function AccountMenu() {
     finally { setBusy(false); }
   }
 
-  if (loading) return <span className="auth-loading" role="status">Загрузка…</span>;
+  if (restoring) return <span className="auth-loading" role="status">Загрузка…</span>;
   if (!user) return <Link className="login-link" to="/login">Войти <Icon name="arrowUp" size={15} /></Link>;
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- delegates arrow keys from the trigger and menu items.
   return <div className="account-menu" ref={wrapper} onKeyDown={handleKeys} onBlur={event => {
@@ -57,8 +59,7 @@ export function AccountMenu() {
     {open && <div className="account-dropdown" id="account-dropdown">
       <div className="account-summary"><strong>{user.displayName}</strong><span>{user.email}</span></div>
       <div role="menu" aria-label="Аккаунт">
-        <Link role="menuitem" to="/settings/profile" onClick={() => close()}>Профиль <Icon name="target" size={16} /></Link>
-        <Link role="menuitem" to="/content" onClick={() => close()}>Контент <Icon name="layers" size={16} /></Link>
+        <Link role="menuitem" to="/profile" onClick={() => close()}>Профиль <Icon name="target" size={16} /></Link>
         <button role="menuitem" onClick={logout} disabled={busy}>{busy ? 'Выходим…' : 'Выйти'}<Icon name="arrow" size={16} /></button>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}

@@ -1,20 +1,74 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+import type { AuthError, Session, User } from '@supabase/supabase-js';
 import { useLocation, useNavigate } from 'react-router';
-import { getSupabase, supabaseConfigured } from '../../lib/supabase';
-import { clearDestination, rememberDestination } from './redirect';
+import { avatarUrl, callbackAttempt, getSupabase, hasStoredSession, supabaseConfigured } from '../../lib/supabase';
+import { clearDestination, clearLetterDestination, rememberDestination, rememberLetterDestination } from './redirect';
 
-export type AppUser = { id: string; email: string; displayName: string; avatarUrl: string | null };
+// `pendingEmail`: a requested new address that waits for its confirmation links. `ownAvatar`: the
+// photo is one the member uploaded (it wins over Google's and can be removed).
+export type AppUser = { id: string; email: string; pendingEmail: string | null; displayName: string; avatarUrl: string | null; ownAvatar: boolean; viaGoogle: boolean };
+// `confirm`: the email is not confirmed yet, so the session starts from the letter's link.
+export type PasswordResult = 'signed-in' | 'confirm';
 type AuthContextValue = {
   user: AppUser | null;
   loading: boolean;
   signingOut: boolean;
   configured: boolean;
   error: string | null;
+  // A message for the next page after an account change that ends the session (account deleted).
+  notice: string | null;
   signIn: (destination: string) => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<PasswordResult>;
+  signUp: (email: string, password: string, name: string, destination: string) => Promise<PasswordResult>;
+  resendConfirmation: (email: string, destination: string) => Promise<void>;
+  requestPasswordReset: (email: string, destination: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  changeEmail: (email: string) => Promise<void>;
+  // A prepared image (see avatarImage) replaces the photo; null removes the uploaded one.
+  updateAvatar: (image: Blob | null) => Promise<void>;
+  // Deletes the account for good through the `delete-account` Edge Function; `email` confirms it.
+  deleteAccount: (email: string) => Promise<void>;
+  resendEmailChange: (email: string) => Promise<void>;
+  // The session came from a password reset letter's link (PASSWORD_RECOVERY).
+  recovering: boolean;
   signOut: (returnHome?: boolean) => Promise<void>;
   updateName: (name: string) => Promise<void>;
 };
+
+export const minPasswordLength = 8;
+// A light check before Supabase's own: something@domain.tld.
+export const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const unavailable = 'Вход временно недоступен. Попробуйте позже.';
+const offline = 'Не удалось войти. Проверьте соединение и попробуйте ещё раз.';
+const sessionEnded = 'Сессия завершена. Войдите снова.';
+// Every letter's link (confirmation, password reset) returns through the one allowed callback URL.
+const letterRedirect = () => `${window.location.origin}/auth/callback`;
+// GoTrue answers 500 `unexpected_failure` when a letter cannot be sent (SMTP).
+const letterFailed = (error: AuthError, letter: string) => error.status === 500
+  ? `Не удалось отправить ${letter}. Попробуйте позже.`
+  : passwordError(error);
+
+// Supabase Auth error codes → what the person can do about them.
+function passwordError(error: AuthError) {
+  switch (error.code) {
+    case 'invalid_credentials': return 'Неверный email или пароль.';
+    case 'user_already_exists':
+    case 'email_exists': return 'Этот email уже зарегистрирован. Войдите паролем или через Google.';
+    case 'weak_password': return `Пароль слишком простой: минимум ${minPasswordLength} символов, лучше с буквами и цифрами.`;
+    case 'same_password': return 'Новый пароль совпадает с текущим. Придумайте другой.';
+    case 'reauthentication_needed':
+    case 'reauthentication_not_valid': return 'Для смены пароля войдите заново и повторите.';
+    case 'email_address_invalid':
+    case 'validation_failed': return 'Проверьте email: похоже, в адресе опечатка.';
+    case 'email_not_confirmed': return 'Подтвердите email по ссылке из письма, затем войдите.';
+    case 'over_request_rate_limit':
+    case 'over_email_send_rate_limit': return 'Слишком много попыток. Подождите минуту и попробуйте снова.';
+    case 'email_provider_disabled':
+    case 'signup_disabled': return 'Вход по email сейчас выключен. Войдите через Google.';
+    // The SDK turns 5xx answers into retryable errors without a code; status 0 is no connection.
+    default: return (error.status ?? 0) >= 500 ? 'Сервис входа сейчас не отвечает. Попробуйте позже.' : offline;
+  }
+}
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -22,14 +76,25 @@ function nonEmpty(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+// An uploaded photo's path: in the member's own folder, as the storage policies require. Kept apart
+// from `avatar_url`, which Google rewrites on every sign-in.
+function ownAvatarPath(user: User) {
+  const path = nonEmpty(user.user_metadata.avatar_path);
+  return path && path.startsWith(`${user.id}/`) && /^[\w-]+\/[\w-]+\.(webp|png)$/.test(path) ? path : null;
+}
+
 function mapUser(user: User): AppUser {
   const metadata = user.user_metadata;
-  const avatar = nonEmpty(metadata.avatar_url) || nonEmpty(metadata.picture);
+  const own = ownAvatarPath(user);
+  const avatar = (own && avatarUrl(own)) || nonEmpty(metadata.avatar_url) || nonEmpty(metadata.picture);
   return {
     id: user.id,
     email: user.email || '',
+    pendingEmail: nonEmpty(user.new_email),
     displayName: nonEmpty(metadata.display_name) || nonEmpty(metadata.full_name) || nonEmpty(metadata.name) || 'Пользователь',
     avatarUrl: avatar?.startsWith('https://') ? avatar : null,
+    ownAvatar: own !== null,
+    viaGoogle: Array.isArray(user.app_metadata.providers) ? user.app_metadata.providers.includes('google') : user.app_metadata.provider === 'google',
   };
 }
 
@@ -38,6 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(supabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,7 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!active) return;
           revision += 1;
           setSession(nextSession);
-          if (event === 'SIGNED_OUT') clearDestination();
+          if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+          if (event === 'SIGNED_OUT') { clearDestination(); clearLetterDestination(); setRecovering(false); }
+          if (event === 'SIGNED_IN') setNotice(null);
         });
         unsubscribe = () => subscription.unsubscribe();
         const initialized = await client.auth.initialize();
@@ -91,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (destination: string) => {
     const pending = getSupabase();
-    if (!pending) throw new Error('Вход временно недоступен. Попробуйте позже.');
+    if (!pending) throw new Error(unavailable);
     setError(null);
     try {
       rememberDestination(destination);
@@ -108,6 +177,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       throw new Error('Не удалось начать вход. Проверьте соединение и разрешите хранение данных сайта.');
     }
+  }, []);
+
+  // The new session arrives through onAuthStateChange; the login page then leaves for its destination.
+  const signInWithPassword = useCallback(async (email: string, password: string): Promise<PasswordResult> => {
+    const pending = getSupabase();
+    if (!pending) throw new Error(unavailable);
+    setError(null);
+    let failure: AuthError | null;
+    try {
+      const client = await pending;
+      ({ error: failure } = await client.auth.signInWithPassword({ email: email.trim(), password }));
+    } catch {
+      throw new Error(offline);
+    }
+    if (failure?.code === 'email_not_confirmed') return 'confirm';
+    if (failure) throw new Error(passwordError(failure));
+    return 'signed-in';
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string, name: string, destination: string): Promise<PasswordResult> => {
+    const pending = getSupabase();
+    if (!pending) throw new Error(unavailable);
+    setError(null);
+    let result;
+    try {
+      // With email confirmation on, the letter's link returns through /auth/callback to this destination.
+      rememberLetterDestination(destination);
+      const client = await pending;
+      result = await client.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { display_name: name.trim() }, emailRedirectTo: letterRedirect() },
+      });
+    } catch {
+      throw new Error('Не удалось создать аккаунт. Проверьте соединение и разрешите хранение данных сайта.');
+    }
+    if (result.error) throw new Error(letterFailed(result.error, 'письмо с подтверждением'));
+    return result.data.session ? 'signed-in' : 'confirm';
+  }, []);
+
+  const resendConfirmation = useCallback(async (email: string, destination: string) => {
+    const pending = getSupabase();
+    if (!pending) throw new Error(unavailable);
+    let failure: AuthError | null;
+    try {
+      rememberLetterDestination(destination);
+      const client = await pending;
+      ({ error: failure } = await client.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: letterRedirect() } }));
+    } catch {
+      throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure) throw new Error(letterFailed(failure, 'письмо с подтверждением'));
+  }, []);
+
+  // Supabase answers the same whether the address has an account or not. The letter's link signs in
+  // with PASSWORD_RECOVERY, and the callback page then opens the new password form.
+  const requestPasswordReset = useCallback(async (email: string, destination: string) => {
+    const pending = getSupabase();
+    if (!pending) throw new Error(unavailable);
+    let failure: AuthError | null;
+    try {
+      rememberLetterDestination(destination);
+      const client = await pending;
+      ({ error: failure } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo: letterRedirect() }));
+    } catch {
+      throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure) throw new Error(letterFailed(failure, 'письмо со ссылкой'));
   }, []);
 
   const signOut = useCallback(async (returnHome = false) => {
@@ -130,9 +267,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   const hasSession = Boolean(session);
+  const sessionUser = session?.user;
   const updateName = useCallback(async (value: string) => {
     const pending = getSupabase();
-    if (!pending || !hasSession) throw new Error('Сессия завершена. Войдите снова.');
+    if (!pending || !hasSession) throw new Error(sessionEnded);
     const name = value.trim();
     if (!name) throw new Error('Введите имя.');
     const client = await pending;
@@ -144,12 +282,120 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // USER_UPDATED updates the session through the subscription, including other tabs.
   }, [hasSession, signOut]);
 
+  // A new password ends the account's sessions on other devices: after a reset, someone else may hold one.
+  const updatePassword = useCallback(async (password: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    const client = await pending;
+    let failure: AuthError | null;
+    try {
+      ({ error: failure } = await client.auth.updateUser({ password }));
+    } catch {
+      throw new Error('Не удалось сохранить пароль. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure?.status === 401 || (failure?.status === 403 && !failure.code?.startsWith('reauthentication'))) {
+      await signOut();
+      throw new Error(sessionEnded);
+    }
+    if (failure) throw new Error(passwordError(failure));
+    // Best effort: the password is saved either way.
+    await client.auth.signOut({ scope: 'others' }).catch(() => undefined);
+  }, [hasSession, signOut]);
+
+  // Supabase keeps the address until its links are followed: the new one's, and with Secure email
+  // change (on by default) the current one's too. The last link returns to the profile.
+  const changeEmail = useCallback(async (email: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    let failure: AuthError | null;
+    try {
+      rememberLetterDestination('/profile');
+      const client = await pending;
+      ({ error: failure } = await client.auth.updateUser({ email: email.trim() }, { emailRedirectTo: letterRedirect() }));
+    } catch {
+      throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure?.status === 401 || failure?.status === 403) {
+      await signOut();
+      throw new Error(sessionEnded);
+    }
+    if (failure && ['email_exists', 'user_already_exists', 'conflict'].includes(failure.code ?? '')) throw new Error('Этот адрес уже занят другим аккаунтом.');
+    if (failure) throw new Error(letterFailed(failure, 'письмо для смены адреса'));
+  }, [hasSession, signOut]);
+
+  const resendEmailChange = useCallback(async (email: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    let failure: AuthError | null;
+    try {
+      rememberLetterDestination('/profile');
+      const client = await pending;
+      ({ error: failure } = await client.auth.resend({ type: 'email_change', email, options: { emailRedirectTo: letterRedirect() } }));
+    } catch {
+      throw new Error('Не удалось отправить письмо. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure) throw new Error(letterFailed(failure, 'письмо для смены адреса'));
+  }, [hasSession]);
+
+  // A new photo gets a new name, so caches never show the old one; the old file goes once the
+  // account points at the new one.
+  const updateAvatar = useCallback(async (image: Blob | null) => {
+    const pending = getSupabase();
+    if (!pending || !sessionUser) throw new Error(sessionEnded);
+    const previous = ownAvatarPath(sessionUser);
+    const path = image && `${sessionUser.id}/${Date.now().toString(36)}.${image.type === 'image/png' ? 'png' : 'webp'}`;
+    let failure: { status?: number } | null = null;
+    try {
+      const client = await pending;
+      const avatars = client.storage.from('avatars');
+      if (image && path) {
+        const { error: uploadError } = await avatars.upload(path, image, { contentType: image.type, cacheControl: '31536000', upsert: false });
+        if (uploadError) throw new Error('Не удалось загрузить фото. Попробуйте ещё раз.');
+      }
+      ({ error: failure } = await client.auth.updateUser({ data: { avatar_path: path } }));
+      if (failure) {
+        if (path) await avatars.remove([path]).catch(() => undefined);
+      } else if (previous && previous !== path) {
+        await avatars.remove([previous]).catch(() => undefined);
+      }
+    } catch (cause) {
+      throw cause instanceof Error && cause.message.startsWith('Не удалось') ? cause : new Error('Не удалось сохранить фото. Проверьте соединение и попробуйте ещё раз.');
+    }
+    if (failure?.status === 401 || failure?.status === 403) {
+      await signOut();
+      throw new Error(sessionEnded);
+    }
+    if (failure) throw new Error('Не удалось сохранить фото. Попробуйте ещё раз.');
+  }, [sessionUser, signOut]);
+
+  // The server removes the photos and the user (progress cascades); this browser then forgets the
+  // session, which can no longer refresh, and lands on the landing with a notice.
+  const deleteAccount = useCallback(async (email: string) => {
+    const pending = getSupabase();
+    if (!pending || !hasSession) throw new Error(sessionEnded);
+    const client = await pending;
+    let status = 0;
+    try {
+      const { error: invokeError } = await client.functions.invoke('delete-account', { body: { email: email.trim() } });
+      // FunctionsHttpError carries the response; fetch and relay errors do not.
+      if (invokeError) status = invokeError.context instanceof Response ? invokeError.context.status : -1;
+    } catch {
+      status = -1;
+    }
+    if (status === 401) { await signOut(); throw new Error(sessionEnded); }
+    if (status === 400) throw new Error('Email не совпадает с адресом аккаунта.');
+    if (status !== 0) throw new Error('Не удалось удалить аккаунт. Проверьте соединение и попробуйте ещё раз.');
+    clearLetterDestination();
+    setNotice('Аккаунт удалён вместе с прогрессом и фото. Спасибо, что были с нами.');
+    // Like «Выйти»: the route guard waits while the landing replaces the profile.
+    await signOut(true);
+  }, [hasSession, signOut]);
+
   // Stable identities keep consumers and their effects from re-running on unrelated renders.
-  const sessionUser = session?.user;
   const user = useMemo(() => sessionUser ? mapUser(sessionUser) : null, [sessionUser]);
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, signIn, signOut, updateName }),
-    [user, loading, signingOut, error, signIn, signOut, updateName],
+    () => ({ user, loading, signingOut, configured: supabaseConfigured, error, notice, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, deleteAccount, recovering, signOut, updateName }),
+    [user, loading, signingOut, error, notice, signIn, signInWithPassword, signUp, resendConfirmation, requestPasswordReset, updatePassword, changeEmail, resendEmailChange, updateAvatar, deleteAccount, recovering, signOut, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -158,4 +404,10 @@ export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used inside AuthProvider');
   return context;
+}
+
+// A session on its way while the SDK loads: one stored by an earlier visit, or a sign-in being
+// completed with an OAuth code. The header, the pages and the account menu all treat it as a member.
+export function useSessionPending() {
+  return useAuth().loading && (hasStoredSession() || callbackAttempt.hasCode);
 }

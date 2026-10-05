@@ -1,0 +1,91 @@
+import type { LessonSource } from './types.ts';
+
+// 1.1 Установка и первый запуск. Facts: code.claude.com/docs/en/setup (installers, no sudo with npm,
+// npm needs Node.js 22+, Homebrew/WinGet update themselves only with
+// CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE=1, the free plan has no Claude Code), /authentication (Pro,
+// Max, Team/Enterprise by an admin's invite, Console, Bedrock / Google Cloud's Agent Platform /
+// Microsoft Foundry), /quickstart and /sessions (claude -c, claude -r, /resume, /init, /help,
+// claude doctor, /exit).
+export const lesson: LessonSource = {
+  stepId: 'install',
+  verified: '2026-10-04',
+  claudeCode: '2.1.289',
+  minutes: 10,
+  outcome: 'Claude Code установлен, вы вошли в аккаунт и провели первый разговор с агентом в своём репозитории.',
+  blocks: [
+    { type: 'text', text: 'Claude Code — агент в терминале. Он работает в папке, где вы его запустили: читает код, запускает команды и правит файлы. Ставится за минуту, и первый день лучше потратить не на правки, а на знакомство.' },
+    { type: 'heading', text: 'Установка' },
+    { type: 'text', text: 'Рекомендуемый способ — официальный установщик: он ставит Claude Code и дальше обновляет его сам.' },
+    { type: 'command', code: 'curl -fsSL https://claude.ai/install.sh | bash', caption: 'macOS, Linux и WSL. В Windows PowerShell: `irm https://claude.ai/install.ps1 | iex`.' },
+    { type: 'callout', tone: 'trap', title: 'Без sudo', text: 'Через npm тоже можно, если стоит Node.js 22 или новее: `npm install -g @anthropic-ai/claude-code`. Но не добавляйте `sudo`: документация прямо предупреждает о проблемах с правами и безопасностью. Homebrew и WinGet тоже подходят, но сами обновляются, только если задать переменную `CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE=1`.' },
+    { type: 'heading', text: 'Первый запуск' },
+    { type: 'text', text: 'Перейдите в корень проекта и наберите `claude`. В первый раз откроется браузер для входа: подойдёт подписка Claude Pro или Max, аккаунт Team или Enterprise (вход аккаунтом claude.ai по приглашению администратора) или аккаунт Claude Console с оплатой API. Дальше вход запоминается. Бесплатный план Claude Code не включает. Если компания работает через облако, Claude Code подключают и к нему: Amazon Bedrock, Agent Platform в Google Cloud, Microsoft Foundry.' },
+    {
+      type: 'session',
+      title: '~/projects/shop',
+      summary: 'Симуляция сеанса: разработчик запускает Claude Code в корне своего проекта и спрашивает, что это за проект и как его запустить. Агент сам читает package.json, README и docker-compose, описывает стек и команды запуска и ничего не меняет.',
+      lines: [
+        { kind: 'command', text: 'cd ~/projects/shop && claude', typed: true },
+        { kind: 'meta', text: 'Claude Code · вход выполнен' },
+        { kind: 'prompt', text: 'Что это за проект и как запустить его локально?', typed: true },
+        { kind: 'info', text: 'Читаю package.json, README.md, docker-compose.yml' },
+        { kind: 'info', text: 'Node 22, PostgreSQL в Docker, фронтенд на Vite' },
+        { kind: 'info', text: 'Запуск: docker compose up -d, затем npm run dev' },
+        { kind: 'prompt', text: 'Где лежат тесты и чем их запускать?', typed: true },
+        { kind: 'info', text: 'tests/ — Vitest, команда npm test; e2e — npm run e2e' },
+        { kind: 'done', text: 'Файлы не менялись: только чтение.' },
+      ],
+    },
+    { type: 'heading', text: 'Пять команд первого дня' },
+    {
+      type: 'list',
+      items: [
+        '`claude -c` продолжает последний разговор в этой папке, `claude -r` открывает список прошлых.',
+        '`/help` показывает все команды; `/` и Tab подсказывают их по мере ввода.',
+        '`/init` создаёт черновик CLAUDE.md — памяти проекта. Подробно о нём — в шаге 2.2.',
+        '`claude doctor` проверяет установку и настройки, если что-то пошло не так.',
+        '`/exit` или дважды Ctrl+D — выход.',
+      ],
+    },
+    { type: 'callout', tone: 'tip', title: 'Сначала вопросы, потом правки', text: 'Спросите агента о том, что знаете сами: как запустить проект, где главная логика, как устроены тесты. Так вы быстро поймёте, насколько ему можно доверять. Подробно — в шаге 1.3.' },
+  ],
+  practice: {
+    task: 'Установите Claude Code, войдите и запустите его в корне рабочего проекта. Задайте три вопроса, ответы на которые знаете сами: как запустить проект, где живёт главная бизнес-логика, как устроены тесты.',
+    done: [
+      '`claude --version` печатает версию;',
+      'агент ответил на три вопроса, и вы сверили ответы с тем, что знаете;',
+      'в проекте не изменился ни один файл.',
+    ],
+  },
+  check: {
+    questions: [
+      {
+        id: 'sudo-install',
+        prompt: 'Коллега ставит Claude Code командой `sudo npm install -g @anthropic-ai/claude-code`: без sudo «не хватает прав». Что посоветуете?',
+        options: [
+          { id: 'native', text: 'Поставить официальным установщиком без sudo — он ещё и обновляется сам.', correct: true, why: 'Да. Документация прямо предостерегает от `sudo npm install -g`, а нативный установщик решает и вопрос прав, и обновления.' },
+          { id: 'sudo-ok', text: 'Оставить sudo: для глобальных пакетов npm это обычное дело, раз иначе не хватает прав.', why: 'Именно так делать не советует документация: глобальная установка под root ведёт к проблемам с правами и рискам безопасности.' },
+          { id: 'docker', text: 'Запускать Claude Code в Docker-контейнере, чтобы вообще не трогать права на машине.', why: 'Обходной путь ценой лишней настройки: проект придётся монтировать в контейнер. Официальный установщик решает вопрос прав без root.' },
+        ],
+      },
+      {
+        id: 'where-run',
+        prompt: 'Вы открыли терминал в домашней папке, запустили `claude` и спросили, как запустить тесты проекта shop. Агент отвечает общими словами. В чём дело?',
+        options: [
+          { id: 'wrong-folder', text: 'Он запущен не там: агент видит папку запуска, а не shop. Запустите `claude` в корне проекта.', correct: true, why: 'Да. Агент работает в папке запуска и её подпапках: из корня проекта он видит код, настройки и тесты.' },
+          { id: 'no-claude-md', text: 'В проекте нет CLAUDE.md, а без него агент не знает, где лежат тесты и как их запускать.', why: 'CLAUDE.md помогает, но файлы проекта агент читает и без него. Здесь он просто не видит проект из домашней папки.' },
+          { id: 'no-init', text: 'Не выполнен `/init`: пока его не запустить, агент не читает файлы этого проекта самостоятельно.', why: '`/init` лишь создаёт черновик CLAUDE.md. Читать проект агент может и без него — если запущен в его папке.' },
+        ],
+      },
+      {
+        id: 'continue',
+        prompt: 'Вчера вы долго обсуждали с агентом задачу и закрыли терминал. Как продолжить с того же места?',
+        options: [
+          { id: 'continue', text: '`claude -c` в той же папке: разговор продолжится целиком.', correct: true, why: 'Да. `-c` продолжает последний разговор в текущей папке, а `claude -r` и `/resume` позволяют выбрать любой из прошлых.' },
+          { id: 'retell', text: 'Запустить `claude` и пересказать вчерашний разговор с решениями.', why: 'Можно, но пересказ теряет детали. Разговоры сохраняются: `-c` вернёт вчерашний целиком.' },
+          { id: 'lost', text: 'Никак: история пропадает вместе с терминалом.', why: 'Не пропадает: сессии сохраняются, их открывают `claude -c`, `claude -r` или `/resume` внутри сессии.' },
+        ],
+      },
+    ],
+  },
+};

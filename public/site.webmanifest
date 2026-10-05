@@ -1,0 +1,16 @@
+{
+  "name": "agentica — Код пишет Claude. Решения — ваши.",
+  "short_name": "agentica",
+  "description": "Как Claude Code меняет работу программиста, какие навыки нужны теперь и маршрут из 31 урока с проверками для участников.",
+  "lang": "ru",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#07080f",
+  "theme_color": "#07080f",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}

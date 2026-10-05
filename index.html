@@ -3,12 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7f8f4" />
-    <meta name="description" content="Меньше рутины, больше идей. Узнайте, как ИИ-агенты помогают разработчикам планировать, писать и проверять код — сохраняя контроль в ваших руках." />
-    <title>agentica — Вы создаёте. Агенты ускоряют.</title>
+    <meta name="theme-color" content="#07080f" />
+    <meta name="description" content="Разработчик, который управляет агентами. Как Claude Code меняет работу программиста, какие навыки нужны теперь и маршрут из 31 урока с проверками для участников." />
+    <title>agentica — Код пишет Claude. Решения — ваши.</title>
+    <!-- Link previews; the image and the address come from vite.config.ts when VITE_SITE_URL is set. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="agentica" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:title" content="Код пишет Claude. Решения — ваши." />
+    <meta property="og:description" content="Как Claude Code меняет работу программиста, какие навыки нужны теперь и маршрут из 31 урока с проверками для участников." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      /* Every page is dark; no white flash before the app mounts. */
+      html { background: #07080f; color-scheme: dark; }
+    </style>
+    <script>
+      // Same hint as the app: no stored Supabase session on / means the guest landing.
+      try {
+        if (location.pathname === '/' && !Object.keys(localStorage).some(key => /^sb-.+-auth-token$/.test(key))) {
+          // The film's first frame is the landing's largest paint; fetch it before the app asks.
+          const poster = document.createElement('link');
+          poster.rel = 'preload';
+          poster.as = 'image';
+          poster.fetchPriority = 'high';
+          poster.href = matchMedia('(max-aspect-ratio: 4/5)').matches ? '/frames/typing/mobile/f_001.webp' : '/frames/typing/desktop/f_001.webp';
+          document.head.append(poster);
+        }
+      } catch {
+        // Blocked storage: the app still loads the poster itself.
+      }
+    </script>
   </head>
   <body>
+    <noscript><p style="max-width: 32em; margin: 30vh auto 0; padding: 0 24px; font: 18px/1.5 Arial, sans-serif; color: #eef0fb; text-align: center;">Для работы agentica нужен JavaScript. Включите его в настройках браузера и обновите страницу.</p></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
