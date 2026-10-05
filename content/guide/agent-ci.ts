@@ -1,18 +1,22 @@
 import type { LessonSource } from './types.ts';
 
-// 5.5 Агент в CI. Facts: code.claude.com/docs/en/github-actions (/install-github-app; workflow with
-// anthropics/claude-code-action@v1 and the ANTHROPIC_API_KEY secret; @claude mentions without `prompt`,
-// automation with `prompt`; minimal permissions), /headless (claude -p, --output-format json,
-// --allowedTools, --max-turns) and /gitlab-ci-cd (a GitLab example exists).
+// 5.5 Агент в CI. Facts: code.claude.com/docs/en/github-actions (/install-github-app needs the gh CLI
+// and works only with github.com repositories; workflow with anthropics/claude-code-action@v1 and the
+// ANTHROPIC_API_KEY secret; @claude mentions without `prompt`, automation with `prompt`; minimal
+// permissions), /headless (claude -p, --output-format json, --allowedTools, --max-turns; --bare is
+// recommended for CI and scripts, skips auto-discovery of hooks, skills, plugins, MCP servers, auto
+// memory and CLAUDE.md, never reads OAuth, takes ANTHROPIC_API_KEY, and will become the default for
+// -p) and /gitlab-ci-cd (a GitLab example exists).
 export const lesson: LessonSource = {
   stepId: 'agent-ci',
-  verified: '2026-10-03',
+  verified: '2026-10-05',
+  claudeCode: '2.1.289',
   minutes: 13,
   outcome: 'Вы запускаете агента в CI — ответы на `@claude`, автоматическое ревью, безголовые прогоны `claude -p` — с секретами и правами под контролем.',
   blocks: [
     { type: 'text', text: 'Агент не обязан жить только в вашем терминале. В CI он отвечает на упоминания в задачах и PR, ревьюит каждый PR и выполняет рутину по расписанию — тот же Claude Code, только без интерактива.' },
     { type: 'heading', text: 'GitHub Actions за одну команду' },
-    { type: 'command', code: '/install-github-app', caption: 'Запустите в Claude Code: команда установит приложение GitHub, добавит секрет и подготовит файл workflow.' },
+    { type: 'command', code: '/install-github-app', caption: 'Запустите в Claude Code: команда установит приложение GitHub, добавит секрет и подготовит файл workflow. Нужен GitHub CLI `gh`, и работает она только с репозиториями на github.com.' },
     {
       type: 'code',
       file: '.github/workflows/claude.yml',
@@ -28,14 +32,14 @@ export const lesson: LessonSource = {
       ],
     },
     { type: 'heading', text: 'Безголовый запуск' },
-    { type: 'text', text: 'В любом CI, не только в GitHub, работает `claude -p`: запрос без интерактива, результат — в stdout. Для GitLab в документации есть готовый пример.' },
-    { type: 'command', code: 'claude -p "Найди в изменениях ветки места без тестов" --output-format json --allowedTools "Read,Grep,Glob" --max-turns 10', caption: '`--allowedTools` разрешает только чтение, `--max-turns` ограничивает число ходов, а JSON удобно разбирать скриптом.' },
+    { type: 'text', text: 'В любом CI, не только в GitHub, работает `claude -p`: запрос без интерактива, результат — в stdout. Для CI и скриптов документация советует добавлять `--bare`, а со временем он станет для `-p` умолчанием. Для GitLab в документации есть готовый пример.' },
+    { type: 'command', code: 'claude -p "Найди в изменениях ветки места без тестов" --bare --output-format json --allowedTools "Read,Grep,Glob" --max-turns 10', caption: '`--bare` не подгружает хуки, навыки, плагины, MCP-серверы, CLAUDE.md и авто-память, а ключ берёт из `ANTHROPIC_API_KEY`. `--allowedTools` разрешает только чтение, `--max-turns` ограничивает число ходов, а JSON удобно разбирать скриптом.' },
     {
       type: 'session',
       title: 'ci · feature/promo',
       summary: 'Симуляция прогона в CI: claude -p читает изменения ветки, находит место без тестов и возвращает результат в JSON для следующего шага пайплайна.',
       lines: [
-        { kind: 'command', text: 'claude -p "Найди места без тестов" --output-format json', typed: true },
+        { kind: 'command', text: 'claude -p "Найди места без тестов" --bare --output-format json', typed: true },
         { kind: 'info', text: 'Читаю изменения ветки feature/promo: 6 файлов' },
         { kind: 'info', text: 'Без тестов: src/cart/promo.ts — ветка с просроченным кодом' },
         { kind: 'done', text: '{"result": "Без тестов: 1 место", "session_id": "…"}' },
@@ -56,11 +60,11 @@ export const lesson: LessonSource = {
     questions: [
       {
         id: 'api-key',
-        prompt: 'Где хранить ключ API для workflow с агентом?',
+        prompt: 'Коллега предлагает для скорости вписать ключ API прямо в workflow: «репозиторий приватный». Что ответите?',
         options: [
-          { id: 'secrets', text: 'В секретах репозитория: `${{ secrets.ANTHROPIC_API_KEY }}`.', correct: true, why: 'Да. Ключ не попадает ни в код, ни в историю git.' },
-          { id: 'yaml', text: 'Прямо в файле workflow.', why: 'Ключ окажется в репозитории и в истории git.' },
-          { id: 'env-file', text: 'В закоммиченном рядом `.env`.', why: 'Тот же результат: секрет в репозитории.' },
+          { id: 'secrets', text: 'Ключ — в секреты репозитория, а в workflow — `${{ secrets.ANTHROPIC_API_KEY }}`.', correct: true, why: 'Да. Ключ не попадает ни в код, ни в историю git.' },
+          { id: 'yaml', text: 'Можно: репозиторий приватный, и файл workflow посторонние всё равно не увидят.', why: 'Ключ останется в истории git навсегда, и его увидит каждый, у кого есть доступ к репозиторию.' },
+          { id: 'env-file', text: 'Лучше вынести ключ в закоммиченный `.env` рядом с workflow.', why: 'Тот же результат: секрет в репозитории.' },
         ],
       },
       {
@@ -68,7 +72,7 @@ export const lesson: LessonSource = {
         prompt: 'Нужно, чтобы агент ревьюил каждый новый PR без упоминаний. Что для этого нужно?',
         options: [
           { id: 'prompt-input', text: 'Автоматический режим: workflow на событие PR с входом `prompt`.', correct: true, why: 'Да. С `prompt` агент выполняет заданную работу сам, без `@claude`.' },
-          { id: 'mention', text: 'Каждый раз писать `@claude` в PR.', why: 'Это ручной режим — легко забыть.' },
+          { id: 'mention', text: 'Попросить команду упоминать `@claude` в каждом новом PR.', why: 'Это ручной режим — легко забыть.' },
           { id: 'local', text: 'Запускать `/code-review` локально перед каждым пушем.', why: 'Полезно, но это не CI: проверка зависит от того, не забудет ли человек.' },
         ],
       },
@@ -79,8 +83,8 @@ export const lesson: LessonSource = {
         options: [
           { id: 'tools', text: 'Инструменты: `--allowedTools` только на чтение.', correct: true, why: 'Да. Для поиска проблем агенту не нужно ничего менять.' },
           { id: 'turns', text: 'Число ходов: `--max-turns`.', correct: true, why: 'Да. Это страхует от бесконечной работы и лишних затрат.' },
-          { id: 'output', text: 'Формат вывода: только текст.', why: 'Формат не про безопасность; JSON даже удобнее разбирать скриптом.' },
-          { id: 'nothing', text: 'Ничего: в CI нет ничего ценного.', why: 'В CI есть секреты и доступ к репозиторию — права стоит сужать.' },
+          { id: 'output', text: 'Формат вывода: только текст, без JSON.', why: 'Формат не про безопасность; JSON даже удобнее разбирать скриптом.' },
+          { id: 'nothing', text: 'Ничего: в CI нет ничего ценного, ограничения только мешают.', why: 'В CI есть секреты и доступ к репозиторию — права стоит сужать.' },
         ],
       },
     ],

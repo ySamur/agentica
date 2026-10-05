@@ -1,12 +1,14 @@
 import type { LessonSource } from './types.ts';
 
 // 3.3 Декомпозиция на проверяемые шаги. Facts: code.claude.com/docs/en/best-practices (explore → plan
-// → implement → commit; Ctrl+G edits the plan; give each change a pass/fail check),
-// /interactive-mode (Ctrl+T shows Claude's task list) and /goal (a completion condition checked
-// after every turn; one measurable state, how to prove it, constraints, optional turn limit).
+// → implement → commit; Ctrl+G edits the plan; give each change a pass/fail check) and /goal (a
+// completion condition checked after every turn; one measurable state, how to prove it,
+// constraints, optional turn limit). The Ctrl+T task list is left out: on current models it stays
+// empty unless CLAUDE_CODE_ENABLE_TODO_TOOLS=1 (/tools-reference).
 export const lesson: LessonSource = {
   stepId: 'decomposition',
-  verified: '2026-10-03',
+  verified: '2026-10-04',
+  claudeCode: '2.1.289',
   minutes: 14,
   outcome: 'Вы режете большую задачу на шаги, у каждого из которых есть своя проверка, и ведёте агента по ним.',
   blocks: [
@@ -62,8 +64,6 @@ export const lesson: LessonSource = {
         { kind: 'done', text: 'Шаги 1–2 готовы и закоммичены. Дальше — кнопка.' },
       ],
     },
-    { type: 'heading', text: 'Список задач агента' },
-    { type: 'text', text: 'В многошаговой работе агент может вести свой список задач. **Ctrl+T** показывает его: что сделано, что в работе, что впереди. Удобно, чтобы понять, где он сейчас, не читая весь разговор.' },
     { type: 'heading', text: 'Цель вместо подталкиваний' },
     { type: 'text', text: 'Когда шаги однотипны — довести тесты модуля до зелёного, разбить большой файл, — задайте условие завершения командой `/goal`. После каждого хода отдельная проверка смотрит, выполнено ли условие, и если нет, агент продолжает сам.' },
     { type: 'command', code: '/goal все тесты в tests/reports проходят, линтер чистый, другие тесты не тронуты', caption: 'Одно измеримое состояние, способ его проверить и ограничения. Можно добавить «или остановись через 20 ходов».' },
@@ -84,9 +84,9 @@ export const lesson: LessonSource = {
         id: 'good-step',
         prompt: 'Какой шаг сформулирован лучше всего?',
         options: [
-          { id: 'checked', text: 'Добавь сериализатор строк отчёта и юнит-тесты на пустые значения и кавычки; запусти их.', correct: true, why: 'Да. Шаг небольшой, и у него есть проверка «прошло / не прошло».' },
-          { id: 'big', text: 'Сделай весь бэкенд экспорта.', why: 'Слишком крупно: огромный diff и одна проверка в конце.' },
-          { id: 'vague', text: 'Подготовь всё для экспорта.', why: 'Нечем проверить, что шаг сделан, — непонятно даже, что в него входит.' },
+          { id: 'checked', text: 'Добавь сериализатор строк отчёта с юнит-тестами на пустые значения и кавычки; запусти их.', correct: true, why: 'Да. Шаг небольшой, и у него есть проверка «прошло / не прошло».' },
+          { id: 'big', text: 'Сделай бэкенд экспорта целиком: сериализатор, эндпоинт и выдачу потоком, потом прогони все тесты.', why: 'Слишком крупно: три изменения в одном diff и одна проверка в конце.' },
+          { id: 'vague', text: 'Подготовь модуль отчётов к экспорту: проверь структуру, наведи порядок и опиши, что нашёл.', why: 'Нечем проверить, что шаг сделан: «навести порядок» не даёт ни границы, ни критерия.' },
         ],
       },
       {
@@ -94,8 +94,8 @@ export const lesson: LessonSource = {
         prompt: 'Для какой задачи `/goal` подходит лучше всего?',
         options: [
           { id: 'tests-green', text: 'Довести до зелёного все тесты модуля после миграции.', correct: true, why: 'Да. Это одно измеримое состояние, которое проверка увидит после каждого хода.' },
-          { id: 'design', text: 'Придумать архитектуру нового сервиса.', why: 'Здесь нет измеримого условия завершения — это работа для плана и обсуждения.' },
-          { id: 'typo', text: 'Исправить опечатку в заголовке.', why: 'Одна правка — хватит обычного запроса.' },
+          { id: 'design', text: 'Придумать и описать архитектуру нового сервиса уведомлений.', why: 'Здесь нет измеримого условия завершения — это работа для плана и обсуждения.' },
+          { id: 'typo', text: 'Исправить опечатку в заголовке страницы оформления заказа.', why: 'Одна правка — хватит обычного запроса.' },
         ],
       },
       {

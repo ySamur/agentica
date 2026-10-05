@@ -16,6 +16,7 @@ function problems(source: LessonSource) {
   const found: string[] = [];
   if (!stepIds.has(source.stepId)) found.push('the step is not in catalog.ts');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(source.verified)) found.push('`verified` is not YYYY-MM-DD');
+  if (!/^\d+\.\d+\.\d+$/.test(source.claudeCode)) found.push('`claudeCode` is not a release like 2.1.289');
   if (!source.check) return found;
   const { questions } = source.check;
   if (questions.length < 2 || questions.length > 4) found.push('a check has 2 to 4 questions');
@@ -38,7 +39,10 @@ export function compileLesson(source: LessonSource): CompiledLesson {
   const found = problems(source);
   if (found.length) throw new Error(`content/guide ${source.stepId}: ${found.join('; ')}`);
   // Listed field by field, so nothing from the source reaches members by accident.
-  const lesson: Lesson = { minutes: source.minutes, outcome: source.outcome, blocks: source.blocks, practice: source.practice };
+  const lesson: Lesson = {
+    minutes: source.minutes, outcome: source.outcome, blocks: source.blocks, practice: source.practice,
+    verified: { date: source.verified, claudeCode: source.claudeCode },
+  };
   if (!source.check) return { stepId: source.stepId, lesson, key: null };
   const { questions } = source.check;
   lesson.check = {

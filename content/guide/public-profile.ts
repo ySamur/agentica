@@ -5,7 +5,8 @@ import type { LessonSource } from './types.ts';
 // the member collects the result in the project, and whether to show it is their own call.
 export const lesson: LessonSource = {
   stepId: 'public-profile',
-  verified: '2026-10-04',
+  verified: '2026-10-05',
+  claudeCode: '2.1.289',
   minutes: 12,
   outcome: 'Вы собираете результат маршрута в одном месте проекта: цикл задачи, образец PR, «Было / Стало» и настройки агента — опору для себя и команды на следующие задачи.',
   blocks: [

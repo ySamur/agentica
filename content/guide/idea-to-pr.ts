@@ -5,7 +5,8 @@ import type { LessonSource } from './types.ts';
 // Capstone steps have no check: the member marks them.
 export const lesson: LessonSource = {
   stepId: 'idea-to-pr',
-  verified: '2026-10-03',
+  verified: '2026-10-05',
+  claudeCode: '2.1.289',
   minutes: 15,
   outcome: 'Вы проводите одну настоящую задачу своего проекта от идеи до слитого PR, используя весь маршрут, и знаете, где вмешивались сами.',
   blocks: [

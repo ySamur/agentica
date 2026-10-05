@@ -5,9 +5,11 @@ import type { Inline, Lesson } from '../../src/features/guide/lesson/types.ts';
 export type OptionSource = { id: string; text: Inline; correct?: true; why: Inline };
 export type QuestionSource = { id: string; prompt: Inline; multiple?: boolean; options: OptionSource[] };
 
-export type LessonSource = Omit<Lesson, 'check'> & {
+export type LessonSource = Omit<Lesson, 'check' | 'verified'> & {
   stepId: string;
   // When the facts were last checked against the Claude Code docs (YYYY-MM-DD).
   verified: string;
+  // The Claude Code release those docs described (`2.1.289`); members see it with the date.
+  claudeCode: string;
   check?: { questions: QuestionSource[] };
 };

@@ -25,7 +25,11 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610030010_library_content.sql`: the library's materials (`npm run library:content`).
    - `202610040001_guide_content_public_profile.sql`: step ★.3 rewritten without publishing.
    - `202610040002_library_content.sql`: the library gains `docs/agents.md` for step ★.3.
+   - `202610040003_guide_content_install_…_agent_ci.sql`: ten lessons corrected against the October docs.
+   - `202610040004_guide_content_stages_1_3.sql`: stages 1–3 with balanced checks and the «Проверено на Claude Code» mark (renamed from the generator's 190-character name).
+   - `202610050001_guide_content_stages_4_6_capstone.sql`: stages 4–6 with balanced checks and the mark; the capstone gets the mark only (renamed likewise).
    - `202610040050_avatars.sql`: public bucket `avatars` (512 KB, WebP/PNG); members read, upload, replace and remove only `avatars/<own id>/…`.
+
    The site name lives in `user_metadata.display_name`; no profiles table.
    **Edge Functions** (`supabase/functions/`; through MCP `deploy_edge_function`, or `supabase functions deploy <name> --no-verify-jwt`):
    - `delete-account`: `verify_jwt` off, the function checks the bearer token with Auth and the typed email itself; deletes `avatars/<id>/…` and the user.
