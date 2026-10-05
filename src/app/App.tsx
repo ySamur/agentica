@@ -41,8 +41,10 @@ function useMember() {
   return Boolean(user) || pending;
 }
 
-function pageTitle(pathname: string, member: boolean) {
+function pageTitle(pathname: string, search: string, member: boolean) {
   if (pathname === '/') return member ? 'Кабинет' : 'Код пишет Claude. Решения — ваши.';
+  // The sign-up form shares the login page (`?mode=signup`, see LoginPage).
+  if (pathname === '/login' && new URLSearchParams(search).get('mode') === 'signup') return 'Регистрация';
   const step = stepAtPath(pathname);
   if (step) return `${step.label} ${step.title}`;
   return titles[pathname] || 'Страница не найдена';
@@ -77,7 +79,7 @@ function Layout() {
   const { error, notice, user } = useAuth();
   const member = useMember();
   const openStarter = () => setStarterOpen(true);
-  const title = pageTitle(location.pathname, member);
+  const title = pageTitle(location.pathname, location.search, member);
   useArrivalFocus(location.pathname, location.hash);
 
   useEffect(() => {

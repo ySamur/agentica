@@ -19,10 +19,10 @@ function ContinueLink() {
 // Guests get the landing's sections and one way in; members get their workspace.
 export function SiteHeader({ member }: { member: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const closeMenu = () => setMenuOpen(false);
-  // The sign-in page is where this call to action leads, so it goes without one.
-  const signUp = pathname !== '/login';
+  // The sign-up form is where this call to action leads, so it goes without one; the sign-in form keeps it.
+  const signUp = !(pathname === '/login' && new URLSearchParams(search).get('mode') === 'signup');
   return <>
     <a className="skip-link" href="#main">Перейти к содержимому</a>
     <header className="site-header">

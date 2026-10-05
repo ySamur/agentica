@@ -342,14 +342,14 @@ test('sign-up calls to action lead through Google sign-in to the route', async (
   await mockAuth(context);
   await page.goto('/');
   await page.locator('#guide').getByRole('link', { name: 'Начать бесплатно' }).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
+  await expect(page).toHaveURL(/\/login\?mode=signup&next=%2Fpath$/);
   // The address changes first and the login page follows its chunk and page transition; going back
   // before it shows would only cancel the navigation, leaving the landing scrolled down at #guide.
   await expect(page.getByRole('button', { name: 'Продолжить с Google' })).toBeVisible();
   await page.goBack();
   await page.getByRole('button', { name: 'Пропустить интро' }).click();
   await heroLink(page).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fpath$/);
+  await expect(page).toHaveURL(/\/login\?mode=signup&next=%2Fpath$/);
   await page.getByRole('button', { name: 'Продолжить с Google' }).click();
   await expect(page).toHaveURL('http://localhost:4317/path');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('От клавиатуры');
@@ -431,13 +431,15 @@ test('every sign-up call to action has one label and leads to sign-in', async ({
     await page.getByRole('button', { name: 'Открыть меню' }).click();
   }
   await expect(signUps).toHaveCount(5);
-  for (const link of await signUps.all()) await expect(link).toHaveAttribute('href', '/login?next=%2Fpath');
+  for (const link of await signUps.all()) await expect(link).toHaveAttribute('href', '/login?mode=signup&next=%2Fpath');
   // The ready prompts stay as the outro's secondary action; «Вопросы» is a plain link without a dropdown's chevron.
   await expect(page.locator('.outro').getByRole('button', { name: 'Готовые запросы для старта' })).toBeVisible();
   await expect(page.getByRole('navigation').getByRole('link', { name: 'Вопросы' }).locator('svg')).toHaveCount(0);
-  // The sign-in page is where they all lead, so its header has none.
-  await page.goto('/login');
+  // The sign-up form is where they all lead, so its header has none; the sign-in form's leads there.
+  await page.goto('/login?mode=signup&next=%2Fpath');
   await expect(page.locator('.site-header').getByRole('link', { name: 'Начать бесплатно' })).toHaveCount(0);
+  await page.goto('/login');
+  await expect(page.locator('.site-header').getByRole('link', { name: 'Начать бесплатно' })).toHaveAttribute('href', '/login?mode=signup&next=%2Fpath');
 });
 
 test('the landing speaks of what is inside today and lists the route\'s stages', async ({ page }) => {
