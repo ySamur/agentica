@@ -1,9 +1,13 @@
 import { useState, type SubmitEvent } from 'react';
+import { Link } from 'react-router';
 import { Icon } from '../../components/Icon';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { UserAvatar } from '../../features/auth/UserAvatar';
 import { nbsp } from '../../lib/typography';
 import { RouteProgress } from './RouteProgress';
+import { EmailChange } from './EmailChange';
+import { AvatarPicker } from './AvatarPicker';
+import { DeleteAccount } from './DeleteAccount';
 
 export function ProfilePage() {
   const { user, updateName } = useAuth();
@@ -36,7 +40,7 @@ export function ProfilePage() {
       <RouteProgress />
       <section className="account-card profile-card" aria-labelledby="profile-name-title">
         <h2 id="profile-name-title">Как вас видят</h2>
-        <div className="profile-identity"><UserAvatar user={user} large /><div><strong>{user.displayName}</strong><span>{nbsp('Имя и фото в agentica')}</span></div></div>
+        <div className="profile-identity"><UserAvatar user={user} large /><div><strong>{user.displayName}</strong><span>{nbsp('Имя и фото в agentica')}</span><AvatarPicker user={user} /></div></div>
         <form onSubmit={save} noValidate>
           <label htmlFor="profile-name">{nbsp('Имя на сайте')}</label>
           <input id="profile-name" name="displayName" autoComplete="name" value={name} disabled={busy} aria-invalid={Boolean(error)} aria-describedby="name-help profile-feedback" onChange={event => { setDraft(event.target.value); setError(''); setSaved(false); }} />
@@ -47,14 +51,17 @@ export function ProfilePage() {
       <section className="account-card profile-card" aria-labelledby="profile-account-title">
         <div className="profile-identity profile-account">
           {user.viaGoogle
-            ? <div><h2 id="profile-account-title">Аккаунт Google</h2><p className="profile-card-note">{nbsp('Вход и фотография связаны с вашим Google-аккаунтом.')}</p></div>
+            ? <div><h2 id="profile-account-title">Аккаунт Google</h2><p className="profile-card-note">{nbsp('Вы входите через свой Google-аккаунт.')}</p></div>
             : <div><h2 id="profile-account-title">Email и пароль</h2><p className="profile-card-note">{nbsp('Вы входите по email и паролю.')}</p></div>}
           <span className="connected-label"><i /> Подключён</span>
         </div>
         <label htmlFor="profile-email">Email</label>
         <input id="profile-email" type="email" value={user.email} readOnly aria-describedby="email-help" />
-        <p className="field-help" id="email-help">{nbsp(user.viaGoogle ? 'Адрес меняется только в Google.' : 'Адрес пока нельзя изменить.')}</p>
+        <p className="field-help" id="email-help">{nbsp(user.viaGoogle ? 'Адрес меняется только в Google.' : 'По этому адресу вы входите и получаете письма.')}</p>
+        {!user.viaGoogle && <EmailChange user={user} />}
+        {!user.viaGoogle && <Link className="ghost-button profile-password" to="/password" state={{ next: '/profile' }}>{nbsp('Сменить пароль')} <Icon name="arrow" size={16} /></Link>}
       </section>
+      <DeleteAccount user={user} />
     </div>
   </main>;
 }

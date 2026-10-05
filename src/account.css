@@ -61,6 +61,9 @@
   .login-letter button { padding: 0; background: none; color: var(--text); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; }
   .login-letter button[aria-disabled=true] { cursor: default; color: var(--dim); text-decoration: none; }
   .login-letter p { font-size: 13px; line-height: 1.6; color: var(--dim); }
+  /* «Забыли пароль?» sits under the password field, quieter than the switch below the form. */
+  .login-forgot { justify-self: start; margin: -6px 0 16px; padding: 0; background: none; color: var(--soft); font-size: 13px; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; transition: color .2s; }
+  .login-forgot:hover { color: var(--text); }
   .login-switch { margin-top: 18px; font-size: 14px; color: var(--dim); }
   .login-switch button { padding: 0; background: none; color: var(--text); font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; transition: text-decoration-color .2s; }
   .login-switch button:hover { text-decoration-color: currentColor; }
@@ -106,6 +109,40 @@
   .profile-card .field-help { margin-block: 10px 24px; font-size: 13px; line-height: 1.6; color: var(--dim); }
   .profile-card .field-help:last-child { margin-bottom: 0; }
   .profile-form-footer { display: flex; align-items: center; gap: 20px; padding-top: 6px; }
+  .profile-password { margin-top: 24px; }
+  /* Deleting the account: set apart in a warm red, the one destructive action of the site. */
+  .danger-card { border-color: #ff8f9d33; }
+  .danger-card .profile-card-note { max-width: 560px; }
+  .danger-toggle { margin-top: 22px; color: #ffb0ba; }
+  .danger-form { margin-top: 22px; }
+  .danger-form > input { margin-bottom: 18px; }
+  .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 22px; border-radius: 999px; background: #ff5f73; color: #1a0508; font-size: 15px; font-weight: 600; transition: background .2s; }
+  .danger-button:hover { background: #ff7a8b; }
+  /* The photo's controls sit under the name in the identity row. */
+  .avatar-picker { display: grid; justify-items: start; gap: 8px; margin-top: 12px; }
+  .avatar-picker-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+  .avatar-picker-actions .ghost-button { padding: 10px 18px; font-size: 14px; }
+  .avatar-picker-actions .ghost-button[aria-disabled=true] { cursor: wait; opacity: .65; }
+  .avatar-picker-help { font-size: 13px; line-height: 1.6; color: var(--dim); }
+  .avatar-picker > :is(.form-error, .form-success):empty { display: none; }
+  /* A link-like button for secondary actions inside a form: cancel, send again. */
+  .text-button { padding: 0; background: none; color: var(--soft); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #ffffff4d; transition: color .2s; }
+  .text-button:hover { color: var(--text); }
+  .text-button[aria-disabled=true] { cursor: default; color: var(--dim); text-decoration: none; }
+  .email-change { display: grid; justify-items: start; }
+  /* Stays in the layout when empty (a live region), without taking space. */
+  .email-pending { font-size: 14px; line-height: 1.6; color: var(--mint); }
+  .email-pending:not(:empty), .email-change > .text-button { margin-bottom: 14px; }
+  .email-change-form { justify-self: stretch; }
+  .email-change-form > input { margin-bottom: 0; }
+  /* The new password page: one card, its heading directly over the form or the saved state. */
+  :is(.password-form, .password-saved) { display: grid; justify-items: start; margin-top: 26px; }
+  .password-form > input { margin-bottom: 0; }
+  .password-form > label:not(:first-of-type) { margin-top: 4px; }
+  .password-form .profile-form-footer { margin-top: 26px; }
+  .password-form .text-link { margin-top: 26px; }
+  .password-saved { gap: 22px; }
+  .password-saved .form-success { font-size: 15px; line-height: 1.6; }
   .form-error { color: #ffa0ad; font-size: 13px; line-height: 1.7; }
   .form-success { color: var(--mint); font-size: 13px; }
 }
