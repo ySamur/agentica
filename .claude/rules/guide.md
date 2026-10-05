@@ -19,5 +19,5 @@ paths:
 - Progress is `guide_progress`: own rows only (grants + RLS); the server sets `user_id` and `updated_at`. Statuses: `in_progress` (set on opening), `done`, `skipped` («Уже умею», counts as passed).
 - RPC `open_guide_step` records the resume point without undoing finished steps. `submitCheck()` in `GuideProgressProvider` confirms the row the check returns (not optimistic).
 - `GuideProgressProvider` (mounted in `App`) loads once per member and saves optimistically with rollback. `resumeStep()` (`progress.ts`) picks the latest opened unfinished step, then the first unfinished one, then the capstone.
-- A new step needs a catalog entry and a `guide_steps` migration. Roadmap and lesson workflow: `docs/GUIDE_PLAN.md`.
+- A new step needs a catalog entry and a `guide_steps` migration. Lesson map, owner decisions and the editing workflow: `docs/GUIDE_PLAN.md`.
 - Member pages animate with CSS and rAF only (`SessionReplay`, diagrams); reduced motion shows them finished.

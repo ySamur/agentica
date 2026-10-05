@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, ViewTransition } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, ViewTransition } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { LandingPage } from '../pages/landing/LandingPage';
 import { AuthProvider, useAuth, useSessionPending } from '../features/auth/AuthProvider';
@@ -19,6 +19,7 @@ const CabinetPage = lazy(() => import('../pages/cabinet/CabinetPage').then(modul
 const LoginPage = lazy(() => import('../pages/auth/LoginPage').then(module => ({ default: module.LoginPage })));
 const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage').then(module => ({ default: module.AuthCallbackPage })));
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(module => ({ default: module.ProfilePage })));
+const PasswordPage = lazy(() => import('../pages/auth/PasswordPage').then(module => ({ default: module.PasswordPage })));
 const PathPage = lazy(() => import('../pages/path/PathPage').then(module => ({ default: module.PathPage })));
 const StepPage = lazy(() => import('../pages/path/StepPage').then(module => ({ default: module.StepPage })));
 const LibraryPage = lazy(() => import('../pages/library/LibraryPage').then(module => ({ default: module.LibraryPage })));
@@ -27,6 +28,7 @@ const titles: Record<string, string> = {
   '/login': 'Вход',
   '/auth/callback': 'Завершение входа',
   '/profile': 'Профиль',
+  '/password': 'Новый пароль',
   '/path': 'Маршрут',
   '/library': 'Библиотека',
 };
@@ -72,7 +74,7 @@ function Layout() {
   const [starterOpen, setStarterOpen] = useState(false);
   const location = useLocation();
   const navigationType = useNavigationType();
-  const { error, user } = useAuth();
+  const { error, notice, user } = useAuth();
   const member = useMember();
   const openStarter = () => setStarterOpen(true);
   const title = pageTitle(location.pathname, member);
@@ -82,10 +84,13 @@ function Layout() {
     document.title = `agentica — ${title}`;
   }, [title]);
 
+  // A letter's destination is spent once its callback hands over to a page. Members asking for an
+  // email change keep browsing meanwhile, so merely being signed in must not spend it.
+  const previousPath = useRef(location.pathname);
   useEffect(() => {
-    // A member has arrived, so a pending letter's destination is spent.
-    if (member && !['/login', '/auth/callback'].includes(location.pathname)) clearLetterDestination();
-  }, [member, location.pathname]);
+    if (previousPath.current === '/auth/callback' && location.pathname !== '/auth/callback') clearLetterDestination();
+    previousPath.current = location.pathname;
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!['/login', '/auth/callback'].includes(location.pathname)) clearDestination();
@@ -105,7 +110,7 @@ function Layout() {
     <div className="aurora aurora-calm" aria-hidden="true"><i /><i /><i /><i /></div>
     {/* Remounting per route resets the mobile and account menus after any navigation. */}
     <SiteHeader key={location.pathname} member={member} />
-    {error && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error}</p>}
+    {(error || notice) && !user && location.pathname === '/' && <p className="auth-notice container" role="status">{error || notice}</p>}
     {/* Router updates run as transitions, so each new page cross-fades in; a hash change on the same
         page is an update and stays still. Suspense sits outside, so a lazy page keeps the old one on
         screen until it is ready instead of flashing the fallback. */}
@@ -144,6 +149,7 @@ export default function App() {
       <Route path="settings/profile" element={<Navigate to="/profile" replace />} />
       <Route element={<RequireAuth />}>
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="password" element={<PasswordPage />} />
         <Route path="path" element={<PathPage />} />
         <Route path="path/:stage/:step" element={<StepPage />} />
         <Route path="library" element={<LibraryPage />} />

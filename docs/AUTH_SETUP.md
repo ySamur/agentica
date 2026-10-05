@@ -2,7 +2,7 @@
 
 The owner does these steps in their own accounts; never handle their secrets. Until done, the landing works and login reports «Вход временно недоступен».
 
-1. **Supabase** project `agentica`: copy Project URL and Publishable key (`sb_publishable_…`), never Secret/`service_role`. Allow new sign-ups; disable anonymous and unused providers. Email provider: on, Confirm email on (unconfirmed addresses would let someone pre-register another person's Gmail that a later Google sign-in links into), minimum password length 8 (`minPasswordLength`). Custom SMTP (Authentication → Emails → SMTP; owner enters the provider's credentials, never share them): built-in mail reaches only org members' addresses, a few per hour, so it only suits testing. After SMTP, raise the email rate limit (Authentication → Rate Limits). The Confirm signup template keeps `{{ .ConfirmationURL }}`; translate its text to Russian. Note the Google callback `https://<ref>.supabase.co/auth/v1/callback`.
+1. **Supabase** project `agentica`: copy Project URL and Publishable key (`sb_publishable_…`), never Secret/`service_role`. Allow new sign-ups; disable anonymous and unused providers. Email provider: on, Confirm email on (unconfirmed addresses would let someone pre-register another person's Gmail that a later Google sign-in links into), minimum password length 8 (`minPasswordLength`). Custom SMTP (Authentication → Emails → SMTP; owner enters the provider's credentials, never share them): built-in mail reaches only org members' addresses, a few per hour, so it only suits testing. After SMTP, raise the email rate limit (Authentication → Rate Limits). Keep Secure email change on (both the current and the new address confirm a change). The Confirm signup, Reset Password and Change Email Address templates keep `{{ .ConfirmationURL }}`; translate their text to Russian (Reset Password: the link sets a new password and works in the browser that asked for it). Note the Google callback `https://<ref>.supabase.co/auth/v1/callback`.
 2. **Google Cloud** project `agentica` → Google Auth Platform. Branding: app name, support and contact email. Audience: External (in Testing mode add test users; public use needs Google verification). Data Access: only `openid`, `userinfo.email`, `userinfo.profile`. Client: Web application; JS origins `http://localhost:3000`, `http://localhost:3001` (plus any other local port); redirect URI is the Supabase callback. Client ID and Secret go only into Supabase's Google provider; enable it.
 3. **Supabase URL Configuration**: Site URL `http://localhost:3000`; Redirect URLs `http://localhost:*/auth/callback` (dev only; production needs HTTPS and exact URLs). Flow: site → Supabase → Google → Supabase callback → `/auth/callback`. Open the site via `localhost`, not a LAN IP.
 4. **Migrations**: apply each file in `supabase/migrations/` once, in name order (SQL Editor, or `apply_migration` through Supabase MCP):
@@ -25,14 +25,29 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610030010_library_content.sql`: the library's materials (`npm run library:content`).
    - `202610040001_guide_content_public_profile.sql`: step ★.3 rewritten without publishing.
    - `202610040002_library_content.sql`: the library gains `docs/agents.md` for step ★.3.
+   - `202610040050_avatars.sql`: public bucket `avatars` (512 KB, WebP/PNG); members read, upload, replace and remove only `avatars/<own id>/…`.
    The site name lives in `user_metadata.display_name`; no profiles table.
+   **Edge Functions** (`supabase/functions/`; through MCP `deploy_edge_function`, or `supabase functions deploy <name> --no-verify-jwt`):
+   - `delete-account`: `verify_jwt` off, the function checks the bearer token with Auth and the typed email itself; deletes `avatars/<id>/…` and the user.
 5. **`.env.local`**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; restart the dev server.
+
+## Hosting: Vercel (owner-run)
+1. vercel.com → sign up with GitHub → Add New → Project → import `ySamur/agentica`. `vercel.json` sets Vite, `npm run build`, `dist`. Production Branch (Settings → Git): the branch the owner releases from (`main`); every other branch gets a preview URL.
+2. Environment Variables (Production and Preview): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (the publishable key only, never Secret/`service_role`). `VITE_SITE_URL` is optional: the build takes `https://$VERCEL_PROJECT_PRODUCTION_URL` for link previews. Redeploy after changing them.
+3. Supabase → Authentication → URL Configuration: Site URL `https://<project>.vercel.app` (letters fall back to it); Redirect URLs add `https://<project>.vercel.app/auth/callback` and, for previews, `https://<project>-*-<vercel-scope>.vercel.app/auth/callback`; keep the localhost entries for development.
+4. Google Cloud → Clients: the redirect URI stays the Supabase callback; add `https://<project>.vercel.app` to JavaScript origins. In Testing mode only listed test users can sign in; public sign-in needs the app published and verified.
+5. Check: `/profile` reloads without 404, Google and email sign-in return to the site, a reset letter's link opens `/password`, DevTools → Console shows no CSP errors.
+A custom domain later: Vercel → Domains, then replace the `vercel.app` address in steps 3–4 and authenticate the domain for mail (SPF/DKIM) in Brevo.
 
 ## Manual acceptance (automated tests use fixtures only)
 - Guest `/path/tasks/plan-first` shows login without the step text; Google sign-in returns to that step with its lesson.
 - On 3.2 a wrong answer explains only the chosen option and keeps the step «В процессе»; all right marks it «Выполнен» everywhere. `rest/v1/guide_progress` POST with `{"step_id":"plan-first","status":"done"}` is refused (RLS).
 - Opening a step marks it «В процессе»; «Выполнено» and «Уже умею» survive a reload and another browser; «Продолжить» leads to the last opened unfinished step.
 - Email sign-up (name, email, password) shows «Отправили письмо…»; the letter's link in the same browser lands on the page asked for; in another browser it says to sign in with the password, which then works. Sign-in before confirming offers «Отправить письмо ещё раз». A wrong password says «Неверный email или пароль»; the profile shows «Email и пароль».
+- «Забыли пароль?» sends a letter; its link in the same browser (a new tab too) opens «Новый пароль.»; after saving, the old password is refused and the new one signs in, and other browsers' sessions end. «Сменить пароль» in an email account's profile does the same without a letter.
+- «Загрузить фото» in the profile: a photo shows cropped to a square in the profile and the header and survives a reload; «Заменить фото» leaves one file in Storage → avatars/<id>; «Убрать фото» falls back to Google's photo or the first letter.
+- «Удалить аккаунт» (last profile card): a wrong email is refused; the right one lands on the landing with «Аккаунт удалён…»; Authentication → Users no longer lists the account, Storage → avatars has no folder for it, `guide_progress` has no rows for it; signing in again creates a new, empty account.
+- «Изменить email» in an email account's profile: a taken address is refused; after sending, the profile shows the pending address after a reload too. The first link says «Первая ссылка подтверждена»; the second (same browser) returns to the profile with the new address, which then signs in while the old one is refused.
 - A profile name change survives reload and appears in the account menu.
 - Logout in one tab hides the menu and the route in all tabs; re-login keeps one account, the name and the progress.
 - Cancelled consent offers a retry. OAuth works on ports 3000 and 3001.

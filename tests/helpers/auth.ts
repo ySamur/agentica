@@ -9,7 +9,7 @@ const storageKey = 'sb-agentica-test-auth-token';
 
 export type ProgressRow = { user_id: string; step_id: string; status: 'in_progress' | 'done' | 'skipped'; updated_at: string };
 // The written lessons as the server holds them: what members read and the keys only it sees.
-// Other steps have no lesson yet (`null`).
+// A step missing from content/guide would get `null` (the placeholder).
 export const published = new Map(lessons.map(source => [source.stepId, compileLesson(source)]));
 // The library as published: every title, and bodies the server hands out per passed step.
 export const materials = compileLibrary(library);
@@ -25,6 +25,8 @@ function accountUser(email: string, provider: 'google' | 'email', metadata: Reco
     role: 'authenticated',
     email,
     email_confirmed_at: '2026-09-24T00:00:00Z' as string | null,
+    // A requested address waiting for its confirmation links.
+    new_email: null as string | null,
     app_metadata: { provider, providers: [provider] },
     user_metadata: metadata,
     created_at: '2026-09-24T00:00:00Z',
@@ -43,6 +45,18 @@ function createState() {
     letter: null as string | null,
     resendCount: 0,
     resendLimited: false,
+    // Password reset letters asked for, and the scopes of every logout (`others` after a new password).
+    recoverCount: 0,
+    logoutScopes: [] as string[],
+    // Profile photos by path in the `avatars` bucket, the paths removed, and an upload that fails.
+    avatars: new Map<string, { type: string; bytes: Buffer }>(),
+    removedAvatars: [] as string[],
+    storageFails: false,
+    // The `delete-account` Edge Function: whether it ran to the end, and a failing server.
+    accountDeleted: false,
+    deleteFails: false,
+    // A requested email change; the code exchange of its last link applies it.
+    emailChange: null as { from: string; to: string } | null,
     // SMTP down: GoTrue's 500 on sign-up with confirmations on.
     letterFails: false,
     exchangeCount: 0,
@@ -90,6 +104,20 @@ async function rows(route: Route, request: Request, found: unknown[]) {
   if (!request.headers().accept?.includes('vnd.pgrst.object')) await json(route, found);
   else if (found.length === 1) await json(route, found[0]);
   else await json(route, { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' }, 406);
+}
+
+// The image in a storage upload: storage-js sends a Blob as multipart form data.
+function uploadedImage(request: Request) {
+  const body = request.postDataBuffer() ?? Buffer.alloc(0);
+  const contentType = request.headers()['content-type'] ?? '';
+  const boundary = /boundary=([^;]+)/.exec(contentType)?.[1];
+  if (!boundary) return { type: contentType, bytes: body };
+  for (const part of body.toString('latin1').split(`--${boundary}`)) {
+    const split = part.indexOf('\r\n\r\n');
+    const type = /content-type:\s*([^\r\n]+)/i.exec(part.slice(0, split))?.[1];
+    if (split !== -1 && type?.startsWith('image/')) return { type, bytes: Buffer.from(part.slice(split + 4, -2), 'latin1') };
+  }
+  return null;
 }
 
 // `?step_id=eq.plan-first` → 'plan-first'.
@@ -182,6 +210,35 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     const url = new URL(request.url());
     if (url.pathname.startsWith('/rest/v1/')) {
       await data(route, request, url);
+    } else if (url.pathname === '/functions/v1/delete-account') {
+      // Like the function: a signed-in caller who types the account's email loses the account,
+      // their photos and (by cascade) their progress.
+      if (!request.headers().authorization?.startsWith('Bearer ey')) { await json(route, { error: 'not_signed_in' }, 401); return; }
+      if (state.deleteFails) { await json(route, { error: 'delete_failed' }, 500); return; }
+      const { email } = request.postDataJSON() as { email?: string };
+      if (email?.toLowerCase() !== state.user.email.toLowerCase()) { await json(route, { error: 'email_mismatch' }, 400); return; }
+      state.accountDeleted = true;
+      state.avatars.clear();
+      state.progress.clear();
+      state.accounts.delete(state.user.email);
+      await json(route, { deleted: true });
+    } else if (url.pathname.startsWith('/storage/v1/object/public/avatars/')) {
+      const image = state.avatars.get(decodeURIComponent(url.pathname.slice('/storage/v1/object/public/avatars/'.length)));
+      if (image) await route.fulfill({ status: 200, contentType: image.type, body: image.bytes });
+      else await json(route, { statusCode: '404', error: 'not_found', message: 'Object not found' }, 404);
+    } else if (url.pathname.startsWith('/storage/v1/object/avatars/') && request.method() === 'POST') {
+      // Like the storage policies: only into the member's own folder.
+      const path = decodeURIComponent(url.pathname.slice('/storage/v1/object/avatars/'.length));
+      if (state.storageFails) { await json(route, { statusCode: '500', error: 'internal', message: 'Storage unavailable' }, 500); return; }
+      if (!path.startsWith(`${userId}/`)) { await json(route, { statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy' }, 403); return; }
+      const image = uploadedImage(request);
+      if (!image) { await json(route, { statusCode: '400', error: 'invalid_mime_type', message: 'mime type not supported' }, 400); return; }
+      state.avatars.set(path, image);
+      await json(route, { Id: path, Key: `avatars/${path}` });
+    } else if (url.pathname === '/storage/v1/object/avatars' && request.method() === 'DELETE') {
+      const { prefixes } = request.postDataJSON() as { prefixes: string[] };
+      for (const path of prefixes) { state.avatars.delete(path); state.removedAvatars.push(path); }
+      await json(route, prefixes.map(name => ({ name })));
     } else if (url.pathname === '/auth/v1/authorize') {
       state.authorizeUrl = url.href;
       const callback = new URL(url.searchParams.get('redirect_to')!);
@@ -209,6 +266,14 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
       state.resendCount += 1;
       state.letter = (request.postDataJSON() as { email: string }).email;
       await json(route, {});
+    } else if (url.pathname === '/auth/v1/recover') {
+      if (state.resendLimited) { await json(route, { error_code: 'over_email_send_rate_limit', msg: 'Email rate limit exceeded' }, 429); return; }
+      if (state.letterFails) { await json(route, { error_code: 'unexpected_failure', msg: 'Error sending recovery email' }, 500); return; }
+      state.recoverCount += 1;
+      // Like GoTrue: the same answer for any address, a letter only to an existing account.
+      const { email } = request.postDataJSON() as { email: string };
+      if (state.accounts.has(email)) state.letter = email;
+      await json(route, {});
     } else if (url.pathname === '/auth/v1/token') {
       if (url.searchParams.get('grant_type') === 'password') {
         const { email, password } = request.postDataJSON() as { email: string; password: string };
@@ -225,6 +290,14 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
         if (state.badCode || body.auth_code !== 'fixture-one-time-code' || !body.code_verifier) {
           await json(route, { error_code: 'bad_code_verifier', msg: 'Invalid code' }, 400);
           return;
+        }
+        // An email change's last link: the account moves to the new address.
+        const changed = state.emailChange && state.accounts.get(state.emailChange.from);
+        if (state.emailChange && changed) {
+          state.accounts.delete(state.emailChange.from);
+          state.accounts.set(state.emailChange.to, changed);
+          state.user = accountUser(state.emailChange.to, 'email', { display_name: changed.name });
+          state.emailChange = null;
         }
         // A letter's link: the account is confirmed and signed in.
         const account = state.letter ? state.accounts.get(state.letter) : undefined;
@@ -244,10 +317,27 @@ export async function mockAuth(context: BrowserContext, options: { signedIn?: bo
     } else if (url.pathname === '/auth/v1/user') {
       if (request.method() === 'PUT') {
         if (state.updateFails) { await json(route, { msg: 'Unable to save' }, 500); return; }
-        state.user.user_metadata = { ...state.user.user_metadata, ...request.postDataJSON().data };
+        const { data: metadata, password, email } = request.postDataJSON() as { data?: Record<string, unknown>; password?: string; email?: string };
+        if (email !== undefined) {
+          if (state.accounts.has(email) || state.letterFails) {
+            await json(route, state.letterFails
+              ? { error_code: 'unexpected_failure', msg: 'Error sending email change email' }
+              : { error_code: 'email_exists', msg: 'A user with this email address has already been registered' }, state.letterFails ? 500 : 422);
+            return;
+          }
+          state.user.new_email = email;
+          state.emailChange = { from: state.user.email, to: email };
+        }
+        const account = state.accounts.get(state.user.email);
+        if (password !== undefined && account) {
+          if (password === account.password) { await json(route, { error_code: 'same_password', msg: 'New password should be different from the old password.' }, 422); return; }
+          account.password = password;
+        }
+        state.user.user_metadata = { ...state.user.user_metadata, ...metadata };
       }
       await json(route, state.user);
     } else if (url.pathname === '/auth/v1/logout') {
+      state.logoutScopes.push(url.searchParams.get('scope') ?? 'global');
       if (state.logoutFails) await json(route, { message: 'Server unavailable' }, 503);
       else await route.fulfill({ status: 204 });
     } else {

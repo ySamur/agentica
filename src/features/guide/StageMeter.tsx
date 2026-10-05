@@ -4,7 +4,7 @@ import { Icon } from '../../components/Icon';
 import { stageCode, stages } from './catalog';
 import { stageTally, type Progress } from './progress';
 
-// The eight stages in one strip, drawn like the landing film's chapter pill: each bar fills with the
+// The seven stages (1–6 and the capstone) in one strip, drawn like the landing film's chapter pill: each bar fills with the
 // landing's gradient as its steps are passed. On the route page the stages link to their cards.
 export function StageMeter({ progress, current, linked = false }: { progress: Progress; current: string; linked?: boolean }) {
   return <ol className="stage-meter">

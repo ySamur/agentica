@@ -52,6 +52,9 @@ export const callbackAttempt = {
   error: callbackUrl.searchParams.get('error') || callbackHash.get('error'),
   // `otp_expired`: an old or already used letter link.
   errorCode: callbackUrl.searchParams.get('error_code') || callbackHash.get('error_code'),
+  // With Secure email change, the first of the two links returns only a message, no code. Its text
+  // comes from the URL, so the page shows its own words instead.
+  hasMessage: callbackUrl.searchParams.has('message') || callbackHash.has('message'),
 };
 
 function getConfiguration() {
@@ -69,6 +72,11 @@ function getConfiguration() {
 
 const configuration = getConfiguration();
 export const supabaseConfigured = configuration !== null;
+
+// A profile photo's address in the public `avatars` bucket (supabase/migrations/202610040050_avatars.sql).
+export function avatarUrl(path: string) {
+  return configuration ? `${configuration.url}/storage/v1/object/public/avatars/${path}` : null;
+}
 
 // Passed to the client below, so the synchronous check can never drift from the SDK. It equals
 // the SDK's default key, which keeps existing sessions. The check only picks which page to

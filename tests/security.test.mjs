@@ -51,7 +51,9 @@ test('migrations enforce database privileges and RLS', async t => {
     return held;
   }
   try {
-    // Real PostgreSQL policy execution. Only Supabase's auth schema, JWT helpers and auto-RLS function are stubbed.
+    // Real PostgreSQL policy execution. Only Supabase's auth schema, JWT helpers, auto-RLS function and
+    // the storage tables the policies run on are stubbed (storage as Supabase sets it up: RLS on,
+    // every privilege granted to the browser roles, so the policies alone decide).
     await db.exec(`
       create role anon;
       create role authenticated;
@@ -66,6 +68,20 @@ test('migrations enforce database privileges and RLS', async t => {
       create function public.rls_auto_enable() returns event_trigger language plpgsql security definer as
         $$ begin end $$;
       grant execute on function public.rls_auto_enable() to anon, authenticated;
+      create schema storage;
+      grant usage on schema storage to anon, authenticated;
+      create table storage.buckets (id text primary key, name text not null, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
+      create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets, name text not null);
+      alter table storage.objects enable row level security;
+      grant all on storage.objects to anon, authenticated;
+      create function storage.foldername(name text) returns text[] language plpgsql immutable as $$
+        declare _parts text[];
+        begin
+          select string_to_array(name, '/') into _parts;
+          return _parts[1 : array_length(_parts, 1) - 1];
+        end
+      $$;
+      insert into storage.buckets (id, name) values ('other', 'other');
     `);
     for (const file of (await readdir(migrations)).filter(name => name.endsWith('.sql')).toSorted()) {
       await db.exec(await readFile(new URL(file, migrations), 'utf8'));
@@ -348,6 +364,41 @@ test('migrations enforce database privileges and RLS', async t => {
 
     await t.test("browser roles cannot call Supabase's auto-RLS function", async () => {
       for (const role of ['anon', 'authenticated']) assert.equal(await execute(role, 'public.rls_auto_enable()'), false);
+    });
+
+    await t.test('avatars: a public bucket of small square images', async () =>
+      assert.deepEqual(await rows("select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'avatars'"),
+        [{ public: true, file_size_limit: 524288, allowed_mime_types: ['image/webp', 'image/png'] }]));
+
+    const upload = (name, bucket = 'avatars') => db.query('insert into storage.objects (bucket_id, name) values ($1, $2) returning name', [bucket, name]);
+    await t.test('avatars: members upload only into their own folder', async () => {
+      await asRole('authenticated', member, async () => {
+        assert.deepEqual((await upload(`${userId}/a.webp`)).rows, [{ name: `${userId}/a.webp` }]);
+        for (const name of [`${otherId}/a.webp`, 'a.webp', `x/${userId}/a.webp`]) await assert.rejects(upload(name), denied);
+        await assert.rejects(upload(`${userId}/a.webp`, 'other'), denied);
+      });
+      await asRole('authenticated', other, () => upload(`${otherId}/b.webp`));
+    });
+
+    await t.test('avatars: guests and anonymous accounts can neither upload nor list', async () => {
+      await asRole('anon', {}, () => assert.rejects(upload(`${userId}/c.webp`), denied));
+      await asRole('authenticated', { sub: userId, is_anonymous: true }, async () => {
+        await assert.rejects(upload(`${userId}/c.webp`), denied);
+        assert.deepEqual(await rows('select name from storage.objects'), []);
+      });
+      await asRole('anon', {}, async () => assert.deepEqual(await rows('select name from storage.objects'), []));
+    });
+
+    await t.test("avatars: members see, replace and remove only their own files", async () => {
+      await asRole('authenticated', member, async () => {
+        assert.deepEqual(await rows('select name from storage.objects'), [{ name: `${userId}/a.webp` }]);
+        assert.deepEqual(await rows(`update storage.objects set name = '${userId}/moved.webp' where name = '${otherId}/b.webp' returning name`), []);
+        assert.deepEqual(await rows(`delete from storage.objects where name = '${otherId}/b.webp' returning name`), []);
+        await assert.rejects(db.query(`update storage.objects set name = '${otherId}/taken.webp' where name = '${userId}/a.webp'`), denied);
+        assert.deepEqual(await rows(`update storage.objects set name = '${userId}/a2.webp' where name = '${userId}/a.webp' returning name`), [{ name: `${userId}/a2.webp` }]);
+        assert.deepEqual(await rows(`delete from storage.objects where name = '${userId}/a2.webp' returning name`), [{ name: `${userId}/a2.webp` }]);
+      });
+      assert.deepEqual(await rows('select name from storage.objects'), [{ name: `${otherId}/b.webp` }]);
     });
   } finally {
     await db.close();
