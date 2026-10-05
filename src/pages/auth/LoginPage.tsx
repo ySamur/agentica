@@ -6,7 +6,7 @@ import { safeDestination } from '../../features/auth/redirect';
 import { PageStatus } from '../../components/PageStatus';
 import { nbsp } from '../../lib/typography';
 
-const morphs = ['hero', 'guide', 'outro'];
+const morphs = ['hero', 'guide', 'library', 'outro'];
 type Field = 'name' | 'email' | 'password';
 // Sign in, create an account, or ask for a password reset letter.
 type Mode = 'signin' | 'signup' | 'reset';

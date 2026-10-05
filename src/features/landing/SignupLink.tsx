@@ -1,7 +1,7 @@
 import { ViewTransition, type ReactNode } from 'react';
 import { JoinLink } from '../auth/JoinLink';
 
-export type SignupMorph = 'hero' | 'guide' | 'outro';
+export type SignupMorph = 'hero' | 'guide' | 'library' | 'outro';
 
 // Each call to action has its own transition name; the one followed passes it on, and the login
 // card takes it, so that pill grows into the card (see LoginPage and `.signup-morph` in styles.css).

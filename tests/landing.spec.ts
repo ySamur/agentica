@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
-import { stages, steps } from '../src/features/guide/catalog';
+import { library } from '../content/library/index.ts';
+import { findStep, stages, steps } from '../src/features/guide/catalog';
 import { frameCount, heroAt, phases, sceneLength } from '../src/features/landing/introPhases';
+import { nbsp } from '../src/lib/typography';
 import { holdSupabaseSdk, mockAuth } from './helpers/auth';
 
 // The page offset of a point of the opening scene's scroll progress, as sceneOffset in motion/scene.ts.
@@ -423,12 +425,12 @@ test('every sign-up call to action has one label and leads to sign-in', async ({
   await page.goto('/');
   await expect(page.getByText(/Начать с агентами|Получить доступ|Зарегистрироваться/)).toHaveCount(0);
   const signUps = page.getByRole('link', { name: 'Начать бесплатно' });
-  // Header, hero, guide and outro; on a phone the header's one waits in the menu.
+  // Header, hero, guide, library and outro; on a phone the header's one waits in the menu.
   if (testInfo.project.name === 'mobile') {
-    await expect(signUps).toHaveCount(3);
+    await expect(signUps).toHaveCount(4);
     await page.getByRole('button', { name: 'Открыть меню' }).click();
   }
-  await expect(signUps).toHaveCount(4);
+  await expect(signUps).toHaveCount(5);
   for (const link of await signUps.all()) await expect(link).toHaveAttribute('href', '/login?next=%2Fpath');
   // The ready prompts stay as the outro's secondary action; «Вопросы» is a plain link without a dropdown's chevron.
   await expect(page.locator('.outro').getByRole('button', { name: 'Готовые запросы для старта' })).toBeVisible();
@@ -450,6 +452,32 @@ test('the landing speaks of what is inside today and lists the route\'s stages',
   // The copy counts what members find: six stages, the capstone and every step of catalog.ts.
   await expect(page.locator('#guide .guide-copy > p')).toContainText(`Шесть этапов и выпускной проект — ${steps.length} урок`);
   await expect(page.locator('.ask-item', { hasText: 'Что внутри маршрута?' })).toContainText(`${steps.length} шаг`);
+});
+
+const kindCount = (kind: string) => String(library.filter(material => material.kind === kind).length);
+
+test('the library section promises what members find and unlocks it by scroll', async ({ page }) => {
+  await page.goto('/');
+  const section = page.locator('#library');
+  // The counts are the library's own: every kind of content/library/ and their total.
+  await expect(section.locator('.vault-stats b')).toHaveText([kindCount('prompt'), kindCount('template'), kindCount('checklist')]);
+  await expect(section.locator('.vault-count')).toContainText(`из ${library.length} открыто`);
+  // Each title on the shelf is a real material, with the step that opens it.
+  for (const row of await section.locator('.vault-item').all()) {
+    const title = await row.locator('strong').innerText();
+    const material = library.find(item => nbsp(item.title) === title);
+    expect(material, title).toBeDefined();
+    await expect(row.locator('.vault-step')).toHaveText(`шаг ${findStep(material!.stepId)!.label}`);
+  }
+  await expect(section.locator('.vault-item[data-open]')).toHaveCount(2);
+  // With motion the counter runs to the whole library as the shelf scrolls past, and every material opens.
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'on');
+  await section.locator('.vault-shelf').evaluate(shelf => window.scrollTo({ top: shelf.getBoundingClientRect().bottom + scrollY, behavior: 'instant' }));
+  await expect(section.locator('.vault-count b')).toHaveText(String(library.length));
+  await expect(section.locator('.vault-item:not([data-open])')).toHaveCount(0);
+  await expect(section.locator('.vault-done')).toBeVisible();
+  // The perk in the guide's list leads here.
+  await expect(page.locator('#guide .guide-perks a[href="/#library"]')).toBeVisible();
 });
 
 test('the header marks the section being read', async ({ page }) => {

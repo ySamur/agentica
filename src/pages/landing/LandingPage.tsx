@@ -3,10 +3,12 @@ import { Link, useOutletContext } from 'react-router';
 import type { PageContext } from '../../app/App';
 import { Brand, Icon, type IconName } from '../../components/Icon';
 import { stages, type GuideStage } from '../../features/guide/catalog';
+import { LibraryShelf, libraryCounts } from '../../features/landing/LibraryShelf';
 import { PathScene } from '../../features/landing/PathScene';
 import { RoleShift } from '../../features/landing/RoleShift';
 import { SignupLink } from '../../features/landing/SignupLink';
 import { TypingFilm } from '../../features/landing/TypingFilm';
+import type { LibraryKind } from '../../features/library/types';
 import { motionAllowed } from '../../lib/motion';
 import { spotlight } from '../../lib/spotlight';
 import { nbsp } from '../../lib/typography';
@@ -62,6 +64,18 @@ const skills: { title: string; text: string; icon: IconName; wide?: boolean; vis
     </svg>,
   },
 ];
+
+// The library's kinds counted the way a reader says them: «5 запросов», «4 чеклиста».
+const plural = new Intl.PluralRules('ru');
+const kindWords: Record<LibraryKind, Record<'one' | 'few' | 'many', string>> = {
+  prompt: { one: 'запрос', few: 'запроса', many: 'запросов' },
+  template: { one: 'шаблон', few: 'шаблона', many: 'шаблонов' },
+  checklist: { one: 'чеклист', few: 'чеклиста', many: 'чеклистов' },
+};
+const counted = (kind: LibraryKind) => {
+  const form = plural.select(libraryCounts[kind]);
+  return kindWords[kind][form === 'one' || form === 'few' ? form : 'many'];
+};
 
 // The book names each stage as the route's headings do: «Этап 1»…«Этап 6», then the capstone's ★.
 const stageLabel = (stage: GuideStage) => stage.number === '★' ? stage.number : nbsp(`Этап ${stage.number}`);
@@ -158,7 +172,7 @@ export function LandingPage() {
           <ul className="guide-perks">
             <li><Icon name="check" size={17} /> {nbsp('Урок на 10–15 минут с практикой в вашем проекте')}</li>
             <li><Icon name="check" size={17} /> {nbsp('Проверка на ситуациях из реальной работы')}</li>
-            <li><Icon name="check" size={17} /> {nbsp('Библиотека запросов, шаблонов и чеклистов')}</li>
+            <li><Icon name="check" size={17} /> <Link className="guide-perk-link" to="#library">{nbsp('Библиотека запросов, шаблонов и чеклистов')}</Link></li>
           </ul>
           <SignupLink morph="guide">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
         </div>
@@ -175,6 +189,23 @@ export function LandingPage() {
               <strong>Путеводитель <em className="accent">по{' '}переходу</em></strong>
               <span className="guide-cover-foot"><b>agentica<i>.</i></b> для участников</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="vault container" id="library" aria-labelledby="vault-title">
+        <div className="vault-visual reveal" aria-hidden="true"><LibraryShelf /></div>
+        <div className="vault-copy" data-reveal="head">
+          <span className="story-eyebrow"><i /> Бонус за каждый шаг</span>
+          <h2 id="vault-title">Каждый шаг{' '}<br />что-то <em className="accent">открывает.</em></h2>
+          <p>{nbsp('Пройдите шаг — и его материалы появятся в вашей библиотеке. Готовые запросы, шаблоны CLAUDE.md и хуков, чеклисты ревью: всё проверено на уроках, копируется в проект одной кнопкой и остаётся с вами.')}</p>
+          {/* The whole library by kind, as members count it (libraryCounts; tests/landing.spec.ts). */}
+          <ul className="vault-stats">
+            {(Object.keys(libraryCounts) as LibraryKind[]).map(kind => <li key={kind}><b>{libraryCounts[kind]}</b>{counted(kind)}</li>)}
+          </ul>
+          <div className="vault-actions">
+            <SignupLink morph="library">Начать бесплатно <Icon name="arrowUp" size={18} /></SignupLink>
+            <button type="button" className="ghost-button" onClick={openStarter}>Взять три запроса без входа <Icon name="terminal" size={17} /></button>
           </div>
         </div>
       </section>
