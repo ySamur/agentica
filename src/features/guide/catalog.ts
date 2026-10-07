@@ -51,9 +51,9 @@ export const stages: readonly GuideStage[] = [
     { id: 'economics', title: 'Экономика: модели, лимиты, стоимость', minutes: 15 },
   ] },
   { id: 'capstone', number: '★', title: 'Выпускной проект', promise: 'Всё вместе, на реальной задаче', steps: [
-    { id: 'idea-to-pr', title: 'От идеи до PR силами агентов', minutes: 15 },
-    { id: 'before-after', title: 'Ваше личное «Было / Стало»', minutes: 12 },
-    { id: 'public-profile', title: 'Ваша система работы с агентами', minutes: 12 },
+    { id: 'idea-to-pr', title: 'От идеи до PR силами агентов', minutes: 17 },
+    { id: 'before-after', title: 'Ваше личное «Было / Стало»', minutes: 14 },
+    { id: 'public-profile', title: 'Ваша система работы с агентами', minutes: 14 },
   ] },
 ];
 

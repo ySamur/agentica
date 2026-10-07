@@ -36,6 +36,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610070005_guide_content_read_diff_…_delegation_limit.sql`: stage 4 in the new lesson format, re-checked on Claude Code 2.1.292.
    - `202610070006_guide_content_hooks_…_agent_ci.sql`: stage 5 in the new lesson format, re-checked on Claude Code 2.1.292.
    - `202610070007_guide_content_subagents_…_economics.sql`: stage 6 in the new lesson format, re-checked on Claude Code 2.1.292.
+   - `202610070008_guide_content_idea_to_pr_before_after_public_profile.sql`: the capstone in the new lesson format (scene, asides, sources; no trainer, as it has no check).
 
    The site name lives in `user_metadata.display_name`; no profiles table.
    **Edge Functions** (`supabase/functions/`; through MCP `deploy_edge_function`, or `supabase functions deploy <name> --no-verify-jwt`):
