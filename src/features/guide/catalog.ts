@@ -18,10 +18,10 @@ export const stages: readonly GuideStage[] = [
     { id: 'checkpoints', title: 'Чекпоинты и откат', minutes: 13 },
   ] },
   { id: 'context', number: '2', title: 'Контекст', promise: 'Опишите проект', steps: [
-    { id: 'project-view', title: 'Как агент видит проект', minutes: 12 },
-    { id: 'claude-md', title: 'CLAUDE.md: память проекта', minutes: 14 },
-    { id: 'conventions', title: 'Правила, соглашения, команды проверки', minutes: 12 },
-    { id: 'clean-context', title: 'Как держать контекст чистым в длинной сессии', minutes: 12 },
+    { id: 'project-view', title: 'Как агент видит проект', minutes: 15 },
+    { id: 'claude-md', title: 'CLAUDE.md: память проекта', minutes: 17 },
+    { id: 'conventions', title: 'Правила, соглашения, команды проверки', minutes: 15 },
+    { id: 'clean-context', title: 'Как держать контекст чистым в длинной сессии', minutes: 15 },
   ] },
   { id: 'tasks', number: '3', title: 'Постановка задач', promise: 'Планируйте прежде кода', steps: [
     { id: 'task-anatomy', title: 'Анатомия задачи: цель, границы, критерий готовности', minutes: 12 },
