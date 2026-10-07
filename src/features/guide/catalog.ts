@@ -24,10 +24,10 @@ export const stages: readonly GuideStage[] = [
     { id: 'clean-context', title: 'Как держать контекст чистым в длинной сессии', minutes: 15 },
   ] },
   { id: 'tasks', number: '3', title: 'Постановка задач', promise: 'Планируйте прежде кода', steps: [
-    { id: 'task-anatomy', title: 'Анатомия задачи: цель, границы, критерий готовности', minutes: 12 },
+    { id: 'task-anatomy', title: 'Анатомия задачи: цель, границы, критерий готовности', minutes: 15 },
     { id: 'plan-first', title: 'План до кода', minutes: 16 },
-    { id: 'decomposition', title: 'Декомпозиция на проверяемые шаги', minutes: 14 },
-    { id: 'iterations', title: 'Итерации и корректировка курса', minutes: 12 },
+    { id: 'decomposition', title: 'Декомпозиция на проверяемые шаги', minutes: 17 },
+    { id: 'iterations', title: 'Итерации и корректировка курса', minutes: 15 },
   ] },
   { id: 'review', number: '4', title: 'Ревью', promise: 'Проверяйте как ревьюер', steps: [
     { id: 'read-diff', title: 'Чтение diff, написанного не вами', minutes: 14 },
