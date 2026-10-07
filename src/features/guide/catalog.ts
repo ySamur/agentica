@@ -44,11 +44,11 @@ export const stages: readonly GuideStage[] = [
     { id: 'agent-ci', title: 'Агент в CI', minutes: 16 },
   ] },
   { id: 'orchestration', number: '6', title: 'Оркестровка', promise: 'Масштабируйте себя', steps: [
-    { id: 'subagents', title: 'Субагенты', minutes: 13 },
-    { id: 'worktrees', title: 'Параллельные сессии и worktrees', minutes: 12 },
-    { id: 'agent-roles', title: 'Роли агентов: исследователь, исполнитель, ревьюер', minutes: 12 },
-    { id: 'agent-sdk', title: 'Агенты внутри ваших сервисов (headless, Agent SDK)', minutes: 14 },
-    { id: 'economics', title: 'Экономика: модели, лимиты, стоимость', minutes: 12 },
+    { id: 'subagents', title: 'Субагенты', minutes: 16 },
+    { id: 'worktrees', title: 'Параллельные сессии и worktrees', minutes: 15 },
+    { id: 'agent-roles', title: 'Роли агентов: исследователь, исполнитель, ревьюер', minutes: 15 },
+    { id: 'agent-sdk', title: 'Агенты внутри ваших сервисов (headless, Agent SDK)', minutes: 17 },
+    { id: 'economics', title: 'Экономика: модели, лимиты, стоимость', minutes: 15 },
   ] },
   { id: 'capstone', number: '★', title: 'Выпускной проект', promise: 'Всё вместе, на реальной задаче', steps: [
     { id: 'idea-to-pr', title: 'От идеи до PR силами агентов', minutes: 15 },
