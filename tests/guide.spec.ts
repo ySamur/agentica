@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findStep, stages, steps } from '../src/features/guide/catalog';
+import { findStep, stageMinutes, stages, steps } from '../src/features/guide/catalog';
 import { shuffled } from '../src/features/guide/lesson/shuffle';
 import type { Block, Question } from '../src/features/guide/lesson/types';
 import { mockAuth, published, userId } from './helpers/auth';
@@ -85,6 +85,40 @@ test('the route lists every stage and step, and its stage links move focus to th
   await expect(page.locator('#stage-tasks')).toBeInViewport();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: '3.1 Анатомия задачи: цель, границы, критерий готовности Не начат' })).toBeFocused();
+});
+
+test('the route map keeps the reading time of every lesson', () => {
+  for (const [stepId, { lesson }] of published) expect(findStep(stepId)!.minutes, stepId).toBe(lesson.minutes);
+});
+
+test('a stage tells its reading time on hover and keyboard focus, and Esc hides it', async ({ page, context }, testInfo) => {
+  await mockAuth(context, { signedIn: true });
+  await page.goto('/path');
+  const meter = page.getByRole('navigation', { name: 'Этапы маршрута' });
+  const [first, second] = stages;
+  const time = (stage: typeof first) => new RegExp(`^≈${stageMinutes(stage)}\\sминут\\S*\\sчтения\\s·\\s${stage.steps.length}\\sшаг`);
+  const tip = (stage: typeof first) => page.locator(`#stage-time-${stage.id}`);
+  await expect(tip(first)).toBeHidden();
+  await meter.getByRole('link', { name: new RegExp(first.title) }).hover();
+  await expect(tip(first)).toBeVisible();
+  await expect(tip(first)).toHaveText(time(first));
+  await expect(page.getByRole('tooltip')).toHaveCount(1);
+  await settle(page);
+  // The note sits under the strip, so the shot reaches below it.
+  const box = (await meter.boundingBox())!;
+  await page.screenshot({ path: `.local/screenshots/path-stage-time-${testInfo.project.name}.png`, clip: { ...box, height: box.height + 80 } });
+  // From the keyboard: the description comes with the link, and Esc hides it until focus moves on.
+  await page.mouse.move(0, 0);
+  await meter.getByRole('link', { name: new RegExp(first.title) }).focus();
+  await page.keyboard.press('Tab');
+  const link = meter.getByRole('link', { name: new RegExp(second.title) });
+  await expect(link).toBeFocused();
+  await expect(link).toHaveAccessibleDescription(time(second));
+  await expect(tip(second)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(tip(second)).toBeHidden();
+  await page.keyboard.press('Shift+Tab');
+  await expect(tip(first)).toBeVisible();
 });
 
 test('a step links to its neighbours from the keyboard and keeps focus on its heading', async ({ page, context }, testInfo) => {
