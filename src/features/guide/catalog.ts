@@ -30,11 +30,11 @@ export const stages: readonly GuideStage[] = [
     { id: 'iterations', title: 'Итерации и корректировка курса', minutes: 15 },
   ] },
   { id: 'review', number: '4', title: 'Ревью', promise: 'Проверяйте как ревьюер', steps: [
-    { id: 'read-diff', title: 'Чтение diff, написанного не вами', minutes: 14 },
-    { id: 'agent-mistakes', title: 'Типичные ошибки агентов', minutes: 12 },
-    { id: 'tests-contract', title: 'Тесты как контракт', minutes: 13 },
-    { id: 'security-deps', title: 'Безопасность и зависимости', minutes: 13 },
-    { id: 'delegation-limit', title: 'Граница делегирования: когда писать руками', minutes: 11 },
+    { id: 'read-diff', title: 'Чтение diff, написанного не вами', minutes: 17 },
+    { id: 'agent-mistakes', title: 'Типичные ошибки агентов', minutes: 15 },
+    { id: 'tests-contract', title: 'Тесты как контракт', minutes: 16 },
+    { id: 'security-deps', title: 'Безопасность и зависимости', minutes: 16 },
+    { id: 'delegation-limit', title: 'Граница делегирования: когда писать руками', minutes: 14 },
   ] },
   { id: 'automation', number: '5', title: 'Автоматизация', promise: 'Автоматизируйте контроль', steps: [
     { id: 'hooks', title: 'Хуки', minutes: 14 },

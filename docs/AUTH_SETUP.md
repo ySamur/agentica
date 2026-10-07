@@ -33,6 +33,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610070002_guide_content_install_…_checkpoints.sql`: stage 1 in the new lesson format, re-checked on Claude Code 2.1.292.
    - `202610070003_guide_content_install_…_clean_context.sql`: stage 2 in the new lesson format, re-checked on Claude Code 2.1.292; the reworded 1.1 trainer.
    - `202610070004_guide_content_task_anatomy_decomposition_iterations.sql`: the rest of stage 3 in the new lesson format, re-checked on Claude Code 2.1.292.
+   - `202610070005_guide_content_read_diff_…_delegation_limit.sql`: stage 4 in the new lesson format, re-checked on Claude Code 2.1.292.
 
    The site name lives in `user_metadata.display_name`; no profiles table.
    **Edge Functions** (`supabase/functions/`; through MCP `deploy_edge_function`, or `supabase functions deploy <name> --no-verify-jwt`):
