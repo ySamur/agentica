@@ -30,6 +30,7 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610050001_guide_content_stages_4_6_capstone.sql`: stages 4–6 with balanced checks and the mark; the capstone gets the mark only (renamed likewise).
    - `202610040050_avatars.sql`: public bucket `avatars` (512 KB, WebP/PNG); members read, upload, replace and remove only `avatars/<own id>/…`.
    - `202610070001_guide_content_plan_first.sql`: step 3.2 in the new lesson format (scene, asides, trainer, sources), re-checked on Claude Code 2.1.292.
+   - `202610070002_guide_content_install_…_checkpoints.sql`: stage 1 in the new lesson format, re-checked on Claude Code 2.1.292.
 
    The site name lives in `user_metadata.display_name`; no profiles table.
    **Edge Functions** (`supabase/functions/`; through MCP `deploy_edge_function`, or `supabase functions deploy <name> --no-verify-jwt`):
