@@ -29,7 +29,19 @@ export type Block =
   // `summary` is what screen readers get instead of the animation.
   | { type: 'session'; title: string; summary: string; lines: SessionLine[] }
   | { type: 'compare'; before: CompareSide; after: CompareSide }
-  | { type: 'diagram'; name: DiagramName; caption: Inline };
+  | { type: 'diagram'; name: DiagramName; caption: Inline }
+  // The new lesson format, piloted in 3.2: a scene that opens the lesson, a bridge to a practice the reader already
+  // knows, the mechanism behind the advice, a trainer and the doc pages the facts come from.
+  | { type: 'scene'; text: Inline }
+  | { type: 'bridge'; text: Inline }
+  | { type: 'why'; text: Inline }
+  | SpotBlock
+  // code.claude.com pages only, opened in a new tab.
+  | { type: 'sources'; links: { title: string; url: string }[] };
+
+// A trainer: the member picks the item they would not let through, then the answer opens. Checked in the
+// browser and never recorded: a rehearsal, not the step's check.
+export type SpotBlock = { type: 'spot'; title: string; prompt: Inline; items: { id: string; text: Inline }[]; answer: string; reveal: Inline };
 
 export type Question = { id: string; prompt: Inline; multiple?: boolean; options: { id: string; text: Inline }[] };
 

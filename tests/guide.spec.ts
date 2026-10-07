@@ -347,7 +347,8 @@ test('a lesson teaches with its blocks: the session plays and pauses, the comman
     await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
   }
   await expect(page.locator('.compare-side')).toHaveCount(2);
-  await expect(page.getByRole('note')).toHaveCount(2);
+  // Two callouts and the pilot's two asides, «Вы это уже умеете» and «Почему так».
+  await expect(page.getByRole('note')).toHaveCount(4);
   // The check passes this step, so there are no manual marks.
   await expect(page.getByRole('button', { name: 'Выполнено' })).toHaveCount(0);
   const session = page.locator('.lesson-session');
@@ -370,6 +371,64 @@ test('a lesson teaches with its blocks: the session plays and pauses, the comman
   await expect(diagram).toHaveAttribute('data-play', 'on');
   await expectNoOverflow(page);
   await screenshot(page, `.local/screenshots/lesson-${testInfo.project.name}.png`);
+});
+
+test('the trainer opens its answer right in the lesson, records nothing and can be tried again', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  const sent: string[] = [];
+  page.on('request', request => { if (request.url().includes('/rest/v1/')) sent.push(request.url()); });
+  const spot = planFirst.lesson.blocks.find(block => block.type === 'spot') as Extract<Block, { type: 'spot' }>;
+  const trainer = page.locator('.lesson-spot');
+  const show = trainer.getByRole('button', { name: 'Показать ответ' });
+  const radios = trainer.getByRole('radio');
+  await expect(radios).toHaveCount(spot.items.length);
+  await show.click();
+  await expect(trainer.getByRole('alert')).toContainText('Выберите пункт');
+  await expect(radios.first()).toBeFocused();
+  // A wrong pick: the right item lights up, the answer explains why, and focus moves to it.
+  const wrong = spot.items.find(item => item.id !== spot.answer)!;
+  await trainer.locator(`input[value="${wrong.id}"]`).check();
+  await expect(trainer.getByRole('alert')).toHaveCount(0);
+  await show.click();
+  const explanation = trainer.locator('.spot-answer');
+  await expect(explanation).toBeFocused();
+  await expect(explanation).toContainText('Не этот пункт.');
+  await expect(trainer.locator(`[data-verdict="right"] input[value="${spot.answer}"]`)).toHaveCount(1);
+  await expect(trainer.locator(`[data-verdict="wrong"] input[value="${wrong.id}"]`)).toHaveCount(1);
+  await expect(radios.first()).toBeDisabled();
+  await screenshot(page, `.local/screenshots/lesson-spot-${testInfo.project.name}.png`, '.lesson-spot');
+  // Again, from the keyboard this time.
+  await trainer.getByRole('button', { name: 'Попробовать ещё раз' }).click();
+  await expect(radios.first()).toBeFocused();
+  await expect(trainer.locator('input:checked')).toHaveCount(0);
+  await page.keyboard.press('Space');
+  for (let index = 0; index < spot.items.findIndex(item => item.id === spot.answer); index++) await page.keyboard.press('ArrowDown');
+  await expect(trainer.locator(`input[value="${spot.answer}"]`)).toBeChecked();
+  await page.keyboard.press('Tab');
+  await expect(show).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(explanation).toBeFocused();
+  await expect(explanation).toContainText('Верно.');
+  // A rehearsal, not the check: nothing reached the server and the step is still in progress.
+  expect(sent).toEqual([]);
+  expect(auth.progress.get('plan-first')?.status).toBe('in_progress');
+});
+
+test('a lesson names its sources: code.claude.com pages that open in a new tab', async ({ page, context }) => {
+  await mockAuth(context, { signedIn: true });
+  await page.goto('/path/tasks/plan-first');
+  const block = planFirst.lesson.blocks.find(item => item.type === 'sources') as Extract<Block, { type: 'sources' }>;
+  const links = page.getByRole('navigation', { name: 'Источники' }).getByRole('link');
+  await expect(links).toHaveCount(block.links.length);
+  for (const [index, link] of block.links.entries()) {
+    await expect(links.nth(index)).toHaveAttribute('href', link.url);
+    await expect(links.nth(index)).toHaveAttribute('target', '_blank');
+    await expect(links.nth(index)).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(links.nth(index)).toContainText('откроется в новой вкладке');
+    expect(link.url.startsWith('https://code.claude.com/docs/')).toBe(true);
+  }
 });
 
 test('with reduced motion the session and the diagram rest finished', async ({ page, context }) => {

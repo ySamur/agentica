@@ -25,7 +25,7 @@ export const stages: readonly GuideStage[] = [
   ] },
   { id: 'tasks', number: '3', title: 'Постановка задач', promise: 'Планируйте прежде кода', steps: [
     { id: 'task-anatomy', title: 'Анатомия задачи: цель, границы, критерий готовности', minutes: 12 },
-    { id: 'plan-first', title: 'План до кода', minutes: 12 },
+    { id: 'plan-first', title: 'План до кода', minutes: 16 },
     { id: 'decomposition', title: 'Декомпозиция на проверяемые шаги', minutes: 14 },
     { id: 'iterations', title: 'Итерации и корректировка курса', minutes: 12 },
   ] },
