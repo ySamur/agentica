@@ -37,11 +37,11 @@ export const stages: readonly GuideStage[] = [
     { id: 'delegation-limit', title: 'Граница делегирования: когда писать руками', minutes: 14 },
   ] },
   { id: 'automation', number: '5', title: 'Автоматизация', promise: 'Автоматизируйте контроль', steps: [
-    { id: 'hooks', title: 'Хуки', minutes: 14 },
-    { id: 'commands-skills', title: 'Свои команды и skills', minutes: 13 },
-    { id: 'mcp', title: 'MCP: внешние сервисы и инструменты', minutes: 13 },
-    { id: 'git-flow', title: 'Git-процесс с агентом', minutes: 12 },
-    { id: 'agent-ci', title: 'Агент в CI', minutes: 13 },
+    { id: 'hooks', title: 'Хуки', minutes: 17 },
+    { id: 'commands-skills', title: 'Свои команды и skills', minutes: 16 },
+    { id: 'mcp', title: 'MCP: внешние сервисы и инструменты', minutes: 16 },
+    { id: 'git-flow', title: 'Git-процесс с агентом', minutes: 15 },
+    { id: 'agent-ci', title: 'Агент в CI', minutes: 16 },
   ] },
   { id: 'orchestration', number: '6', title: 'Оркестровка', promise: 'Масштабируйте себя', steps: [
     { id: 'subagents', title: 'Субагенты', minutes: 13 },
