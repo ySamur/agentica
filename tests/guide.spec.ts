@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findStep, stages, steps } from '../src/features/guide/catalog';
+import { findStep, stageMinutes, stages, steps } from '../src/features/guide/catalog';
 import { shuffled } from '../src/features/guide/lesson/shuffle';
 import type { Block, Question } from '../src/features/guide/lesson/types';
 import { mockAuth, published, userId } from './helpers/auth';
@@ -85,6 +85,40 @@ test('the route lists every stage and step, and its stage links move focus to th
   await expect(page.locator('#stage-tasks')).toBeInViewport();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: '3.1 Анатомия задачи: цель, границы, критерий готовности Не начат' })).toBeFocused();
+});
+
+test('the route map keeps the reading time of every lesson', () => {
+  for (const [stepId, { lesson }] of published) expect(findStep(stepId)!.minutes, stepId).toBe(lesson.minutes);
+});
+
+test('a stage tells its reading time on hover and keyboard focus, and Esc hides it', async ({ page, context }, testInfo) => {
+  await mockAuth(context, { signedIn: true });
+  await page.goto('/path');
+  const meter = page.getByRole('navigation', { name: 'Этапы маршрута' });
+  const [first, second] = stages;
+  const time = (stage: typeof first) => new RegExp(`^≈${stageMinutes(stage)}\\sминут\\S*\\sчтения\\s·\\s${stage.steps.length}\\sшаг`);
+  const tip = (stage: typeof first) => page.locator(`#stage-time-${stage.id}`);
+  await expect(tip(first)).toBeHidden();
+  await meter.getByRole('link', { name: new RegExp(first.title) }).hover();
+  await expect(tip(first)).toBeVisible();
+  await expect(tip(first)).toHaveText(time(first));
+  await expect(page.getByRole('tooltip')).toHaveCount(1);
+  await settle(page);
+  // The note sits under the strip, so the shot reaches below it.
+  const box = (await meter.boundingBox())!;
+  await page.screenshot({ path: `.local/screenshots/path-stage-time-${testInfo.project.name}.png`, clip: { ...box, height: box.height + 80 } });
+  // From the keyboard: the description comes with the link, and Esc hides it until focus moves on.
+  await page.mouse.move(0, 0);
+  await meter.getByRole('link', { name: new RegExp(first.title) }).focus();
+  await page.keyboard.press('Tab');
+  const link = meter.getByRole('link', { name: new RegExp(second.title) });
+  await expect(link).toBeFocused();
+  await expect(link).toHaveAccessibleDescription(time(second));
+  await expect(tip(second)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(tip(second)).toBeHidden();
+  await page.keyboard.press('Shift+Tab');
+  await expect(tip(first)).toBeVisible();
 });
 
 test('a step links to its neighbours from the keyboard and keeps focus on its heading', async ({ page, context }, testInfo) => {
@@ -313,7 +347,8 @@ test('a lesson teaches with its blocks: the session plays and pauses, the comman
     await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
   }
   await expect(page.locator('.compare-side')).toHaveCount(2);
-  await expect(page.getByRole('note')).toHaveCount(2);
+  // Two callouts and the pilot's two asides, «Вы это уже умеете» and «Почему так».
+  await expect(page.getByRole('note')).toHaveCount(4);
   // The check passes this step, so there are no manual marks.
   await expect(page.getByRole('button', { name: 'Выполнено' })).toHaveCount(0);
   const session = page.locator('.lesson-session');
@@ -336,6 +371,64 @@ test('a lesson teaches with its blocks: the session plays and pauses, the comman
   await expect(diagram).toHaveAttribute('data-play', 'on');
   await expectNoOverflow(page);
   await screenshot(page, `.local/screenshots/lesson-${testInfo.project.name}.png`);
+});
+
+test('the trainer opens its answer right in the lesson, records nothing and can be tried again', async ({ page, context }, testInfo) => {
+  const auth = await mockAuth(context, { signedIn: true });
+  await page.goto('/path/tasks/plan-first');
+  await expect(page.locator('.step-state')).toHaveText('В процессе');
+  const sent: string[] = [];
+  page.on('request', request => { if (request.url().includes('/rest/v1/')) sent.push(request.url()); });
+  const spot = planFirst.lesson.blocks.find(block => block.type === 'spot') as Extract<Block, { type: 'spot' }>;
+  const trainer = page.locator('.lesson-spot');
+  const show = trainer.getByRole('button', { name: 'Показать ответ' });
+  const radios = trainer.getByRole('radio');
+  await expect(radios).toHaveCount(spot.items.length);
+  await show.click();
+  await expect(trainer.getByRole('alert')).toContainText('Выберите пункт');
+  await expect(radios.first()).toBeFocused();
+  // A wrong pick: the right item lights up, the answer explains why, and focus moves to it.
+  const wrong = spot.items.find(item => item.id !== spot.answer)!;
+  await trainer.locator(`input[value="${wrong.id}"]`).check();
+  await expect(trainer.getByRole('alert')).toHaveCount(0);
+  await show.click();
+  const explanation = trainer.locator('.spot-answer');
+  await expect(explanation).toBeFocused();
+  await expect(explanation).toContainText('Не этот пункт.');
+  await expect(trainer.locator(`[data-verdict="right"] input[value="${spot.answer}"]`)).toHaveCount(1);
+  await expect(trainer.locator(`[data-verdict="wrong"] input[value="${wrong.id}"]`)).toHaveCount(1);
+  await expect(radios.first()).toBeDisabled();
+  await screenshot(page, `.local/screenshots/lesson-spot-${testInfo.project.name}.png`, '.lesson-spot');
+  // Again, from the keyboard this time.
+  await trainer.getByRole('button', { name: 'Попробовать ещё раз' }).click();
+  await expect(radios.first()).toBeFocused();
+  await expect(trainer.locator('input:checked')).toHaveCount(0);
+  await page.keyboard.press('Space');
+  for (let index = 0; index < spot.items.findIndex(item => item.id === spot.answer); index++) await page.keyboard.press('ArrowDown');
+  await expect(trainer.locator(`input[value="${spot.answer}"]`)).toBeChecked();
+  await page.keyboard.press('Tab');
+  await expect(show).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(explanation).toBeFocused();
+  await expect(explanation).toContainText('Верно.');
+  // A rehearsal, not the check: nothing reached the server and the step is still in progress.
+  expect(sent).toEqual([]);
+  expect(auth.progress.get('plan-first')?.status).toBe('in_progress');
+});
+
+test('a lesson names its sources: code.claude.com pages that open in a new tab', async ({ page, context }) => {
+  await mockAuth(context, { signedIn: true });
+  await page.goto('/path/tasks/plan-first');
+  const block = planFirst.lesson.blocks.find(item => item.type === 'sources') as Extract<Block, { type: 'sources' }>;
+  const links = page.getByRole('navigation', { name: 'Источники' }).getByRole('link');
+  await expect(links).toHaveCount(block.links.length);
+  for (const [index, link] of block.links.entries()) {
+    await expect(links.nth(index)).toHaveAttribute('href', link.url);
+    await expect(links.nth(index)).toHaveAttribute('target', '_blank');
+    await expect(links.nth(index)).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(links.nth(index)).toContainText('откроется в новой вкладке');
+    expect(link.url.startsWith('https://code.claude.com/docs/')).toBe(true);
+  }
 });
 
 test('with reduced motion the session and the diagram rest finished', async ({ page, context }) => {

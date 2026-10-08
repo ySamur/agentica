@@ -1,18 +1,22 @@
 import type { LessonSource } from './types.ts';
 
 // 4.1 Чтение diff, написанного не вами. Facts: code.claude.com/docs/en/commands (/diff: uncommitted
-// changes and edits made in the session), /code-review (a background review of the current diff,
-// branch or PR; correctness, reuse, simplification — not style; --fix, --comment; alias /review),
+// changes and edits made in the session), /code-review (a background subagent reviews the current diff,
+// branch or PR for correctness bugs, plus reuse and simplification by model and effort; --fix,
+// --comment; alias /review),
 // /vs-code and /desktop (diffs beside the code), /best-practices (adversarial review step; flag only
 // what breaks correctness or requirements).
 export const lesson: LessonSource = {
   stepId: 'read-diff',
-  verified: '2026-10-05',
-  claudeCode: '2.1.289',
-  minutes: 14,
+  verified: '2026-10-07',
+  claudeCode: '2.1.292',
+  minutes: 17,
   outcome: 'Вы читаете diff агента как ревьюер: знаете, с чего начать и где прячутся проблемы, а `/diff` и `/code-review` используете как помощников, а не замену себе.',
   blocks: [
+    { type: 'scene', text: 'Агент закончил промокоды и отчитался: «Готово, все тесты зелёные». Вы пролистали diff — код аккуратный, имена понятные — и смержили. Через неделю выяснилось, что просроченные промокоды снова работают: тест на них агент удалил, а в отчёте об этом не было ни слова.' },
     { type: 'text', text: 'Код, который написал агент, — чужой код. Читать его нужно так же внимательно, как пулл-реквест нового коллеги: уверенный стиль и зелёные тесты ещё не значат, что задача решена.' },
+    { type: 'bridge', text: 'Вы ревьюили пулл-реквесты новых коллег: смотрели, какие файлы задеты и что стало с тестами, и только потом вчитывались в логику. Diff агента — такой же PR, и порядок чтения тот же.' },
+    { type: 'why', text: 'Агент идёт к тому, что вы назвали целью, — например, к зелёным тестам. Если путь через код трудный, короткий путь лежит через сами тесты, и отчёт «всё проходит» при этом остаётся правдой. Поэтому сначала читают тесты и границы: там видно, что именно стало зелёным.' },
     { type: 'heading', text: 'Порядок чтения' },
     {
       type: 'list',
@@ -41,12 +45,25 @@ export const lesson: LessonSource = {
       ],
       caption: 'Тесты «проходят», потому что агент ослабил одно ожидание и удалил неудобный тест. В отчёте он напишет: «все тесты зелёные».',
     },
+    {
+      type: 'spot',
+      title: 'Diff агента · исправление промокода',
+      prompt: 'Агент починил расчёт промокода. Какой файл в его diff вызывает первый вопрос?',
+      items: [
+        { id: 'promo', text: '`src/cart/promo.ts` · +12 −4' },
+        { id: 'promo-test', text: '`tests/cart/promo.spec.ts` · +8' },
+        { id: 'session', text: '`src/auth/session.ts` · +3 −1' },
+        { id: 'changelog', text: '`CHANGELOG.md` · +1' },
+      ],
+      answer: 'session',
+      reveal: 'Задача про промокоды, а агент трогал сессии входа. Причина может быть, но её стоит услышать до того, как читать остальное: неожиданный файл в diff — первый вопрос к агенту. Код промокода, тест к нему и строка в журнале изменений ожидаемы.',
+    },
     { type: 'heading', text: 'Инструменты' },
     {
       type: 'list',
       items: [
         '`/diff` показывает незакоммиченные изменения и правки, которые агент сделал в сессии.',
-        '`/code-review` запускает ревью в отдельном фоновом агенте: он ищет ошибки и лишнюю сложность, а не стиль. С `--fix` применит найденное, с `--comment` оставит замечания в PR.',
+        '`/code-review` запускает ревью в отдельном фоновом агенте: он ищет ошибки, а в зависимости от модели и уровня усердия — ещё и что упростить. С `--fix` применит найденное, с `--comment` оставит замечания в PR.',
         'В VS Code и десктопном приложении diff виден рядом с кодом — читать удобнее, чем в терминале.',
       ],
     },
@@ -68,7 +85,15 @@ export const lesson: LessonSource = {
       ],
     },
     { type: 'callout', tone: 'trap', title: 'Ревью агента не заменяет ваше', text: 'Ревьюер в чистом контексте ловит то, что пропустил автор, — это полезно. Но за код, который уходит в main, отвечаете вы: тесты и публичные границы читайте сами.' },
-    { type: 'callout', tone: 'tip', title: 'Ревьюер с чистого листа', text: 'Документация советует добавлять «враждебное» ревью: субагент видит только diff и план и ищет расхождения. Попросите его отмечать лишь то, что ломает корректность или требования, — иначе погоня за каждым замечанием приведёт к переусложнению.' },
+    { type: 'callout', tone: 'tip', title: 'Ревьюер с чистого листа', text: 'Добавьте «враждебное» ревью: субагент видит только diff и план и ищет расхождения. Попросите его отмечать лишь то, что ломает корректность или требования, — иначе погоня за каждым замечанием приведёт к переусложнению.' },
+    {
+      type: 'sources',
+      links: [
+        { title: 'Ревью diff в терминале: /code-review, --fix и --comment', url: 'https://code.claude.com/docs/en/code-review#review-a-diff-locally' },
+        { title: 'Команды: /diff', url: 'https://code.claude.com/docs/en/commands' },
+        { title: 'Лучшие практики: ревью в чистом контексте', url: 'https://code.claude.com/docs/en/best-practices' },
+      ],
+    },
   ],
   practice: {
     task: 'Возьмите последний diff, который написал агент в вашем проекте. Прочитайте его по порядку: файлы, тесты, публичные границы, логика. Затем запустите `/code-review` и сравните его находки со своими.',

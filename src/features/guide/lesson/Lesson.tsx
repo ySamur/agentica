@@ -15,6 +15,7 @@ import { StepLadder } from './diagrams/StepLadder';
 import { Subagents } from './diagrams/Subagents';
 import { Rich } from './Rich';
 import { SessionReplay } from './SessionReplay';
+import { SpotTrainer } from './SpotTrainer';
 import type { Block, DiagramName, Lesson } from './types';
 
 const diagrams: Record<DiagramName, ComponentType> = { 'plan-loop': PlanLoop, checkpoints: Checkpoints, 'permission-modes': PermissionModes, 'context-window': ContextWindow, 'memory-layers': MemoryLayers, 'step-ladder': StepLadder, 'delegation-grid': DelegationGrid, 'hook-events': HookEvents, subagents: Subagents };
@@ -46,6 +47,19 @@ function LessonBlock({ block }: { block: Block }) {
       const Diagram = diagrams[block.name];
       return Diagram ? <figure className="lesson-diagram"><Diagram /><figcaption><Rich text={block.caption} /></figcaption></figure> : null;
     }
+    case 'scene': return <p className="lesson-scene"><Rich text={block.text} /></p>;
+    case 'bridge':
+    case 'why': return <div className="lesson-aside" data-kind={block.type} role="note">
+      <Icon name={block.type === 'bridge' ? 'branch' : 'layers'} size={18} />
+      <div><strong>{block.type === 'bridge' ? 'Вы это уже умеете' : 'Почему так'}</strong><p><Rich text={block.text} /></p></div>
+    </div>;
+    case 'spot': return <SpotTrainer block={block} />;
+    case 'sources': return <nav className="lesson-sources" aria-label="Источники">
+      <span className="story-eyebrow"><i /> Источники</span>
+      <ul>{block.links.map(link => <li key={link.url}>
+        <a href={link.url} target="_blank" rel="noopener noreferrer">{nbsp(link.title)}<span className="visually-hidden"> (откроется в новой вкладке)</span> <Icon name="arrow" size={14} /></a>
+      </li>)}</ul>
+    </nav>;
     // A block from newer content than this page knows: skip it rather than fail.
     default: return null;
   }

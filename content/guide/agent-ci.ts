@@ -2,25 +2,28 @@ import type { LessonSource } from './types.ts';
 
 // 5.5 Агент в CI. Facts: code.claude.com/docs/en/github-actions (/install-github-app needs the gh CLI
 // and works only with github.com repositories; workflow with anthropics/claude-code-action@v1 and the
-// ANTHROPIC_API_KEY secret; @claude mentions without `prompt`, automation with `prompt`; minimal
-// permissions), /headless (claude -p, --output-format json, --allowedTools, --max-turns; --bare is
+// ANTHROPIC_API_KEY secret; @claude mentions without `prompt`, automation with `prompt`; the
+// mention example's permissions, actions: read for CI results), /headless (claude -p, --output-format json, --allowedTools, --max-turns; --bare is
 // recommended for CI and scripts, skips auto-discovery of hooks, skills, plugins, MCP servers, auto
 // memory and CLAUDE.md, never reads OAuth, takes ANTHROPIC_API_KEY, and will become the default for
 // -p) and /gitlab-ci-cd (a GitLab example exists).
 export const lesson: LessonSource = {
   stepId: 'agent-ci',
-  verified: '2026-10-05',
-  claudeCode: '2.1.289',
-  minutes: 13,
+  verified: '2026-10-07',
+  claudeCode: '2.1.292',
+  minutes: 16,
   outcome: 'Вы запускаете агента в CI — ответы на `@claude`, автоматическое ревью, безголовые прогоны `claude -p` — с секретами и правами под контролем.',
   blocks: [
+    { type: 'scene', text: 'Кто-то написал в PR: «@claude поправь опечатку в README». Агент в CI поправил опечатку — и заодно обновил версию Node в конфиге деплоя: workflow давал ему все инструменты и запись в репозиторий. Esc никто не нажал — в CI рядом никого нет.' },
     { type: 'text', text: 'Агент не обязан жить только в вашем терминале. В CI он отвечает на упоминания в задачах и PR, ревьюит каждый PR и выполняет рутину по расписанию — тот же Claude Code, только без интерактива.' },
+    { type: 'bridge', text: 'Вы заводили для CI сервисный аккаунт: отдельный токен, минимальные права, секреты в хранилище, а не в коде. Агент в CI — такой же сервисный аккаунт, только умеет больше и поэтому нуждается в более узких рамках.' },
+    { type: 'why', text: 'В терминале вы видите каждый шаг и можете остановить агента. В CI он работает без наблюдателя: всё, что разрешено, он может сделать, и узнаете вы об этом из итогового PR или лога. Поэтому рамки в CI задают заранее: какие инструменты, сколько ходов, какие права у workflow.' },
     { type: 'heading', text: 'GitHub Actions за одну команду' },
     { type: 'command', code: '/install-github-app', caption: 'Запустите в Claude Code: команда установит приложение GitHub, добавит секрет и подготовит файл workflow. Нужен GitHub CLI `gh`, и работает она только с репозиториями на github.com.' },
     {
       type: 'code',
       file: '.github/workflows/claude.yml',
-      code: "name: Claude Code\non:\n  issue_comment:\n    types: [created]\njobs:\n  claude:\n    if: contains(github.event.comment.body, '@claude')\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n      pull-requests: write\n      issues: write\n      id-token: write\n    steps:\n      - uses: actions/checkout@v6\n      - uses: anthropics/claude-code-action@v1\n        with:\n          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}",
+      code: "name: Claude Code\non:\n  issue_comment:\n    types: [created]\njobs:\n  claude:\n    if: contains(github.event.comment.body, '@claude')\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n      pull-requests: write\n      issues: write\n      id-token: write\n      actions: read\n    steps:\n      - uses: actions/checkout@v6\n      - uses: anthropics/claude-code-action@v1\n        with:\n          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}",
       caption: 'Теперь комментарий «@claude поправь опечатку в README» в задаче или PR запустит агента. Ключ хранится в секретах репозитория, а не в файле.',
     },
     { type: 'heading', text: 'Два режима' },
@@ -32,7 +35,7 @@ export const lesson: LessonSource = {
       ],
     },
     { type: 'heading', text: 'Безголовый запуск' },
-    { type: 'text', text: 'В любом CI, не только в GitHub, работает `claude -p`: запрос без интерактива, результат — в stdout. Для CI и скриптов документация советует добавлять `--bare`, а со временем он станет для `-p` умолчанием. Для GitLab в документации есть готовый пример.' },
+    { type: 'text', text: 'В любом CI, не только в GitHub, работает `claude -p`: запрос без интерактива, результат — в stdout. Для CI и скриптов добавляйте `--bare`: со временем он станет для `-p` умолчанием. Для GitLab CI/CD есть отдельная инструкция.' },
     { type: 'command', code: 'claude -p "Найди в изменениях ветки места без тестов" --bare --output-format json --allowedTools "Read,Grep,Glob" --max-turns 10', caption: '`--bare` не подгружает хуки, навыки, плагины, MCP-серверы, CLAUDE.md и авто-память, а ключ берёт из `ANTHROPIC_API_KEY`. `--allowedTools` разрешает только чтение, `--max-turns` ограничивает число ходов, а JSON удобно разбирать скриптом.' },
     {
       type: 'session',
@@ -45,8 +48,29 @@ export const lesson: LessonSource = {
         { kind: 'done', text: '{"result": "Без тестов: 1 место", "session_id": "…"}' },
       ],
     },
+    {
+      type: 'spot',
+      title: 'Workflow ревью · что ему выдать',
+      prompt: 'Workflow только ревьюит PR и оставляет замечания. Что из этого ему лишнее?',
+      items: [
+        { id: 'read', text: '`contents: read` — читать код репозитория.' },
+        { id: 'comments', text: '`pull-requests: write` — оставлять замечания в PR.' },
+        { id: 'push', text: '`contents: write` — пушить коммиты в ветки.' },
+        { id: 'key', text: '`ANTHROPIC_API_KEY` из секретов репозитория.' },
+      ],
+      answer: 'push',
+      reveal: 'Ревью читает код и пишет комментарии — пушить ему незачем. Лишнее право в CI опасно вдвойне: рядом нет никого, кто остановит агента. Чтение кода, комментарии в PR и ключ из секретов — ровно то, что нужно.',
+    },
     { type: 'callout', tone: 'trap', title: 'В CI агент работает без вас', text: 'Никто не нажмёт Esc и не отклонит правку. Давайте минимальные права: инструменты — через `--allowedTools`, права workflow — только нужные, ключи — только в секретах. Изменения агента из CI всё равно проходят ревью перед слиянием.' },
     { type: 'callout', tone: 'tip', title: 'Начните с чтения', text: 'Первый сценарий в CI — ревью и поиск проблем, где агент только читает и комментирует. Задачи с правками добавляйте, когда увидите, как он себя ведёт.' },
+    {
+      type: 'sources',
+      links: [
+        { title: 'GitHub Actions: /install-github-app и claude-code-action', url: 'https://code.claude.com/docs/en/github-actions' },
+        { title: 'Безголовый режим: claude -p, --bare и флаги', url: 'https://code.claude.com/docs/en/headless' },
+        { title: 'GitLab CI/CD', url: 'https://code.claude.com/docs/en/gitlab-ci-cd' },
+      ],
+    },
   ],
   practice: {
     task: 'Подключите агента к репозиторию через `/install-github-app` или вручную. В комментарии к тестовой задаче попросите `@claude` сделать мелкую правку и откройте PR, который он создаст. Проверьте, что ключ лежит в секретах, а права workflow минимальны.',
