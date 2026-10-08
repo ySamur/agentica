@@ -29,6 +29,14 @@ The owner does these steps in their own accounts; never handle their secrets. Un
    - `202610040004_guide_content_stages_1_3.sql`: stages 1–3 with balanced checks and the «Проверено на Claude Code» mark (renamed from the generator's 190-character name).
    - `202610050001_guide_content_stages_4_6_capstone.sql`: stages 4–6 with balanced checks and the mark; the capstone gets the mark only (renamed likewise).
    - `202610040050_avatars.sql`: public bucket `avatars` (512 KB, WebP/PNG); members read, upload, replace and remove only `avatars/<own id>/…`.
+   - `202610070001_guide_content_plan_first.sql`: step 3.2 in the new lesson format (scene, asides, trainer, sources), re-checked on Claude Code 2.1.292.
+   - `202610070002_guide_content_install_…_checkpoints.sql`: stage 1 in the new lesson format, re-checked on Claude Code 2.1.292.
+   - `202610070003_guide_content_install_…_clean_context.sql`: stage 2 in the new lesson format, re-checked on Claude Code 2.1.292; the reworded 1.1 trainer.
+   - `202610070004_guide_content_task_anatomy_decomposition_iterations.sql`: the rest of stage 3 in the new lesson format, re-checked on Claude Code 2.1.292.
+   - `202610070005_guide_content_read_diff_…_delegation_limit.sql`: stage 4 in the new lesson format, re-checked on Claude Code 2.1.292.
+   - `202610070006_guide_content_hooks_…_agent_ci.sql`: stage 5 in the new lesson format, re-checked on Claude Code 2.1.292.
+   - `202610070007_guide_content_subagents_…_economics.sql`: stage 6 in the new lesson format, re-checked on Claude Code 2.1.292.
+   - `202610070008_guide_content_idea_to_pr_before_after_public_profile.sql`: the capstone in the new lesson format (scene, asides, sources; no trainer, as it has no check).
 
    The site name lives in `user_metadata.display_name`; no profiles table.
    **Edge Functions** (`supabase/functions/`; through MCP `deploy_edge_function`, or `supabase functions deploy <name> --no-verify-jwt`):

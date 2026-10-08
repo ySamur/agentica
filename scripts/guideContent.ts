@@ -17,6 +17,16 @@ function problems(source: LessonSource) {
   if (!stepIds.has(source.stepId)) found.push('the step is not in catalog.ts');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(source.verified)) found.push('`verified` is not YYYY-MM-DD');
   if (!/^\d+\.\d+\.\d+$/.test(source.claudeCode)) found.push('`claudeCode` is not a release like 2.1.289');
+  for (const block of source.blocks) {
+    if (block.type === 'spot') {
+      const ids = block.items.map(item => item.id);
+      if (!unique(ids) || ids.some(id => !idPattern.test(id))) found.push(`spot «${block.title}»: item ids repeat or are not kebab-case`);
+      if (!ids.includes(block.answer)) found.push(`spot «${block.title}»: the answer is not one of its items`);
+    }
+    if (block.type === 'sources') {
+      for (const link of block.links) if (!link.url.startsWith('https://code.claude.com/docs/')) found.push(`sources: ${link.url} is not a code.claude.com docs page`);
+    }
+  }
   if (!source.check) return found;
   const { questions } = source.check;
   if (questions.length < 2 || questions.length > 4) found.push('a check has 2 to 4 questions');

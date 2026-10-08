@@ -23,6 +23,14 @@
   .stage-meter > li[data-complete] .stage-meter-code { color: var(--mint); }
   .stage-meter-title { grid-column: 1 / -1; min-height: 2.6em; font-size: 13px; line-height: 1.3; }
   .stage-meter-cell > i { grid-column: 1 / -1; }
+  /* On the route page: a stage's reading time under its cell, on hover or keyboard focus; Esc hides it. The edge cells
+     align it to their edge, and an invisible bridge keeps it open while the pointer moves onto it. */
+  .stage-meter > li:has(> .stage-time) { position: relative; }
+  .stage-time { position: absolute; top: calc(100% + 10px); left: 50%; z-index: 5; translate: var(--shift, -50%) var(--lift, -4px); padding: 9px 13px; border: 1px solid var(--edge); border-radius: 12px; background: #11131ff5; font-size: 13px; line-height: 1.4; color: var(--soft); white-space: nowrap; box-shadow: 0 14px 40px -14px #000000c0; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .18s, translate .18s, visibility .18s; }
+  .stage-time::before { content: ''; position: absolute; inset: -12px 0 100%; }
+  .stage-meter > li:is(:hover, :has(:focus-visible)):not([data-dismissed]) > .stage-time { --lift: 0px; opacity: 1; visibility: visible; pointer-events: auto; }
+  .stage-meter > li:first-child > .stage-time { left: 0; --shift: 0%; }
+  .stage-meter > li:last-child > .stage-time { left: auto; right: 0; --shift: 0%; }
 
   /* Cabinet. */
   .cabinet { display: grid; align-content: start; gap: 64px; }
@@ -102,6 +110,36 @@
   .lesson-callout[data-tone="trap"] > svg { color: var(--coral); }
   .lesson-callout strong { display: block; margin-bottom: 4px; }
   .lesson-callout p { font-size: 16px; line-height: 1.7; }
+
+  /* The new lesson format (pilot in 3.2): an opening scene, two asides, a trainer and the sources. */
+  .lesson-scene { max-width: 68ch; padding: 2px 0 2px 22px; border-left: 2px solid transparent; border-image: linear-gradient(180deg, #ffb48c, #ff72b0 45%, #a28fff) 1; font-size: 19px; line-height: 1.7; color: var(--text); text-wrap: pretty; }
+  .lesson-aside { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; max-width: 76ch; padding: 20px 22px; border: 1px solid #62e6d140; border-radius: 18px; background: #62e6d10a; }
+  .lesson-aside > svg { margin-top: 4px; color: var(--mint); }
+  .lesson-aside[data-kind="why"] { border-color: #ffffff22; background: #ffffff06; }
+  .lesson-aside[data-kind="why"] > svg { color: #ffb48c; }
+  .lesson-aside strong { display: block; margin-bottom: 4px; }
+  .lesson-aside p { font-size: 16px; line-height: 1.7; }
+  .lesson-spot { max-width: 76ch; margin: 6px 0; }
+  .lesson-spot form { display: grid; gap: 16px; }
+  .spot-plan { display: grid; min-width: 0; margin: 0; padding: 0; border: 0; }
+  .spot-plan > legend { float: left; display: grid; justify-items: start; gap: 10px; width: 100%; padding: 0 0 16px; }
+  .spot-prompt { font-size: 18px; font-weight: 500; line-height: 1.5; color: var(--text); }
+  .spot-plan > .code-bar { clear: both; }
+  .spot-items { display: grid; gap: 8px; margin: 0; padding: 14px; list-style: none; border: 1px solid #ffffff1c; border-radius: 0 0 14px 14px; background: #0b0d1c; }
+  .spot-item label { display: flex; gap: 12px; font-size: 15.5px; }
+  .spot-plan:disabled .spot-item label { cursor: default; }
+  .spot-number { padding-top: 2px; font-family: var(--mono); font-size: 12px; color: var(--dim); }
+  .check-option.spot-item[data-verdict="right"] { border-color: #62e6d180; background: #62e6d114; }
+  .check-option.spot-item[data-verdict="wrong"] { border-color: #ff947080; background: #ff947010; }
+  .spot-result { display: grid; justify-items: start; gap: 12px; }
+  .spot-answer { max-width: 68ch; padding: 16px 18px; border-radius: 14px; background: #ff94700f; font-size: 15.5px; line-height: 1.65; color: var(--accent-ink); }
+  .spot-answer[data-right] { background: #62e6d112; color: var(--mint); }
+  .spot-answer:focus { outline: none; }
+  .lesson-sources { display: grid; justify-items: start; gap: 12px; margin-top: 14px; padding-top: 22px; border-top: 1px solid var(--edge); }
+  .lesson-sources ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .lesson-sources a { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--soft); text-decoration: underline; text-decoration-color: #ffffff30; text-underline-offset: 4px; transition: color .2s, text-decoration-color .2s; }
+  .lesson-sources a:hover { color: var(--text); text-decoration-color: currentColor; }
+  .lesson-sources a > svg { rotate: -45deg; }
   .lesson-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-block: 6px; }
   .compare-side { display: grid; align-content: start; gap: 14px; padding: 22px; border: 1px solid var(--edge); border-radius: 20px; background: #ffffff06; }
   .compare-side[data-side="after"] { border-color: #62e6d140; background: linear-gradient(180deg, #62e6d10e, #ffffff03); }
